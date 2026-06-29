@@ -1,0 +1,4 @@
+node_modules/
+dist/
+coverage/
+apps/api/prisma/schema.prisma

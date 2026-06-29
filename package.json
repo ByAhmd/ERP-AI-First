@@ -1,0 +1,30 @@
+{
+  "name": "erp-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Saudi-first AI-assisted ERP and accounting platform backend foundation.",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @erp-ai/api",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "format": "npm run format:code && npm run prisma:format",
+    "format:code": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
+    "prisma:generate": "npm run prisma:generate --workspace @erp-ai/api",
+    "prisma:format": "npm run prisma:format --workspace @erp-ai/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace @erp-ai/api",
+    "prisma:studio": "npm run prisma:studio --workspace @erp-ai/api"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

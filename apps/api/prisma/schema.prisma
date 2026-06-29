@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  Active
+  Suspended
+}
+
+enum UserStatus {
+  Active
+  Invited
+  Disabled
+}
+
+enum TenantUserStatus {
+  Active
+  Invited
+  Disabled
+}
+
+enum AccountingPeriodStatus {
+  Open
+  Closed
+}
+
+enum AccountType {
+  Asset
+  Liability
+  Equity
+  Revenue
+  Expense
+}
+
+enum ChartOfAccountStatus {
+  Active
+  Inactive
+}
+
+enum JournalEntryStatus {
+  Draft
+  Posted
+}
+
+model Tenant {
+  id                String             @id @default(uuid())
+  name              String
+  commercialRegNo   String?
+  vatRegistrationNo String?
+  country           String             @default("SA")
+  currency          String             @default("SAR")
+  status            TenantStatus       @default(Active)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenantUsers       TenantUser[]
+  roles             Role[]
+  permissions       Permission[]
+  auditLogs         AuditLog[]
+  branches          Branch[]
+  costCenters       CostCenter[]
+  accountingPeriods AccountingPeriod[]
+  chartOfAccounts   ChartOfAccount[]
+  journalEntries    JournalEntry[]
+
+  @@index([status])
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  fullName     String
+  passwordHash String?
+  status       UserStatus   @default(Invited)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  tenantUsers  TenantUser[]
+  auditLogs    AuditLog[]
+}
+
+model TenantUser {
+  id        String           @id @default(uuid())
+  tenantId  String
+  userId    String
+  roleId    String?
+  status    TenantUserStatus @default(Invited)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  tenant    Tenant           @relation(fields: [tenantId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
+  role      Role?            @relation(fields: [roleId], references: [id])
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  tenantId        String
+  name            String
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  tenantUsers     TenantUser[]
+  rolePermissions RolePermission[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  tenantId        String
+  key             String
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  rolePermissions RolePermission[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  actorUser   User?    @relation(fields: [actorUserId], references: [id])
+
+  @@index([tenantId])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  code      String
+  status    String   @default("Active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model CostCenter {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  code      String
+  status    String   @default("Active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model AccountingPeriod {
+  id        String                 @id @default(uuid())
+  tenantId  String
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    AccountingPeriodStatus @default(Open)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  tenant    Tenant                 @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model ChartOfAccount {
+  id           String               @id @default(uuid())
+  tenantId     String
+  parentId     String?
+  code         String
+  name         String
+  type         AccountType
+  status       ChartOfAccountStatus @default(Active)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  tenant       Tenant               @relation(fields: [tenantId], references: [id])
+  parent       ChartOfAccount?      @relation("ChartOfAccountHierarchy", fields: [parentId], references: [id])
+  children     ChartOfAccount[]     @relation("ChartOfAccountHierarchy")
+  journalLines JournalEntryLine[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([parentId])
+}
+
+model JournalEntry {
+  id          String             @id @default(uuid())
+  tenantId    String
+  entryNumber String
+  entryDate   DateTime
+  description String?
+  status      JournalEntryStatus @default(Draft)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  lines       JournalEntryLine[]
+
+  @@unique([tenantId, entryNumber])
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model JournalEntryLine {
+  id             String         @id @default(uuid())
+  tenantId       String
+  journalEntryId String
+  accountId      String
+  description    String?
+  debit          Decimal        @default(0) @db.Decimal(18, 2)
+  credit         Decimal        @default(0) @db.Decimal(18, 2)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  journalEntry   JournalEntry   @relation(fields: [journalEntryId], references: [id])
+  account        ChartOfAccount @relation(fields: [accountId], references: [id])
+
+  @@index([tenantId])
+  @@index([journalEntryId])
+  @@index([accountId])
+}
