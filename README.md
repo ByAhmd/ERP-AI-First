@@ -143,6 +143,4 @@ Not implemented now:
 - Real ZATCA XML, QR codes, cryptographic stamps, or Fatoora integration
 - VAT, Zakat, Withholding Tax, GOSI, or WPS filing logic
 
-## Next Recommended Task
-
-Implement **Phase 3: Compliance & Tax (KSA)**. This will introduce the foundation for VAT engines, ZATCA Phase II integration, Withholding Tax, Zakat calculations, and GOSI rules.
+Implement **Phase 3: Business Documents**. This will introduce the foundation for Contacts (customers, suppliers), Sales Invoices, Purchase Invoices, Payments, and Document numbering sequences.
