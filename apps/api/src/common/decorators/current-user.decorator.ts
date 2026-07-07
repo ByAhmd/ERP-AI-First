@@ -7,8 +7,10 @@ export interface RequestUser {
 }
 
 export const CurrentUser = createParamDecorator(
-  (_data: unknown, _context: ExecutionContext): RequestUser | undefined => {
-    // TODO: Return authenticated user once AuthModule is implemented.
-    return undefined;
+  (data: keyof RequestUser | undefined, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user as RequestUser;
+
+    return data ? user?.[data] : user;
   },
 );

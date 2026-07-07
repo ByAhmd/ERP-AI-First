@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
 enum TenantStatus {
   Active
   Suspended
@@ -47,6 +49,8 @@ enum JournalEntryStatus {
   Posted
 }
 
+// ─── Core Identity ───────────────────────────────────────────────────────────
+
 model Tenant {
   id                String             @id @default(uuid())
   name              String
@@ -55,6 +59,7 @@ model Tenant {
   country           String             @default("SA")
   currency          String             @default("SAR")
   status            TenantStatus       @default(Active)
+  settings          Json?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   tenantUsers       TenantUser[]
@@ -71,15 +76,25 @@ model Tenant {
 }
 
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  fullName     String
-  passwordHash String?
-  status       UserStatus   @default(Invited)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  tenantUsers  TenantUser[]
-  auditLogs    AuditLog[]
+  id                  String       @id @default(uuid())
+  email               String       @unique
+  fullName            String
+  passwordHash        String?
+  passwordChangedAt   DateTime?
+  failedLoginAttempts Int          @default(0)
+  lockedUntil         DateTime?
+  mfaEnabled          Boolean      @default(false)
+  mfaSecret           String?
+  status              UserStatus   @default(Invited)
+  lastLoginAt         DateTime?
+  lastLoginIp         String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  tenantUsers         TenantUser[]
+  auditLogs           AuditLog[]
+
+  @@index([email])
+  @@index([status])
 }
 
 model TenantUser {
@@ -99,11 +114,14 @@ model TenantUser {
   @@index([userId])
 }
 
+// ─── Authorization ───────────────────────────────────────────────────────────
+
 model Role {
   id              String           @id @default(uuid())
   tenantId        String
   name            String
   description     String?
+  isSystemRole    Boolean          @default(false)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   tenant          Tenant           @relation(fields: [tenantId], references: [id])
@@ -140,6 +158,8 @@ model RolePermission {
   @@unique([roleId, permissionId])
 }
 
+// ─── Audit ───────────────────────────────────────────────────────────────────
+
 model AuditLog {
   id          String   @id @default(uuid())
   tenantId    String?
@@ -158,7 +178,11 @@ model AuditLog {
   @@index([tenantId])
   @@index([actorUserId])
   @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([action])
 }
+
+// ─── Organization ────────────────────────────────────────────────────────────
 
 model Branch {
   id        String   @id @default(uuid())
@@ -187,6 +211,8 @@ model CostCenter {
   @@unique([tenantId, code])
   @@index([tenantId])
 }
+
+// ─── Accounting ──────────────────────────────────────────────────────────────
 
 model AccountingPeriod {
   id        String                 @id @default(uuid())

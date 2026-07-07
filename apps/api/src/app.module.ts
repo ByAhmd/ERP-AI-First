@@ -1,6 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { appConfig } from './config/app.config';
+import { validateEnv } from './config/env.validation';
+import { ThrottlerConfigService } from './config/throttler.config';
 import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './database/redis.module';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AccountingPeriodsModule } from './modules/accounting/accounting-periods/accounting-periods.module';
 import { ChartOfAccountsModule } from './modules/accounting/chart-of-accounts/chart-of-accounts.module';
 import { JournalEntriesModule } from './modules/accounting/journal-entries/journal-entries.module';
@@ -20,8 +27,16 @@ import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateEnv,
+      load: [appConfig],
+    }),
+    ThrottlerModule.forRootAsync({
+      useClass: ThrottlerConfigService,
+    }),
     DatabaseModule,
+    RedisModule,
     HealthModule,
     TenantsModule,
     UsersModule,
@@ -38,6 +53,12 @@ import { UsersModule } from './modules/users/users.module';
     WhtModule,
     GosiModule,
     WpsModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
   ],
 })
 export class AppModule {}
