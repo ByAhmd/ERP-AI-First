@@ -125,16 +125,20 @@ Implemented now:
 - Tenant, user, role, permission, audit, accounting, and Saudi compliance module structure
 - Draft journal entry balance validation
 - Initial tests
+- **[Phase 1]** Full Authentication (Argon2id, JWT, Redis refresh tokens)
+- **[Phase 1]** Security Hardening (Helmet, Throttler, Global Exceptions)
+- **[Phase 1]** Tenant context enforcement (Interceptors, Decorators)
+- **[Phase 1]** RBAC (Roles & Permissions with DB-driven dynamic guards)
+- **[Phase 1]** Audit Logging (Interceptors, paginated querying)
 
 Not implemented now:
 
 - Frontend
-- Full authentication
 - AI logic
-- Full accounting engine
+- Full accounting engine (in progress)
 - Real ZATCA XML, QR codes, cryptographic stamps, or Fatoora integration
 - VAT, Zakat, Withholding Tax, GOSI, or WPS filing logic
 
 ## Next Recommended Task
 
-Implement authentication and tenant membership enforcement next, including password hashing, login/session strategy, tenant guard behavior, role/permission checks, and audit logging for all access-control changes.
+Implement Phase 2: Core Accounting Engine. This includes the General Ledger, Chart of Accounts hierarchy, Double-entry Journal workflows, and Accounting Periods using safe arithmetic (`decimal.js`).
