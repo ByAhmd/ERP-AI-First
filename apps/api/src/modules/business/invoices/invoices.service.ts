@@ -1,0 +1,188 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../../../database/prisma.service';
+import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { SequencesService } from '../sequences/sequences.service';
+import { JournalEntriesService } from '../../accounting/journal-entries/journal-entries.service';
+import Decimal from 'decimal.js';
+
+@Injectable()
+export class InvoicesService {
+  constructor(
+    private prisma: PrismaService,
+    private sequencesService: SequencesService,
+    private journalEntriesService: JournalEntriesService,
+  ) {}
+
+  async create(tenantId: string, dto: CreateInvoiceDto) {
+    // 1. Calculate totals
+    let subTotal = new Decimal(0);
+    let taxTotal = new Decimal(0);
+
+    const calculatedLines = dto.lines.map(line => {
+      const lineQuantity = new Decimal(line.quantity);
+      const linePrice = new Decimal(line.unitPrice);
+      const lineTaxRate = new Decimal(line.taxRate || 0);
+
+      const lineTotalBeforeTax = lineQuantity.mul(linePrice);
+      const lineTaxAmount = lineTotalBeforeTax.mul(lineTaxRate.div(100));
+      const lineTotal = lineTotalBeforeTax.plus(lineTaxAmount);
+
+      subTotal = subTotal.plus(lineTotalBeforeTax);
+      taxTotal = taxTotal.plus(lineTaxAmount);
+
+      return {
+        ...line,
+        taxAmount: lineTaxAmount.toString(),
+        total: lineTotal.toString(),
+        unitPrice: linePrice.toString(),
+        quantity: lineQuantity.toString(),
+        taxRate: lineTaxRate.toString(),
+      };
+    });
+
+    const total = subTotal.plus(taxTotal);
+
+    // 2. Auto-generate sequence for the invoice number
+    // Usually prefix is INV for Sales, PINV for Purchase, CN for Credit Note, DN for Debit Note
+    let prefix = 'INV';
+    if (dto.type === 'PurchaseInvoice') prefix = 'PINV';
+    if (dto.type === 'CreditNote') prefix = 'CN';
+    if (dto.type === 'DebitNote') prefix = 'DN';
+
+    const invoiceNumber = await this.sequencesService.getNextSequence(tenantId, dto.type, prefix);
+
+    return this.prisma.invoice.create({
+      data: {
+        tenantId,
+        invoiceNumber,
+        contactId: dto.contactId,
+        type: dto.type,
+        issueDate: new Date(dto.issueDate),
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+        currencyId: dto.currencyId,
+        exchangeRate: dto.exchangeRate ? new Decimal(dto.exchangeRate).toString() : null,
+        subTotal: subTotal.toString(),
+        taxTotal: taxTotal.toString(),
+        total: total.toString(),
+        notes: dto.notes,
+        status: 'Draft',
+        lines: {
+          create: calculatedLines.map(l => ({
+            tenantId,
+            description: l.description,
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            taxRate: l.taxRate,
+            taxAmount: l.taxAmount,
+            total: l.total,
+            accountId: l.accountId,
+          })),
+        },
+      },
+      include: { lines: true },
+    });
+  }
+
+  async findAll(tenantId: string) {
+    return this.prisma.invoice.findMany({
+      where: { tenantId },
+      include: { contact: true },
+      orderBy: { issueDate: 'desc' },
+    });
+  }
+
+  async findOne(tenantId: string, id: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { tenantId, id },
+      include: { lines: true, contact: true },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    return invoice;
+  }
+
+  /**
+   * Approves the invoice. 
+   * This generates the corresponding Journal Entry in the ledger and locks the invoice.
+   */
+  async approve(tenantId: string, id: string) {
+    const invoice = await this.findOne(tenantId, id);
+
+    if (invoice.status !== 'Draft' && invoice.status !== 'PendingApproval') {
+      throw new BadRequestException('Only Draft or Pending invoices can be approved.');
+    }
+
+    // Determine default AR/AP account based on contact and invoice type
+    const contact = invoice.contact;
+    const isSales = invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote';
+    const isPurchase = invoice.type === 'PurchaseInvoice' || invoice.type === 'CreditNote';
+
+    let controlAccountId: string;
+    if (isSales) {
+      if (!contact.receivableAccountId) {
+        throw new BadRequestException('Contact does not have a default Accounts Receivable account set.');
+      }
+      controlAccountId = contact.receivableAccountId;
+    } else {
+      if (!contact.payableAccountId) {
+        throw new BadRequestException('Contact does not have a default Accounts Payable account set.');
+      }
+      controlAccountId = contact.payableAccountId;
+    }
+
+    // Build the journal entry lines
+    // We assume base currency for now for the ledger entry. 
+    // In a fully developed multi-currency system, we would calculate base amounts using exchange rates.
+    const jeLines = [];
+
+    const exRate = invoice.exchangeRate ? new Decimal(invoice.exchangeRate) : new Decimal(1);
+
+    // 1. Add the Control Account line (AR or AP)
+    // For a Sales Invoice, we DEBIT Accounts Receivable.
+    // For a Purchase Invoice, we CREDIT Accounts Payable.
+    // Credit notes are inversed.
+    const totalAmountBase = new Decimal(invoice.total).mul(exRate);
+
+    jeLines.push({
+      accountId: controlAccountId,
+      contactId: invoice.contactId,
+      description: `Invoice ${invoice.invoiceNumber} Total`,
+      debit: (invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote') ? totalAmountBase.toString() : 0,
+      credit: (invoice.type === 'PurchaseInvoice' || invoice.type === 'CreditNote') ? totalAmountBase.toString() : 0,
+    });
+
+    // 2. Add the individual line items (Revenue or Expense)
+    for (const line of invoice.lines) {
+      const lineTotalBase = new Decimal(line.total).mul(exRate);
+      jeLines.push({
+        accountId: line.accountId,
+        contactId: invoice.contactId,
+        description: line.description,
+        // Revenue is a CREDIT. Sales Invoice => Credit. Credit Note => Debit.
+        // Expense is a DEBIT. Purchase Invoice => Debit. Debit Note => Credit.
+        debit: (invoice.type === 'PurchaseInvoice' || invoice.type === 'CreditNote') ? lineTotalBase.toString() : 0,
+        credit: (invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote') ? lineTotalBase.toString() : 0,
+      });
+    }
+
+    // Note: If tax is involved, we ideally separate the taxAmount into a Tax Payable/Receivable account.
+    // For Phase 3, we are assigning the full line.total to the line.accountId.
+    // In Phase 4 (ZATCA/VAT), we will split this.
+
+    // 3. Create the Journal Entry
+    const journalEntry = await this.journalEntriesService.create(tenantId, {
+      entryDate: invoice.issueDate,
+      description: `${invoice.type} ${invoice.invoiceNumber}`,
+      lines: jeLines,
+    });
+
+    // 4. Update the Invoice status and link to the Journal Entry
+    return this.prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: 'Approved',
+        journalEntryId: journalEntry.id,
+      },
+      include: { lines: true },
+    });
+  }
+}

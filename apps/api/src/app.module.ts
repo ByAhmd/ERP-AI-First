@@ -14,6 +14,10 @@ import { JournalEntriesModule } from './modules/accounting/journal-entries/journ
 import { FiscalYearsModule } from './modules/accounting/fiscal-years/fiscal-years.module';
 import { GeneralLedgerModule } from './modules/accounting/general-ledger/general-ledger.module';
 import { CurrenciesModule } from './modules/accounting/currencies/currencies.module';
+import { SequencesModule } from './modules/business/sequences/sequences.module';
+import { ContactsModule } from './modules/business/contacts/contacts.module';
+import { InvoicesModule } from './modules/business/invoices/invoices.module';
+import { PaymentsModule } from './modules/business/payments/payments.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
@@ -53,6 +57,10 @@ import { UsersModule } from './modules/users/users.module';
     JournalEntriesModule,
     GeneralLedgerModule,
     CurrenciesModule,
+    SequencesModule,
+    ContactsModule,
+    InvoicesModule,
+    PaymentsModule,
     VatModule,
     ZatcaModule,
     ZakatModule,

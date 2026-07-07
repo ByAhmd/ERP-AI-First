@@ -50,6 +50,40 @@ enum JournalEntryStatus {
   Posted
 }
 
+// ─── Phase 3 Enums (Business Documents) ──────────────────────────────────────
+
+enum ContactType {
+  Customer
+  Supplier
+  Employee
+}
+
+enum InvoiceType {
+  SalesInvoice
+  PurchaseInvoice
+  CreditNote
+  DebitNote
+}
+
+enum InvoiceStatus {
+  Draft
+  PendingApproval
+  Approved
+  Paid
+  Cancelled
+}
+
+enum PaymentType {
+  Incoming
+  Outgoing
+}
+
+enum PaymentStatus {
+  Draft
+  Approved
+  Reconciled
+}
+
 // ─── Core Identity ───────────────────────────────────────────────────────────
 
 model Tenant {
@@ -75,6 +109,10 @@ model Tenant {
   journalEntries    JournalEntry[]
   currencies        Currency[]
   exchangeRates     ExchangeRate[]
+  contacts          Contact[]
+  sequences         DocumentSequence[]
+  invoices          Invoice[]
+  payments          Payment[]
 
   @@index([status])
 }
@@ -309,16 +347,19 @@ model JournalEntryLine {
   foreignDebit   Decimal?       @db.Decimal(18, 2)
   foreignCredit  Decimal?       @db.Decimal(18, 2)
   exchangeRate   Decimal?       @db.Decimal(18, 6)
+  contactId      String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   journalEntry   JournalEntry   @relation(fields: [journalEntryId], references: [id])
   account        ChartOfAccount @relation(fields: [accountId], references: [id])
   currency       Currency?      @relation(fields: [currencyId], references: [id])
+  contact        Contact?       @relation(fields: [contactId], references: [id])
 
   @@index([tenantId])
   @@index([journalEntryId])
   @@index([accountId])
   @@index([currencyId])
+  @@index([contactId])
 }
 
 model Currency {
@@ -334,6 +375,8 @@ model Currency {
   exchangeRates     ExchangeRate[]
   accounts          ChartOfAccount[]
   journalLines      JournalEntryLine[]
+  invoices          Invoice[]
+  payments          Payment[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -352,4 +395,137 @@ model ExchangeRate {
 
   @@unique([tenantId, currencyId, date])
   @@index([tenantId])
+}
+
+// ─── Business Documents (Phase 3) ────────────────────────────────────────────
+
+model Contact {
+  id                    String             @id @default(uuid())
+  tenantId              String
+  type                  ContactType        @default(Customer)
+  name                  String
+  email                 String?
+  phone                 String?
+  commercialRegNo       String?
+  vatRegistrationNo     String?
+  billingAddress        String?
+  shippingAddress       String?
+  receivableAccountId   String?
+  payableAccountId      String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  tenant                Tenant             @relation(fields: [tenantId], references: [id])
+  journalLines          JournalEntryLine[]
+  invoices              Invoice[]
+  payments              Payment[]
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+}
+
+model DocumentSequence {
+  id         String   @id @default(uuid())
+  tenantId   String
+  entityType String
+  prefix     String
+  nextNumber Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, entityType])
+}
+
+model Invoice {
+  id              String             @id @default(uuid())
+  tenantId        String
+  invoiceNumber   String
+  contactId       String
+  type            InvoiceType
+  status          InvoiceStatus      @default(Draft)
+  issueDate       DateTime
+  dueDate         DateTime?
+  currencyId      String?
+  exchangeRate    Decimal?           @db.Decimal(18, 6)
+  subTotal        Decimal            @default(0) @db.Decimal(18, 2)
+  taxTotal        Decimal            @default(0) @db.Decimal(18, 2)
+  total           Decimal            @default(0) @db.Decimal(18, 2)
+  amountPaid      Decimal            @default(0) @db.Decimal(18, 2)
+  notes           String?
+  journalEntryId  String?            @unique
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  tenant          Tenant             @relation(fields: [tenantId], references: [id])
+  contact         Contact            @relation(fields: [contactId], references: [id])
+  currency        Currency?          @relation(fields: [currencyId], references: [id])
+  lines           InvoiceLine[]
+  allocations     PaymentAllocation[]
+
+  @@unique([tenantId, invoiceNumber])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([tenantId, status])
+}
+
+model InvoiceLine {
+  id          String   @id @default(uuid())
+  tenantId    String
+  invoiceId   String
+  description String
+  quantity    Decimal  @default(1) @db.Decimal(18, 2)
+  unitPrice   Decimal  @db.Decimal(18, 2)
+  taxRate     Decimal  @default(0) @db.Decimal(5, 2)
+  taxAmount   Decimal  @default(0) @db.Decimal(18, 2)
+  total       Decimal  @db.Decimal(18, 2)
+  accountId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([invoiceId])
+}
+
+model Payment {
+  id              String             @id @default(uuid())
+  tenantId        String
+  paymentNumber   String
+  contactId       String
+  type            PaymentType
+  status          PaymentStatus      @default(Draft)
+  paymentDate     DateTime
+  amount          Decimal            @db.Decimal(18, 2)
+  currencyId      String?
+  exchangeRate    Decimal?           @db.Decimal(18, 6)
+  reference       String?
+  notes           String?
+  accountId       String             // The bank/cash account receiving or sending the money
+  journalEntryId  String?            @unique
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  tenant          Tenant             @relation(fields: [tenantId], references: [id])
+  contact         Contact            @relation(fields: [contactId], references: [id])
+  currency        Currency?          @relation(fields: [currencyId], references: [id])
+  allocations     PaymentAllocation[]
+
+  @@unique([tenantId, paymentNumber])
+  @@index([tenantId])
+  @@index([contactId])
+  @@index([tenantId, status])
+}
+
+model PaymentAllocation {
+  id        String   @id @default(uuid())
+  tenantId  String
+  paymentId String
+  invoiceId String
+  amount    Decimal  @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@index([invoiceId])
 }

@@ -134,7 +134,10 @@ Implemented now:
 - **[Phase 2]** Hierarchical Chart of Accounts (COA) with SME templating
 - **[Phase 2]** Journal Entries (Immutable Ledger, Auto-numbering, Reversals, `decimal.js` validation)
 - **[Phase 2]** General Ledger & Trial Balance generation
-- **[Phase 2]** Multi-Currency support (Configurable base currency, Exchange Rates)
+- [x] **Phase 1**: Identity, Security, RBAC & Audit (Completed)
+- [x] **Phase 2**: Core Accounting Engine (Completed)
+- [x] **Phase 3**: Business Documents (Invoices & Payments) (Completed)
+- [ ] **Phase 4**: Saudi Compliance (KSA) (ZATCA, Zakat, WHT, GOSI, WPS)
 
 Not implemented now:
 
@@ -142,5 +145,3 @@ Not implemented now:
 - AI logic
 - Real ZATCA XML, QR codes, cryptographic stamps, or Fatoora integration
 - VAT, Zakat, Withholding Tax, GOSI, or WPS filing logic
-
-Implement **Phase 3: Business Documents**. This will introduce the foundation for Contacts (customers, suppliers), Sales Invoices, Purchase Invoices, Payments, and Document numbering sequences.

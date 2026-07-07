@@ -13,6 +13,7 @@ export interface CreateJournalEntryLineDto {
   foreignCredit?: number | string;
   currencyId?: string;
   exchangeRate?: number | string;
+  contactId?: string;
 }
 
 export interface CreateJournalEntryDto {
@@ -90,6 +91,7 @@ export class JournalEntriesService {
               foreignDebit: line.foreignDebit ? new Decimal(line.foreignDebit).toString() : null,
               foreignCredit: line.foreignCredit ? new Decimal(line.foreignCredit).toString() : null,
               exchangeRate: line.exchangeRate ? new Decimal(line.exchangeRate).toString() : null,
+              contactId: line.contactId,
             }))
           }
         },
@@ -124,7 +126,8 @@ export class JournalEntriesService {
       currencyId: line.currencyId || undefined,
       foreignDebit: line.foreignCredit?.toString(),
       foreignCredit: line.foreignDebit?.toString(),
-      exchangeRate: line.exchangeRate?.toString()
+      exchangeRate: line.exchangeRate?.toString(),
+      contactId: line.contactId || undefined,
     }));
 
     // Auto-numbering
@@ -154,6 +157,7 @@ export class JournalEntriesService {
               foreignDebit: line.foreignDebit,
               foreignCredit: line.foreignCredit,
               exchangeRate: line.exchangeRate,
+              contactId: line.contactId,
             }))
           }
         }
