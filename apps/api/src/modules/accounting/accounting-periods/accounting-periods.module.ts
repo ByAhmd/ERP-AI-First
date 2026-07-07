@@ -5,5 +5,6 @@ import { AccountingPeriodsService } from './accounting-periods.service';
 @Module({
   controllers: [AccountingPeriodsController],
   providers: [AccountingPeriodsService],
+  exports: [AccountingPeriodsService],
 })
 export class AccountingPeriodsModule {}

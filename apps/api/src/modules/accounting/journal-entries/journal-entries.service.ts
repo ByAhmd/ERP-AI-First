@@ -1,70 +1,179 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import Decimal from 'decimal.js';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateDraftJournalEntryDto } from './dto/create-draft-journal-entry.dto';
-import { JournalEntryLineAmountDto } from './dto/journal-entry-line-amount.dto';
+import { ChartOfAccountsService } from '../chart-of-accounts/chart-of-accounts.service';
+import { AccountingPeriodsService } from '../accounting-periods/accounting-periods.service';
+import Decimal from 'decimal.js';
 
-export interface JournalEntryBalanceValidationResult {
-  isBalanced: boolean;
-  totalDebit: string;
-  totalCredit: string;
-  difference: string;
-  message: string;
+export interface CreateJournalEntryLineDto {
+  accountId: string;
+  description?: string;
+  debit?: number | string;
+  credit?: number | string;
+  foreignDebit?: number | string;
+  foreignCredit?: number | string;
+  currencyId?: string;
+  exchangeRate?: number | string;
+}
+
+export interface CreateJournalEntryDto {
+  entryDate: Date;
+  description?: string;
+  lines: CreateJournalEntryLineDto[];
 }
 
 @Injectable()
 export class JournalEntriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly coaService: ChartOfAccountsService,
+    private readonly periodsService: AccountingPeriodsService,
+  ) {}
 
-  async createDraft(dto: CreateDraftJournalEntryDto) {
-    const validation = this.validateBalancedLines(dto.lines);
-
-    if (!validation.isBalanced) {
-      throw new BadRequestException(validation.message);
+  async create(tenantId: string, dto: CreateJournalEntryDto) {
+    if (!dto.lines || dto.lines.length < 2) {
+      throw new BadRequestException('A journal entry must have at least two lines.');
     }
 
-    // TODO: Add accounting period checks, account status checks, numbering policy, and audit logging.
-    return this.prisma.journalEntry.create({
-      data: {
-        tenantId: dto.tenantId,
-        entryNumber: dto.entryNumber,
-        entryDate: new Date(dto.entryDate),
-        description: dto.description,
-        status: 'Draft',
-        lines: {
-          create: dto.lines.map((line) => ({
-            tenantId: dto.tenantId,
-            accountId: line.accountId,
-            description: line.description,
-            debit: line.debit,
-            credit: line.credit,
-          })),
+    // 1. Validate Accounting Period (Must be Open or Adjusting)
+    const activePeriod = await this.periodsService.findActivePeriodByDate(tenantId, new Date(dto.entryDate));
+
+    // 2. Validate Zero Balance using decimal.js
+    let totalDebits = new Decimal(0);
+    let totalCredits = new Decimal(0);
+
+    for (const line of dto.lines) {
+      const debit = new Decimal(line.debit || 0);
+      const credit = new Decimal(line.credit || 0);
+
+      if (debit.isNegative() || credit.isNegative()) {
+        throw new BadRequestException('Debit and Credit amounts cannot be negative.');
+      }
+      if (!debit.isZero() && !credit.isZero()) {
+        throw new BadRequestException('A single line cannot have both a debit and a credit amount.');
+      }
+
+      totalDebits = totalDebits.plus(debit);
+      totalCredits = totalCredits.plus(credit);
+
+      // Validate account allows posting (not a summary account)
+      await this.coaService.validateAccountForPosting(tenantId, line.accountId);
+    }
+
+    if (!totalDebits.equals(totalCredits)) {
+      throw new BadRequestException(`Journal entry is out of balance. Debits: ${totalDebits.toString()}, Credits: ${totalCredits.toString()}`);
+    }
+
+    // 3. Auto-numbering (simplified for now, ideally atomic in DB)
+    const year = new Date(dto.entryDate).getUTCFullYear();
+    const count = await this.prisma.journalEntry.count({
+      where: { tenantId, entryDate: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }
+    });
+    const entryNumber = `JE-${year}-${String(count + 1).padStart(4, '0')}`;
+
+    // 4. Save via Transaction
+    return this.prisma.$transaction(async (tx) => {
+      return tx.journalEntry.create({
+        data: {
+          tenantId,
+          entryNumber,
+          entryDate: dto.entryDate,
+          description: dto.description,
+          status: 'Posted', // Post immediately in this phase
+          lines: {
+            create: dto.lines.map(line => ({
+              tenantId,
+              accountId: line.accountId,
+              description: line.description,
+              debit: new Decimal(line.debit || 0).toString(),
+              credit: new Decimal(line.credit || 0).toString(),
+              currencyId: line.currencyId,
+              foreignDebit: line.foreignDebit ? new Decimal(line.foreignDebit).toString() : null,
+              foreignCredit: line.foreignCredit ? new Decimal(line.foreignCredit).toString() : null,
+              exchangeRate: line.exchangeRate ? new Decimal(line.exchangeRate).toString() : null,
+            }))
+          }
         },
-      },
-      include: { lines: true },
+        include: { lines: true }
+      });
     });
   }
 
-  validateBalancedLines(lines: JournalEntryLineAmountDto[]): JournalEntryBalanceValidationResult {
-    const totalDebit = lines.reduce(
-      (sum, line) => sum.plus(new Decimal(line.debit ?? '0')),
-      new Decimal(0),
-    );
-    const totalCredit = lines.reduce(
-      (sum, line) => sum.plus(new Decimal(line.credit ?? '0')),
-      new Decimal(0),
-    );
-    const difference = totalDebit.minus(totalCredit).abs();
-    const isBalanced = difference.equals(0);
+  async createReversal(tenantId: string, originalEntryId: string, reversalDate: Date) {
+    const original = await this.prisma.journalEntry.findUnique({
+      where: { id: originalEntryId },
+      include: { lines: true }
+    });
 
-    return {
-      isBalanced,
-      totalDebit: totalDebit.toFixed(2),
-      totalCredit: totalCredit.toFixed(2),
-      difference: difference.toFixed(2),
-      message: isBalanced
-        ? 'Journal entry is balanced.'
-        : 'Journal entry is not balanced. Total debit must equal total credit.',
-    };
+    if (!original || original.tenantId !== tenantId) {
+      throw new NotFoundException('Original journal entry not found.');
+    }
+    if (original.reversalId) {
+      throw new BadRequestException('This journal entry has already been reversed.');
+    }
+
+    // Validate period for reversal
+    await this.periodsService.findActivePeriodByDate(tenantId, new Date(reversalDate));
+
+    // Prepare inverted lines
+    const reversalLines: CreateJournalEntryLineDto[] = original.lines.map(line => ({
+      accountId: line.accountId,
+      description: `Reversal of ${original.entryNumber}`,
+      // Swap debits and credits
+      debit: line.credit.toString(),
+      credit: line.debit.toString(),
+      currencyId: line.currencyId || undefined,
+      foreignDebit: line.foreignCredit?.toString(),
+      foreignCredit: line.foreignDebit?.toString(),
+      exchangeRate: line.exchangeRate?.toString()
+    }));
+
+    // Auto-numbering
+    const year = new Date(reversalDate).getUTCFullYear();
+    const count = await this.prisma.journalEntry.count({
+      where: { tenantId, entryDate: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }
+    });
+    const entryNumber = `REV-${year}-${String(count + 1).padStart(4, '0')}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create the reversing entry
+      const reversal = await tx.journalEntry.create({
+        data: {
+          tenantId,
+          entryNumber,
+          entryDate: reversalDate,
+          description: `Reversal of ${original.entryNumber}`,
+          status: 'Posted',
+          lines: {
+            create: reversalLines.map(line => ({
+              tenantId,
+              accountId: line.accountId,
+              description: line.description,
+              debit: line.debit ? line.debit.toString() : '0',
+              credit: line.credit ? line.credit.toString() : '0',
+              currencyId: line.currencyId,
+              foreignDebit: line.foreignDebit,
+              foreignCredit: line.foreignCredit,
+              exchangeRate: line.exchangeRate,
+            }))
+          }
+        }
+      });
+
+      // 2. Link the original to the reversal
+      await tx.journalEntry.update({
+        where: { id: original.id },
+        data: { reversalId: reversal.id }
+      });
+
+      return reversal;
+    });
+  }
+
+  async findAll(tenantId: string) {
+    return this.prisma.journalEntry.findMany({
+      where: { tenantId },
+      include: { lines: { include: { account: true } } },
+      orderBy: { entryDate: 'desc' }
+    });
   }
 }

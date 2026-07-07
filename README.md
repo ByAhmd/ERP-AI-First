@@ -130,15 +130,19 @@ Implemented now:
 - **[Phase 1]** Tenant context enforcement (Interceptors, Decorators)
 - **[Phase 1]** RBAC (Roles & Permissions with DB-driven dynamic guards)
 - **[Phase 1]** Audit Logging (Interceptors, paginated querying)
+- **[Phase 2]** Fiscal Years & Accounting Periods Lifecycle
+- **[Phase 2]** Hierarchical Chart of Accounts (COA) with SME templating
+- **[Phase 2]** Journal Entries (Immutable Ledger, Auto-numbering, Reversals, `decimal.js` validation)
+- **[Phase 2]** General Ledger & Trial Balance generation
+- **[Phase 2]** Multi-Currency support (Configurable base currency, Exchange Rates)
 
 Not implemented now:
 
 - Frontend
 - AI logic
-- Full accounting engine (in progress)
 - Real ZATCA XML, QR codes, cryptographic stamps, or Fatoora integration
 - VAT, Zakat, Withholding Tax, GOSI, or WPS filing logic
 
 ## Next Recommended Task
 
-Implement Phase 2: Core Accounting Engine. This includes the General Ledger, Chart of Accounts hierarchy, Double-entry Journal workflows, and Accounting Periods using safe arithmetic (`decimal.js`).
+Implement **Phase 3: Compliance & Tax (KSA)**. This will introduce the foundation for VAT engines, ZATCA Phase II integration, Withholding Tax, Zakat calculations, and GOSI rules.

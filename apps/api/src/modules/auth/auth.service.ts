@@ -4,9 +4,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EnvConfig } from '../../../config/env.validation';
-import { PrismaService } from '../../../database/prisma.service';
-import { AuditLogsService } from '../../audit-logs/audit-logs.service';
+import { EnvConfig } from '../../config/env.validation';
+import { PrismaService } from '../../database/prisma.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';

@@ -5,5 +5,6 @@ import { ChartOfAccountsService } from './chart-of-accounts.service';
 @Module({
   controllers: [ChartOfAccountsController],
   providers: [ChartOfAccountsService],
+  exports: [ChartOfAccountsService],
 })
 export class ChartOfAccountsModule {}

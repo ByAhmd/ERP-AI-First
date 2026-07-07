@@ -29,6 +29,7 @@ enum TenantUserStatus {
 enum AccountingPeriodStatus {
   Open
   Closed
+  Adjusting
 }
 
 enum AccountType {
@@ -69,8 +70,11 @@ model Tenant {
   branches          Branch[]
   costCenters       CostCenter[]
   accountingPeriods AccountingPeriod[]
+  fiscalYears       FiscalYear[]
   chartOfAccounts   ChartOfAccount[]
   journalEntries    JournalEntry[]
+  currencies        Currency[]
+  exchangeRates     ExchangeRate[]
 
   @@index([status])
 }
@@ -214,19 +218,39 @@ model CostCenter {
 
 // ─── Accounting ──────────────────────────────────────────────────────────────
 
-model AccountingPeriod {
-  id        String                 @id @default(uuid())
-  tenantId  String
-  name      String
-  startDate DateTime
-  endDate   DateTime
-  status    AccountingPeriodStatus @default(Open)
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
-  tenant    Tenant                 @relation(fields: [tenantId], references: [id])
+model FiscalYear {
+  id                String             @id @default(uuid())
+  tenantId          String
+  name              String
+  startDate         DateTime
+  endDate           DateTime
+  status            AccountingPeriodStatus @default(Open)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  accountingPeriods AccountingPeriod[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model AccountingPeriod {
+  id           String                 @id @default(uuid())
+  tenantId     String
+  fiscalYearId String
+  name         String
+  startDate    DateTime
+  endDate      DateTime
+  status       AccountingPeriodStatus @default(Open)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+  fiscalYear   FiscalYear             @relation(fields: [fiscalYearId], references: [id])
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([fiscalYearId])
   @@index([tenantId, status])
 }
 
@@ -240,14 +264,17 @@ model ChartOfAccount {
   status       ChartOfAccountStatus @default(Active)
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
+  currencyId   String?
   tenant       Tenant               @relation(fields: [tenantId], references: [id])
   parent       ChartOfAccount?      @relation("ChartOfAccountHierarchy", fields: [parentId], references: [id])
   children     ChartOfAccount[]     @relation("ChartOfAccountHierarchy")
+  currency     Currency?            @relation(fields: [currencyId], references: [id])
   journalLines JournalEntryLine[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
   @@index([parentId])
+  @@index([currencyId])
 }
 
 model JournalEntry {
@@ -257,9 +284,12 @@ model JournalEntry {
   entryDate   DateTime
   description String?
   status      JournalEntryStatus @default(Draft)
+  reversalId  String?            @unique
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  reversal    JournalEntry?      @relation("JournalEntryReversal", fields: [reversalId], references: [id])
+  reversedBy  JournalEntry?      @relation("JournalEntryReversal")
   lines       JournalEntryLine[]
 
   @@unique([tenantId, entryNumber])
@@ -275,12 +305,51 @@ model JournalEntryLine {
   description    String?
   debit          Decimal        @default(0) @db.Decimal(18, 2)
   credit         Decimal        @default(0) @db.Decimal(18, 2)
+  currencyId     String?
+  foreignDebit   Decimal?       @db.Decimal(18, 2)
+  foreignCredit  Decimal?       @db.Decimal(18, 2)
+  exchangeRate   Decimal?       @db.Decimal(18, 6)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   journalEntry   JournalEntry   @relation(fields: [journalEntryId], references: [id])
   account        ChartOfAccount @relation(fields: [accountId], references: [id])
+  currency       Currency?      @relation(fields: [currencyId], references: [id])
 
   @@index([tenantId])
   @@index([journalEntryId])
   @@index([accountId])
+  @@index([currencyId])
+}
+
+model Currency {
+  id                String             @id @default(uuid())
+  tenantId          String
+  code              String
+  name              String
+  symbol            String?
+  isBase            Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  exchangeRates     ExchangeRate[]
+  accounts          ChartOfAccount[]
+  journalLines      JournalEntryLine[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model ExchangeRate {
+  id                String             @id @default(uuid())
+  tenantId          String
+  currencyId        String
+  date              DateTime
+  rate              Decimal            @db.Decimal(18, 6)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  currency          Currency           @relation(fields: [currencyId], references: [id])
+
+  @@unique([tenantId, currencyId, date])
+  @@index([tenantId])
 }

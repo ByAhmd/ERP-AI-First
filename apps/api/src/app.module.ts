@@ -11,6 +11,9 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AccountingPeriodsModule } from './modules/accounting/accounting-periods/accounting-periods.module';
 import { ChartOfAccountsModule } from './modules/accounting/chart-of-accounts/chart-of-accounts.module';
 import { JournalEntriesModule } from './modules/accounting/journal-entries/journal-entries.module';
+import { FiscalYearsModule } from './modules/accounting/fiscal-years/fiscal-years.module';
+import { GeneralLedgerModule } from './modules/accounting/general-ledger/general-ledger.module';
+import { CurrenciesModule } from './modules/accounting/currencies/currencies.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
@@ -44,9 +47,12 @@ import { UsersModule } from './modules/users/users.module';
     RolesModule,
     PermissionsModule,
     AuditLogsModule,
+    FiscalYearsModule,
+    AccountingPeriodsModule,
     ChartOfAccountsModule,
     JournalEntriesModule,
-    AccountingPeriodsModule,
+    GeneralLedgerModule,
+    CurrenciesModule,
     VatModule,
     ZatcaModule,
     ZakatModule,
