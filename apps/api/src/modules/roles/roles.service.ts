@@ -65,7 +65,7 @@ export class RolesService {
 
     // Transaction to ensure all roles and links are created atomically
     await this.prisma.$transaction(async (tx) => {
-      for (const [key, roleData] of Object.entries(DEFAULT_ROLES)) {
+      for (const roleData of Object.values(DEFAULT_ROLES)) {
         // Create the role
         const role = await tx.role.create({
           data: {

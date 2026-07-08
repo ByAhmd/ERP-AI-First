@@ -42,6 +42,8 @@ export class PaymentsService {
         exchangeRate: dto.exchangeRate ? dto.exchangeRate.toString() : null,
         reference: dto.reference,
         notes: dto.notes,
+        whtAmount: dto.whtAmount ? dto.whtAmount.toString() : '0',
+        whtAccountId: dto.whtAccountId,
         allocations: {
           create: dto.allocations?.map(a => ({
             tenantId,
@@ -145,6 +147,33 @@ export class PaymentsService {
       credit: isIncoming ? totalBase.toString() : 0,
       contactId: payment.contactId, // Sub-ledger link
     });
+
+    const whtAmountBase = payment.whtAmount ? new Decimal(payment.whtAmount).mul(exRate) : new Decimal(0);
+    
+    // If WHT is deducted on an outgoing payment, the bank credit is less, and the rest goes to WHT Payable (Credit)
+    if (whtAmountBase.greaterThan(0) && payment.whtAccountId) {
+      if (!isIncoming) {
+        // Outgoing: We owe the supplier 100 (Debit AP). We pay 95 (Credit Bank). We owe tax 5 (Credit WHT Payable).
+        jeLines[0].credit = new Decimal(jeLines[0].credit).minus(whtAmountBase).toString(); // Reduce bank credit
+        jeLines.push({
+          accountId: payment.whtAccountId,
+          description: `WHT Deduction for ${payment.paymentNumber}`,
+          debit: 0,
+          credit: whtAmountBase.toString(),
+          contactId: undefined, // Usually tax authority
+        });
+      } else {
+        // Incoming: Customer owes 100 (Credit AR). We receive 95 (Debit Bank). WHT deducted by customer 5 (Debit WHT Receivable).
+        jeLines[0].debit = new Decimal(jeLines[0].debit).minus(whtAmountBase).toString(); // Reduce bank debit
+        jeLines.push({
+          accountId: payment.whtAccountId,
+          description: `WHT Deduction by customer for ${payment.paymentNumber}`,
+          debit: whtAmountBase.toString(),
+          credit: 0,
+          contactId: undefined,
+        });
+      }
+    }
 
     const journalEntry = await this.journalEntriesService.create(tenantId, {
       entryDate: payment.paymentDate,

@@ -116,32 +116,46 @@ Add journal balance validation
 
 ## Current Scope
 
-Implemented now:
+### Completed Phases
 
-- Backend NestJS foundation
-- Prisma schema foundation
-- Local PostgreSQL Docker Compose
-- Health endpoint
-- Tenant, user, role, permission, audit, accounting, and Saudi compliance module structure
-- Draft journal entry balance validation
-- Initial tests
-- **[Phase 1]** Full Authentication (Argon2id, JWT, Redis refresh tokens)
-- **[Phase 1]** Security Hardening (Helmet, Throttler, Global Exceptions)
-- **[Phase 1]** Tenant context enforcement (Interceptors, Decorators)
-- **[Phase 1]** RBAC (Roles & Permissions with DB-driven dynamic guards)
-- **[Phase 1]** Audit Logging (Interceptors, paginated querying)
-- **[Phase 2]** Fiscal Years & Accounting Periods Lifecycle
-- **[Phase 2]** Hierarchical Chart of Accounts (COA) with SME templating
-- **[Phase 2]** Journal Entries (Immutable Ledger, Auto-numbering, Reversals, `decimal.js` validation)
-- **[Phase 2]** General Ledger & Trial Balance generation
-- [x] **Phase 1**: Identity, Security, RBAC & Audit (Completed)
-- [x] **Phase 2**: Core Accounting Engine (Completed)
-- [x] **Phase 3**: Business Documents (Invoices & Payments) (Completed)
-- [ ] **Phase 4**: Saudi Compliance (KSA) (ZATCA, Zakat, WHT, GOSI, WPS)
+- [x] **Phase 1 — Identity, Security, RBAC & Audit**
+  - Full Authentication (Argon2id, JWT, Redis refresh tokens)
+  - Security Hardening (Helmet, Throttler, Global Exception Filter)
+  - Tenant context enforcement (Interceptors, Guards, Decorators)
+  - RBAC (Roles & Permissions with DB-driven dynamic guards)
+  - Audit Logging (Interceptor, `@Auditable()` decorator, paginated querying)
+  - Swagger/OpenAPI documentation
 
-Not implemented now:
+- [x] **Phase 2 — Core Accounting Engine**
+  - Fiscal Years & Accounting Periods Lifecycle (Open/Close/Reopen)
+  - Hierarchical Chart of Accounts (COA) with SME template seeding
+  - Journal Entries (Immutable Ledger, Auto-numbering, Reversals, `decimal.js` validation)
+  - General Ledger & Trial Balance generation
+  - Multi-Currency support (Configurable base currency, Exchange Rate tables)
 
-- Frontend
+- [x] **Phase 3 — Business Documents**
+  - Contacts (Customer, Supplier, Employee registry with VAT/CR numbers)
+  - Gapless Document Numbering Sequences (atomic, concurrency-safe)
+  - Sales & Purchase Invoices (Draft → Approve → auto Journal Entry)
+  - Credit Notes & Debit Notes (unified Invoice model with type enum)
+  - Payments & Receipts (allocation against invoices, auto Journal Entry)
+  - Sub-ledger architecture (contactId on JournalEntryLine)
+
+- [x] **Phase 4 — Saudi Compliance (KSA)**
+  - VAT Engine (Return calculation, tax codes)
+  - ZATCA Phase 2 Data Prep (PIH chaining, UUID generation)
+  - Zakat Calculation Framework (Trial balance based provision estimation)
+  - Withholding Tax (WHT deduction in payments)
+  - Dual Date System (Hijri/Gregorian API conversion)
+  - GOSI & WPS (Employee profiles and payroll journal entry generation)
+
+### Next Phase
+
+- [ ] **Phase 5 — Extended Accounting** — Bank Reconciliation, Fixed Assets, Inventory, Consolidation, Payroll.
+
+### Not Yet Implemented (External API Integrations)
+
+- Frontend UI
 - AI logic
-- Real ZATCA XML, QR codes, cryptographic stamps, or Fatoora integration
-- VAT, Zakat, Withholding Tax, GOSI, or WPS filing logic
+- **Live B2G Integration:** Actual transmission of UBL 2.1 XML to ZATCA Fatoora API, real cryptographic signing with live certificates, and complex Base64 TLV QR code generation.
+- **Live Government Filing:** Automated transmission of calculated returns directly to government portals (ZATCA, Mudad/WPS, GOSI). (Note: The internal calculation and ledger posting for all of these *is* completed).

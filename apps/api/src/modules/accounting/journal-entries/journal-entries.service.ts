@@ -36,7 +36,7 @@ export class JournalEntriesService {
     }
 
     // 1. Validate Accounting Period (Must be Open or Adjusting)
-    const activePeriod = await this.periodsService.findActivePeriodByDate(tenantId, new Date(dto.entryDate));
+    await this.periodsService.findActivePeriodByDate(tenantId, new Date(dto.entryDate));
 
     // 2. Validate Zero Balance using decimal.js
     let totalDebits = new Decimal(0);

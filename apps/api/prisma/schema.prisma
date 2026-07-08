@@ -84,6 +84,15 @@ enum PaymentStatus {
   Reconciled
 }
 
+// ─── Phase 4 Enums (Compliance & Tax) ────────────────────────────────────────
+
+enum ZatcaStatus {
+  NotSubmitted
+  Cleared
+  Reported
+  Failed
+}
+
 // ─── Core Identity ───────────────────────────────────────────────────────────
 
 model Tenant {
@@ -113,6 +122,10 @@ model Tenant {
   sequences         DocumentSequence[]
   invoices          Invoice[]
   payments          Payment[]
+  taxCodes          TaxCode[]
+  whtRates          WhtRate[]
+  zakatSettings     ZakatSetting[]
+  employeeProfiles  EmployeeProfile[]
 
   @@index([status])
 }
@@ -348,6 +361,7 @@ model JournalEntryLine {
   foreignCredit  Decimal?       @db.Decimal(18, 2)
   exchangeRate   Decimal?       @db.Decimal(18, 6)
   contactId      String?
+  taxCodeId      String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   journalEntry   JournalEntry   @relation(fields: [journalEntryId], references: [id])
@@ -360,6 +374,7 @@ model JournalEntryLine {
   @@index([accountId])
   @@index([currencyId])
   @@index([contactId])
+  @@index([taxCodeId])
 }
 
 model Currency {
@@ -418,6 +433,7 @@ model Contact {
   journalLines          JournalEntryLine[]
   invoices              Invoice[]
   payments              Payment[]
+  employeeProfile       EmployeeProfile?
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -453,6 +469,10 @@ model Invoice {
   amountPaid      Decimal            @default(0) @db.Decimal(18, 2)
   notes           String?
   journalEntryId  String?            @unique
+  zatcaPih        String?
+  zatcaUuid       String?
+  zatcaQrCode     String?
+  zatcaStatus     ZatcaStatus        @default(NotSubmitted)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   tenant          Tenant             @relation(fields: [tenantId], references: [id])
@@ -478,12 +498,14 @@ model InvoiceLine {
   taxAmount   Decimal  @default(0) @db.Decimal(18, 2)
   total       Decimal  @db.Decimal(18, 2)
   accountId   String
+  taxCodeId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([invoiceId])
+  @@index([taxCodeId])
 }
 
 model Payment {
@@ -500,6 +522,8 @@ model Payment {
   reference       String?
   notes           String?
   accountId       String             // The bank/cash account receiving or sending the money
+  whtAmount       Decimal            @default(0) @db.Decimal(18, 2)
+  whtAccountId    String?
   journalEntryId  String?            @unique
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -529,3 +553,60 @@ model PaymentAllocation {
   @@index([paymentId])
   @@index([invoiceId])
 }
+
+// ─── Compliance & Tax (Phase 4) ──────────────────────────────────────────────
+
+model TaxCode {
+  id          String   @id @default(uuid())
+  tenantId    String
+  code        String
+  name        String
+  rate        Decimal  @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model ZakatSetting {
+  id                   String   @id @default(uuid())
+  tenantId             String   @unique
+  isHijriYear          Boolean  @default(true)
+  zakatBaseMultiplier  Decimal  @default(2.5) @db.Decimal(5, 2)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  tenant               Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model WhtRate {
+  id          String   @id @default(uuid())
+  tenantId    String
+  code        String
+  name        String
+  rate        Decimal  @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model EmployeeProfile {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  contactId           String   @unique
+  gosiNumber          String?
+  basicSalary         Decimal  @default(0) @db.Decimal(18, 2)
+  housingAllowance    Decimal  @default(0) @db.Decimal(18, 2)
+  transportAllowance  Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  tenant              Tenant   @relation(fields: [tenantId], references: [id])
+  contact             Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+

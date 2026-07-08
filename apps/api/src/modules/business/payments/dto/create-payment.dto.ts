@@ -63,4 +63,15 @@ export class CreatePaymentDto {
   @Type(() => PaymentAllocationDto)
   @IsOptional()
   allocations?: PaymentAllocationDto[];
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  whtAmount?: number;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  whtAccountId?: string;
 }

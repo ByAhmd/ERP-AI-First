@@ -18,19 +18,23 @@ import { SequencesModule } from './modules/business/sequences/sequences.module';
 import { ContactsModule } from './modules/business/contacts/contacts.module';
 import { InvoicesModule } from './modules/business/invoices/invoices.module';
 import { PaymentsModule } from './modules/business/payments/payments.module';
+import { EmployeeProfilesModule } from './modules/business/employee-profiles/employee-profiles.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
-import { GosiModule } from './modules/ksa-compliance/gosi/gosi.module';
-import { VatModule } from './modules/ksa-compliance/vat/vat.module';
-import { WhtModule } from './modules/ksa-compliance/wht/wht.module';
-import { WpsModule } from './modules/ksa-compliance/wps/wps.module';
-import { ZakatModule } from './modules/ksa-compliance/zakat/zakat.module';
-import { ZatcaModule } from './modules/ksa-compliance/zatca/zatca.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
+
+import { VatModule } from './modules/compliance/vat/vat.module';
+import { ZakatModule } from './modules/compliance/zakat/zakat.module';
+import { DateModule } from './modules/compliance/date/date.module';
+// Keeping other generated KSA compliance shells
+import { GosiModule } from './modules/ksa-compliance/gosi/gosi.module';
+import { WhtModule } from './modules/ksa-compliance/wht/wht.module';
+import { WpsModule } from './modules/ksa-compliance/wps/wps.module';
+import { ZatcaModule } from './modules/ksa-compliance/zatca/zatca.module';
 
 @Module({
   imports: [
@@ -61,12 +65,14 @@ import { UsersModule } from './modules/users/users.module';
     ContactsModule,
     InvoicesModule,
     PaymentsModule,
+    EmployeeProfilesModule,
     VatModule,
-    ZatcaModule,
     ZakatModule,
-    WhtModule,
+    DateModule,
     GosiModule,
+    WhtModule,
     WpsModule,
+    ZatcaModule,
   ],
   providers: [
     {

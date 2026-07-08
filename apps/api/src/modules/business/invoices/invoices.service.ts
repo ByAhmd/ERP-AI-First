@@ -114,7 +114,7 @@ export class InvoicesService {
     // Determine default AR/AP account based on contact and invoice type
     const contact = invoice.contact;
     const isSales = invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote';
-    const isPurchase = invoice.type === 'PurchaseInvoice' || invoice.type === 'CreditNote';
+
 
     let controlAccountId: string;
     if (isSales) {
@@ -175,14 +175,24 @@ export class InvoicesService {
       lines: jeLines,
     });
 
-    // 4. Update the Invoice status and link to the Journal Entry
+    // 4. Generate ZATCA required fields
+    // Placeholder UUID for ZATCA
+    const { randomUUID } = require('crypto');
+    const zatcaUuid = randomUUID();
+    const zatcaPih = await this.sequencesService.getPreviousInvoiceHash(tenantId);
+
+    // 5. Update the Invoice status, link Journal Entry, and set ZATCA fields
     return this.prisma.invoice.update({
       where: { id: invoice.id },
       data: {
         status: 'Approved',
         journalEntryId: journalEntry.id,
+        zatcaUuid,
+        zatcaPih,
+        zatcaStatus: 'NotSubmitted',
       },
       include: { lines: true },
     });
   }
 }
+
