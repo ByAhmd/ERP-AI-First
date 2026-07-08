@@ -3,6 +3,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { SequencesService } from '../sequences/sequences.service';
 import { JournalEntriesService } from '../../accounting/journal-entries/journal-entries.service';
+import { InventoryService } from '../../accounting/inventory/inventory.service';
 import Decimal from 'decimal.js';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class InvoicesService {
     private prisma: PrismaService,
     private sequencesService: SequencesService,
     private journalEntriesService: JournalEntriesService,
+    private inventoryService: InventoryService,
   ) {}
 
   async create(tenantId: string, dto: CreateInvoiceDto) {
@@ -76,6 +78,8 @@ export class InvoicesService {
             taxAmount: l.taxAmount,
             total: l.total,
             accountId: l.accountId,
+            itemId: l.itemId,
+            warehouseId: l.warehouseId,
           })),
         },
       },
@@ -152,15 +156,82 @@ export class InvoicesService {
 
     // 2. Add the individual line items (Revenue or Expense)
     for (const line of invoice.lines) {
+      let lineAccountId = line.accountId;
+      let lineDebit = new Decimal(0);
+      let lineCredit = new Decimal(0);
       const lineTotalBase = new Decimal(line.total).mul(exRate);
+
+      if (invoice.type === 'PurchaseInvoice') {
+        // Debit Expense/Inventory
+        lineDebit = lineTotalBase;
+
+        // Inventory Processing
+        if (line.itemId && line.warehouseId) {
+          // It's an inventory item purchase. Update WAC and increase stock.
+          // Note: This relies on a Prisma transaction conceptually, but we're chaining here for simplicity.
+          // For true atomicity, this whole approve block should be wrapped in this.prisma.$transaction.
+          // Since InvoicesService doesn't wrap the whole approve in tx yet, we'll pass this.prisma directly to the tx arg for now.
+          await this.inventoryService.processInwardMovement(
+            this.prisma,
+            tenantId,
+            line.itemId,
+            line.warehouseId,
+            Number(line.quantity),
+            Number(lineTotalBase),
+            invoice.issueDate,
+            `PINV-${invoice.invoiceNumber}`
+          );
+        }
+      } else if (invoice.type === 'SalesInvoice') {
+        // Credit Revenue
+        lineCredit = lineTotalBase;
+
+        // Inventory Processing
+        if (line.itemId && line.warehouseId) {
+          // Decrease stock and calculate COGS
+          const { cogsAmount, cogsAccountId, inventoryAccountId } = await this.inventoryService.processOutwardMovement(
+            this.prisma,
+            tenantId,
+            line.itemId,
+            line.warehouseId,
+            Number(line.quantity),
+            invoice.issueDate,
+            `INV-${invoice.invoiceNumber}`
+          );
+
+          // We must add additional COGS Journal Lines:
+          // Debit COGS Expense
+          // Credit Inventory Asset
+          if (cogsAccountId && inventoryAccountId) {
+            jeLines.push({
+              accountId: cogsAccountId,
+              contactId: invoice.contactId,
+              description: `COGS for ${line.description}`,
+              debit: cogsAmount.toString(),
+              credit: 0,
+            });
+            jeLines.push({
+              accountId: inventoryAccountId,
+              contactId: invoice.contactId,
+              description: `Inventory reduction for ${line.description}`,
+              debit: 0,
+              credit: cogsAmount.toString(),
+            });
+          }
+        }
+      } else if (invoice.type === 'CreditNote') {
+        lineDebit = lineTotalBase;
+        // Logic for returning inventory can be added later
+      } else if (invoice.type === 'DebitNote') {
+        lineCredit = lineTotalBase;
+      }
+
       jeLines.push({
-        accountId: line.accountId,
+        accountId: lineAccountId,
         contactId: invoice.contactId,
         description: line.description,
-        // Revenue is a CREDIT. Sales Invoice => Credit. Credit Note => Debit.
-        // Expense is a DEBIT. Purchase Invoice => Debit. Debit Note => Credit.
-        debit: (invoice.type === 'PurchaseInvoice' || invoice.type === 'CreditNote') ? lineTotalBase.toString() : 0,
-        credit: (invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote') ? lineTotalBase.toString() : 0,
+        debit: lineDebit.toString(),
+        credit: lineCredit.toString(),
       });
     }
 

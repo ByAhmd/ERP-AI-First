@@ -27,6 +27,16 @@ export class CreateInvoiceLineDto {
   @ApiProperty()
   @IsUUID()
   accountId: string; // The revenue or expense account for this line item
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  itemId?: string;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  warehouseId?: string;
 }
 
 export class CreateInvoiceDto {

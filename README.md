@@ -149,9 +149,17 @@ Add journal balance validation
   - Dual Date System (Hijri/Gregorian API conversion)
   - GOSI & WPS (Employee profiles and payroll journal entry generation)
 
+- [x] **Phase 5 — Extended Accounting Modules**
+  - Bank Reconciliation (Statement upload, automatic matching)
+  - Fixed Assets (Capitalization, straight-line depreciation schedules)
+  - Inventory Valuation (Weighted Average Cost tracking, Stock movements)
+  - Multi-Warehouse Control (Transfers)
+  - Consolidation Engine (Parent-Child translation & Trial Balance rollup)
+  - Payroll Integration (Gross-to-net calculators, automated journal posting)
+
 ### Next Phase
 
-- [ ] **Phase 5 — Extended Accounting** — Bank Reconciliation, Fixed Assets, Inventory, Consolidation, Payroll.
+- [ ] **Phase 6 — Frontend & AI** — Next.js UI implementation, Chat Interface, Reporting Dashboard.
 
 ### Not Yet Implemented (External API Integrations)
 

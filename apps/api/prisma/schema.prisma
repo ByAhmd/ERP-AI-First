@@ -93,6 +93,43 @@ enum ZatcaStatus {
   Failed
 }
 
+// ─── Phase 5 Enums (Extended Accounting) ─────────────────────────────────────
+
+enum ReconciliationStatus {
+  Draft
+  Reconciled
+}
+
+enum AssetStatus {
+  Draft
+  Active
+  Disposed
+}
+
+enum DepreciationMethod {
+  StraightLine
+  DecliningBalance
+  UnitsOfProduction
+}
+
+enum ItemType {
+  Product
+  Service
+}
+
+enum InventoryTransactionType {
+  Purchase
+  Sale
+  Adjustment
+  Transfer
+}
+
+enum PayrollStatus {
+  Draft
+  Approved
+  Paid
+}
+
 // ─── Core Identity ───────────────────────────────────────────────────────────
 
 model Tenant {
@@ -126,6 +163,16 @@ model Tenant {
   whtRates          WhtRate[]
   zakatSettings     ZakatSetting[]
   employeeProfiles  EmployeeProfile[]
+  bankStatements    BankStatement[]
+  reconciliations   Reconciliation[]
+  fixedAssets       FixedAsset[]
+  items             Item[]
+  warehouses        Warehouse[]
+  inventoryTxns     InventoryTransaction[]
+  payrollRuns       PayrollRun[]
+  tenantChildren    TenantHierarchy[] @relation("ParentTenant")
+  tenantParents     TenantHierarchy[] @relation("ChildTenant")
+  periodExRates     PeriodExchangeRate[]
 
   @@index([status])
 }
@@ -321,6 +368,7 @@ model ChartOfAccount {
   children     ChartOfAccount[]     @relation("ChartOfAccountHierarchy")
   currency     Currency?            @relation(fields: [currencyId], references: [id])
   journalLines JournalEntryLine[]
+  bankStatements BankStatement[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -362,12 +410,14 @@ model JournalEntryLine {
   exchangeRate   Decimal?       @db.Decimal(18, 6)
   contactId      String?
   taxCodeId      String?
+  reconciliationId String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   journalEntry   JournalEntry   @relation(fields: [journalEntryId], references: [id])
   account        ChartOfAccount @relation(fields: [accountId], references: [id])
   currency       Currency?      @relation(fields: [currencyId], references: [id])
   contact        Contact?       @relation(fields: [contactId], references: [id])
+  reconciliation Reconciliation? @relation(fields: [reconciliationId], references: [id])
 
   @@index([tenantId])
   @@index([journalEntryId])
@@ -375,6 +425,7 @@ model JournalEntryLine {
   @@index([currencyId])
   @@index([contactId])
   @@index([taxCodeId])
+  @@index([reconciliationId])
 }
 
 model Currency {
@@ -498,10 +549,14 @@ model InvoiceLine {
   taxAmount   Decimal  @default(0) @db.Decimal(18, 2)
   total       Decimal  @db.Decimal(18, 2)
   accountId   String
+  itemId      String?
+  warehouseId String?
   taxCodeId   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  item        Item?    @relation(fields: [itemId], references: [id])
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
 
   @@index([tenantId])
   @@index([invoiceId])
@@ -610,3 +665,251 @@ model EmployeeProfile {
   @@index([tenantId])
 }
 
+// ─── Extended Accounting (Phase 5) ───────────────────────────────────────────
+
+// Bank Reconciliation
+model BankStatement {
+  id             String                     @id @default(uuid())
+  tenantId       String
+  accountId      String
+  statementDate  DateTime
+  openingBalance Decimal                    @db.Decimal(18, 2)
+  closingBalance Decimal                    @db.Decimal(18, 2)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  tenant         Tenant                     @relation(fields: [tenantId], references: [id])
+  account        ChartOfAccount             @relation(fields: [accountId], references: [id])
+  transactions   BankStatementTransaction[]
+  reconciliations Reconciliation[]
+
+  @@index([tenantId])
+  @@index([accountId])
+}
+
+model BankStatementTransaction {
+  id              String         @id @default(uuid())
+  bankStatementId String
+  date            DateTime
+  description     String
+  amount          Decimal        @db.Decimal(18, 2)
+  reference       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  bankStatement   BankStatement  @relation(fields: [bankStatementId], references: [id], onDelete: Cascade)
+
+  @@index([bankStatementId])
+}
+
+model Reconciliation {
+  id              String               @id @default(uuid())
+  tenantId        String
+  bankStatementId String
+  accountId       String
+  status          ReconciliationStatus @default(Draft)
+  reconciledAt    DateTime?
+  reconciledById  String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  tenant          Tenant               @relation(fields: [tenantId], references: [id])
+  bankStatement   BankStatement        @relation(fields: [bankStatementId], references: [id])
+  journalLines    JournalEntryLine[]
+
+  @@index([tenantId])
+  @@index([bankStatementId])
+}
+
+// Fixed Assets
+model FixedAsset {
+  id                   String                 @id @default(uuid())
+  tenantId             String
+  code                 String
+  name                 String
+  description          String?
+  assetAccountId       String
+  depreciationAccountId String
+  expenseAccountId     String
+  purchaseDate         DateTime
+  purchasePrice        Decimal                @db.Decimal(18, 2)
+  salvageValue         Decimal                @db.Decimal(18, 2)
+  usefulLifeMonths     Int
+  depreciationMethod   DepreciationMethod     @default(StraightLine)
+  status               AssetStatus            @default(Draft)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  tenant               Tenant                 @relation(fields: [tenantId], references: [id])
+  schedules            DepreciationSchedule[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model DepreciationSchedule {
+  id              String       @id @default(uuid())
+  fixedAssetId    String
+  date            DateTime
+  amount          Decimal      @db.Decimal(18, 2)
+  accumulated     Decimal      @db.Decimal(18, 2)
+  journalEntryId  String?      @unique
+  posted          Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  fixedAsset      FixedAsset   @relation(fields: [fixedAssetId], references: [id], onDelete: Cascade)
+
+  @@index([fixedAssetId])
+}
+
+// Inventory
+model Item {
+  id                   String                 @id @default(uuid())
+  tenantId             String
+  type                 ItemType               @default(Product)
+  code                 String
+  name                 String
+  description          String?
+  inventoryAccountId   String?
+  cogsAccountId        String?
+  revenueAccountId     String?
+  weightedAverageCost  Decimal                @default(0) @db.Decimal(18, 2)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  tenant               Tenant                 @relation(fields: [tenantId], references: [id])
+  invoiceLines         InvoiceLine[]
+  inventoryBalances    InventoryBalance[]
+  inventoryLots        InventoryLot[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model Warehouse {
+  id                String             @id @default(uuid())
+  tenantId          String
+  code              String
+  name              String
+  location          String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  inventoryBalances InventoryBalance[]
+  inventoryLots     InventoryLot[]
+  invoiceLines      InvoiceLine[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model InventoryBalance {
+  id          String   @id @default(uuid())
+  itemId      String
+  warehouseId String
+  quantity    Decimal  @default(0) @db.Decimal(18, 4)
+  updatedAt   DateTime @updatedAt
+  item        Item     @relation(fields: [itemId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([itemId, warehouseId])
+}
+
+// Support for FIFO in the future
+model InventoryLot {
+  id          String   @id @default(uuid())
+  itemId      String
+  warehouseId String
+  lotNumber   String
+  quantity    Decimal  @db.Decimal(18, 4)
+  unitCost    Decimal  @db.Decimal(18, 6)
+  receivedAt  DateTime @default(now())
+  item        Item     @relation(fields: [itemId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@index([itemId, warehouseId])
+}
+
+model InventoryTransaction {
+  id              String                   @id @default(uuid())
+  tenantId        String
+  type            InventoryTransactionType
+  itemId          String
+  warehouseId     String
+  quantity        Decimal                  @db.Decimal(18, 4)
+  unitCost        Decimal                  @db.Decimal(18, 6)
+  date            DateTime
+  reference       String?
+  journalEntryId  String?                  @unique
+  createdAt       DateTime                 @default(now())
+  tenant          Tenant                   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([itemId])
+}
+
+// Consolidation
+model TenantHierarchy {
+  id             String   @id @default(uuid())
+  parentTenantId String
+  childTenantId  String
+  ownershipPct   Decimal  @default(100) @db.Decimal(5, 2)
+  createdAt      DateTime @default(now())
+  parentTenant   Tenant   @relation("ParentTenant", fields: [parentTenantId], references: [id])
+  childTenant    Tenant   @relation("ChildTenant", fields: [childTenantId], references: [id])
+
+  @@unique([parentTenantId, childTenantId])
+}
+
+model EliminationEntry {
+  id             String   @id @default(uuid())
+  tenantId       String   // The parent tenant
+  periodId       String
+  journalEntryId String   @unique
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, periodId])
+}
+
+model PeriodExchangeRate {
+  id               String   @id @default(uuid())
+  tenantId         String
+  accountingPeriodId String
+  currencyId       String
+  rate             Decimal  @db.Decimal(18, 6)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  
+  @@unique([tenantId, accountingPeriodId, currencyId])
+}
+
+// Payroll
+model PayrollRun {
+  id             String        @id @default(uuid())
+  tenantId       String
+  periodName     String        // e.g., "July 2026"
+  status         PayrollStatus @default(Draft)
+  totalGross     Decimal       @default(0) @db.Decimal(18, 2)
+  totalNet       Decimal       @default(0) @db.Decimal(18, 2)
+  totalDeductions Decimal      @default(0) @db.Decimal(18, 2)
+  journalEntryId String?       @unique
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  payslips       Payslip[]
+
+  @@unique([tenantId, periodName])
+  @@index([tenantId])
+}
+
+model Payslip {
+  id                String       @id @default(uuid())
+  payrollRunId      String
+  employeeProfileId String
+  grossSalary       Decimal      @db.Decimal(18, 2)
+  gosiDeduction     Decimal      @db.Decimal(18, 2)
+  otherDeductions   Decimal      @default(0) @db.Decimal(18, 2)
+  netSalary         Decimal      @db.Decimal(18, 2)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  payrollRun        PayrollRun   @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+
+  @@unique([payrollRunId, employeeProfileId])
+  @@index([payrollRunId])
+}

@@ -36,6 +36,16 @@ import { WhtModule } from './modules/ksa-compliance/wht/wht.module';
 import { WpsModule } from './modules/ksa-compliance/wps/wps.module';
 import { ZatcaModule } from './modules/ksa-compliance/zatca/zatca.module';
 
+import { BankReconciliationModule } from './modules/accounting/bank-reconciliation/bank-reconciliation.module';
+
+import { FixedAssetsModule } from './modules/accounting/fixed-assets/fixed-assets.module';
+
+import { InventoryModule } from './modules/accounting/inventory/inventory.module';
+
+import { ConsolidationModule } from './modules/accounting/consolidation/consolidation.module';
+
+import { PayrollModule } from './modules/business/payroll/payroll.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -61,11 +71,16 @@ import { ZatcaModule } from './modules/ksa-compliance/zatca/zatca.module';
     JournalEntriesModule,
     GeneralLedgerModule,
     CurrenciesModule,
+    BankReconciliationModule,
+    FixedAssetsModule,
+    InventoryModule,
+    ConsolidationModule,
     SequencesModule,
     ContactsModule,
     InvoicesModule,
     PaymentsModule,
     EmployeeProfilesModule,
+    PayrollModule,
     VatModule,
     ZakatModule,
     DateModule,
