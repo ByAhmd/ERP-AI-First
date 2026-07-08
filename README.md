@@ -157,9 +157,16 @@ Add journal balance validation
   - Consolidation Engine (Parent-Child translation & Trial Balance rollup)
   - Payroll Integration (Gross-to-net calculators, automated journal posting)
 
+- [x] **Phase 6 — Frontend Web Application**
+  - Next.js Web App Scaffolding (Monorepo integration)
+  - Custom Vanilla CSS Design System (Sleek dark mode, Glassmorphism, Micro-animations)
+  - API Integration Layer (Next.js rewrites to NestJS)
+  - Authentication Flow (Login UI + HTTP-Only Cookie implementation)
+  - Dashboard & Ledger Views (Financial summary charts layout)
+
 ### Next Phase
 
-- [ ] **Phase 6 — Frontend & AI** — Next.js UI implementation, Chat Interface, Reporting Dashboard.
+- [ ] **Phase 7 — AI Engine & Advanced Features** — AI Document Understanding, Natural Language Queries, and Real-time Notifications.
 
 ### Not Yet Implemented (External API Integrations)
 

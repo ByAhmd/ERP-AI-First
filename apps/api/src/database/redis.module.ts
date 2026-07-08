@@ -3,8 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { EnvConfig } from '../config/env.validation';
 import { RedisService } from './redis.service';
-
-export const REDIS_CLIENT = 'REDIS_CLIENT';
+import { REDIS_CLIENT } from './redis.constants';
 
 const redisProvider: Provider = {
   provide: REDIS_CLIENT,

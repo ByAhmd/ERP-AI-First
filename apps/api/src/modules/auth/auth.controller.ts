@@ -19,7 +19,7 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.CREATED, type: AuthResponseDto })
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response): Promise<AuthResponseDto> {
     const response = await this.authService.register(dto);
-    this.setRefreshTokenCookie(res, response.refreshToken);
+    this.setCookies(res, response);
     return response;
   }
 
@@ -29,7 +29,7 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.OK, type: AuthResponseDto })
   async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<AuthResponseDto> {
     const response = await this.authService.login(dto, req.ip);
-    this.setRefreshTokenCookie(res, response.refreshToken);
+    this.setCookies(res, response);
     return response;
   }
 
@@ -40,7 +40,7 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.OK, type: AuthResponseDto })
   async refresh(@Req() req: any, @Res({ passthrough: true }) res: Response): Promise<AuthResponseDto> {
     const response = await this.authService.refreshTokens(req.user.id, req.user.refreshToken);
-    this.setRefreshTokenCookie(res, response.refreshToken);
+    this.setCookies(res, response);
     return response;
   }
 
@@ -50,13 +50,10 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout from current session' })
   async logout(@Req() req: any, @Res({ passthrough: true }) res: Response): Promise<void> {
-    // Note: To properly revoke, we'd need to extract jti from the refresh token. 
-    // If not available, we can rely on client deleting it, or we could look it up.
-    // For now, we clear the cookie. The robust revocation is in logoutAll.
     if (req.cookies?.refreshToken) {
       // In a more complex setup, decode the refresh token to get JTI and revoke.
     }
-    this.clearRefreshTokenCookie(res);
+    this.clearCookies(res);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -66,7 +63,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout from all sessions' })
   async logoutAll(@CurrentUser() user: RequestUser, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.authService.logoutAll(user.id);
-    this.clearRefreshTokenCookie(res);
+    this.clearCookies(res);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -77,16 +74,28 @@ export class AuthController {
     return user;
   }
 
-  private setRefreshTokenCookie(res: Response, token: string): void {
-    res.cookie('refreshToken', token, {
+  private setCookies(res: Response, response: AuthResponseDto): void {
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Access Token Cookie (short-lived)
+    res.cookie('accessToken', response.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: response.expiresIn * 1000, // typically 15 minutes
+    });
+
+    // Refresh Token Cookie (long-lived)
+    res.cookie('refreshToken', response.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }
 
-  private clearRefreshTokenCookie(res: Response): void {
+  private clearCookies(res: Response): void {
+    res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
   }
 }
