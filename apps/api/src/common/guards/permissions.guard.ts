@@ -30,6 +30,8 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('Tenant context is required for this action');
     }
 
+    console.log(`[PermissionsGuard] Checking access for user=${user.id}, tenant=${tenantId}`);
+
     // Determine the user's role in this tenant
     const tenantUser = await this.prisma.tenantUser.findUnique({
       where: {
@@ -50,6 +52,8 @@ export class PermissionsGuard implements CanActivate {
         },
       },
     });
+
+    console.log(`[PermissionsGuard] Result:`, tenantUser ? `Found (status: ${tenantUser.status}, role: ${tenantUser.roleId})` : 'NOT FOUND');
 
     if (!tenantUser || tenantUser.status !== 'Active') {
       throw new ForbiddenException('User is not active in this tenant');

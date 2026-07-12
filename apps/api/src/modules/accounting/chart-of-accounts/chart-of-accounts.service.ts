@@ -116,15 +116,7 @@ export class ChartOfAccountsService {
     return account;
   }
 
-  /**
-   * Seeds a standard SME Chart of Accounts template for a new tenant.
-   */
   async seedSmeTemplate(tenantId: string) {
-    const existing = await this.prisma.chartOfAccount.count({ where: { tenantId } });
-    if (existing > 0) {
-      throw new ConflictException('Chart of Accounts already exists for this tenant.');
-    }
-
     const template = [
       // Assets (1000)
       { code: '1000', name: 'Assets', type: 'Asset' as const, parentCode: null },
@@ -156,10 +148,20 @@ export class ChartOfAccountsService {
       { code: '5120', name: 'Rent Expense', type: 'Expense' as const, parentCode: '5100' },
     ];
 
+    const existingAccounts = await this.prisma.chartOfAccount.findMany({ where: { tenantId } });
+    const existingCodes = new Set(existingAccounts.map(a => a.code));
+
     return this.prisma.$transaction(async (tx) => {
       const createdMap = new Map<string, string>();
       
+      // Add existing accounts to the created map so children can find them
+      existingAccounts.forEach(a => createdMap.set(a.code, a.id));
+
       for (const acc of template) {
+        if (existingCodes.has(acc.code)) {
+          continue; // Skip if already exists
+        }
+
         let parentId = null;
         if (acc.parentCode) {
            parentId = createdMap.get(acc.parentCode);

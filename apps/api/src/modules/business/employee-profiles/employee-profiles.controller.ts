@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../../common/decorators/require-permissions.decorator';
@@ -6,9 +6,13 @@ import { PERMISSIONS } from '@erp-ai/shared';
 import { EmployeeProfilesService } from './employee-profiles.service';
 import { CreateEmployeeProfileDto } from './dto/create-employee-profile.dto';
 import { ProcessPayrollDto } from './dto/process-payroll.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 
 @ApiTags('Business - Employee Profiles')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('business/employee-profiles')
 export class EmployeeProfilesController {
   constructor(private readonly profilesService: EmployeeProfilesService) {}

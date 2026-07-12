@@ -1,8 +1,14 @@
-import { Controller, Post, Body, Param } from '@nestjs/common';
+import { Controller, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { PayrollService } from './payroll.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { CreatePayrollRunDto } from './dto/payroll.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { RequirePermissions } from '../../../common/decorators/require-permissions.decorator';
+import { PERMISSIONS } from '@erp-ai/shared';
 
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('business/payroll')
 export class PayrollController {
   constructor(private readonly payrollService: PayrollService) {}

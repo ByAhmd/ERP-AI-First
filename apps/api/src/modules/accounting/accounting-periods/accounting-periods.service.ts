@@ -17,6 +17,43 @@ export class AccountingPeriodsService {
     });
   }
 
+  async initializeFiscalYear(tenantId: string, year: number) {
+    return this.prisma.$transaction(async (tx) => {
+      // Create Fiscal Year
+      const startDate = new Date(`${year}-01-01T00:00:00Z`);
+      const endDate = new Date(`${year}-12-31T23:59:59Z`);
+
+      const fiscalYear = await tx.fiscalYear.create({
+        data: {
+          tenantId,
+          name: `FY ${year}`,
+          startDate,
+          endDate,
+          status: 'Open',
+        }
+      });
+
+      // Create 12 Accounting Periods
+      for (let month = 1; month <= 12; month++) {
+        const pStart = new Date(`${year}-${month.toString().padStart(2, '0')}-01T00:00:00Z`);
+        const pEnd = new Date(year, month, 0, 23, 59, 59, 999);
+        
+        await tx.accountingPeriod.create({
+          data: {
+            tenantId,
+            fiscalYearId: fiscalYear.id,
+            name: `${year}-${month.toString().padStart(2, '0')}`,
+            startDate: pStart,
+            endDate: pEnd,
+            status: 'Open', // Usually they are created as 'Open' or 'Future', we'll default to Open for setup
+          }
+        });
+      }
+
+      return fiscalYear;
+    });
+  }
+
   async findActivePeriodByDate(tenantId: string, date: Date) {
     const period = await this.prisma.accountingPeriod.findFirst({
       where: {

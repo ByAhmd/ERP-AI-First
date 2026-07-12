@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ApiClient } from "../../lib/api-client";
+
+interface Tenant {
+  id: string;
+  name: string;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +22,7 @@ export default function LoginPage() {
     setError("");
 
     try {
+      // Step 1: Login (sets httpOnly accessToken + refreshToken cookies)
       const res = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -27,7 +34,19 @@ export default function LoginPage() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Success, cookies are set by API
+      // Step 2: Fetch the list of tenants for this user
+      const tenants = await ApiClient.get<Tenant[]>("/tenants");
+
+      if (!tenants || tenants.length === 0) {
+        // No tenants yet — redirect to company setup
+        router.push("/setup");
+        return;
+      }
+
+      // Step 3: Auto-select the first (or only) tenant and store in localStorage
+      ApiClient.setActiveTenantId(tenants[0].id);
+
+      // Step 4: Go to the dashboard
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -41,7 +60,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md animate-fade-in">
         <div className="glass-panel p-8">
           <div className="text-center mb-8">
-            <h1 className="heading-2">Welcome Back</h1>
+            <h1 className="heading-1 mb-2">ERP AI</h1>
+            <h2 className="heading-2 mb-2">Welcome Back</h2>
             <p className="text-secondary">Sign in to your ERP AI account</p>
           </div>
 
@@ -61,8 +81,8 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[rgba(0,0,0,0.2)] border border-glass-border rounded-md px-4 py-3 text-primary focus:outline-none focus:border-accent-primary transition-colors"
-                placeholder="admin@example.com"
+                className="form-input"
+                placeholder="admin@erp-ai.local"
               />
             </div>
 
@@ -75,7 +95,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[rgba(0,0,0,0.2)] border border-glass-border rounded-md px-4 py-3 text-primary focus:outline-none focus:border-accent-primary transition-colors"
+                className="form-input"
                 placeholder="••••••••"
               />
             </div>
@@ -83,7 +103,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 glass-panel bg-accent-primary hover:bg-accent-primary-hover border-transparent py-3 font-semibold text-white transition-all disabled:opacity-50"
+              className="btn-primary w-full py-3 mt-2"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>

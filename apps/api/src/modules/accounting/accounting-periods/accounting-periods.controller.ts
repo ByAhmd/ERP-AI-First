@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Body, Query, UseGuards, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PERMISSIONS } from '@erp-ai/shared';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -21,6 +21,14 @@ export class AccountingPeriodsController {
   @RequirePermissions(PERMISSIONS.ACCOUNTING_PERIOD_READ)
   findAll(@CurrentUser() user: RequestUser, @Query('fiscalYearId') fiscalYearId?: string) {
     return this.accountingPeriodsService.findAllByTenant(user.tenantId!, fiscalYearId);
+  }
+
+  @Post('initialize-year')
+  @ApiOperation({ summary: 'Initialize a new fiscal year and 12 periods' })
+  @RequirePermissions(PERMISSIONS.ACCOUNTING_PERIOD_MANAGE)
+  @Auditable({ action: 'CREATE', entityType: 'FiscalYear' })
+  initializeFiscalYear(@CurrentUser() user: RequestUser, @Body('year') year: number) {
+    return this.accountingPeriodsService.initializeFiscalYear(user.tenantId!, year);
   }
 
   @Patch(':id/status')

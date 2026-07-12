@@ -27,13 +27,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       secretOrKey: configService.get('JWT_SECRET', { infer: true }),
+      // Pass the full request to validate() so we can read headers
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(request: any, payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, status: true, lockedUntil: true },
+      select: { id: true, email: true, fullName: true, status: true, lockedUntil: true },
     });
 
     if (!user) {
@@ -48,6 +50,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Account is temporarily locked');
     }
 
-    return { id: user.id, email: user.email };
+    // Attach the tenantId from the request header if present
+    const rawTenantId = request.headers['x-tenant-id'];
+    const tenantId = Array.isArray(rawTenantId) ? rawTenantId[0] : rawTenantId;
+
+    return { id: user.id, email: user.email, fullName: user.fullName, tenantId };
   }
 }
