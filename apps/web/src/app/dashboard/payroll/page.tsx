@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
+import toast from "react-hot-toast";
 
 interface EmployeeProfile {
   id: string;
@@ -55,17 +56,17 @@ export default function PayrollPage() {
       return run;
     },
     onSuccess: () => {
-      alert("Payroll run processed and approved successfully!");
+      toast.success("Payroll run processed and approved successfully!");
       setAdjustments({});
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to process payroll");
+      toast.error(err.message || "Failed to process payroll");
     },
   });
 
   const handleRunPayroll = () => {
     if (!employees || employees.length === 0) {
-      alert("No employees to process payroll for.");
+      toast.error("No employees to process payroll for.");
       return;
     }
 

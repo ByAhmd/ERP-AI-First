@@ -88,4 +88,40 @@ export class UsersService {
       joinedAt: tenantUser.createdAt,
     };
   }
+
+  async inviteUser(tenantId: string, email: string, fullName: string, roleId: string) {
+    // Check if user exists
+    let user = await this.prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          fullName,
+          status: 'Invited'
+        }
+      });
+    }
+
+    // Upsert tenant user
+    const tenantUser = await this.prisma.tenantUser.upsert({
+      where: {
+        tenantId_userId: { tenantId, userId: user.id }
+      },
+      update: {
+        roleId,
+        status: 'Active'
+      },
+      create: {
+        tenantId,
+        userId: user.id,
+        roleId,
+        status: 'Active'
+      }
+    });
+
+    return tenantUser;
+  }
 }

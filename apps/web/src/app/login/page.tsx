@@ -22,31 +22,31 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // Step 1: Login (sets httpOnly accessToken + refreshToken cookies)
       const res = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || "Login failed");
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseError) {
+        throw new Error("Server error: Unable to connect to the backend. Please ensure the API is running.");
       }
 
-      // Step 2: Fetch the list of tenants for this user
+      if (!res.ok) {
+        throw new Error(data?.message || "Login failed");
+      }
+
       const tenants = await ApiClient.get<Tenant[]>("/tenants");
 
       if (!tenants || tenants.length === 0) {
-        // No tenants yet — redirect to company setup
         router.push("/setup");
         return;
       }
 
-      // Step 3: Auto-select the first (or only) tenant and store in localStorage
       ApiClient.setActiveTenantId(tenants[0].id);
-
-      // Step 4: Go to the dashboard
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -56,24 +56,57 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-fade-in">
-        <div className="glass-panel p-8">
-          <div className="text-center mb-8">
-            <h1 className="heading-1 mb-2">ERP AI</h1>
-            <h2 className="heading-2 mb-2">Welcome Back</h2>
-            <p className="text-secondary">Sign in to your ERP AI account</p>
+    <div style={{ position: "relative", display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", backgroundColor: "#0f172a", padding: "1rem", overflow: "hidden" }}>
+      
+      {/* Video Background with highly reliable Poster Image */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        poster="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1920&q=80"
+        style={{ 
+          position: "absolute", 
+          top: 0, left: 0, right: 0, bottom: 0, 
+          width: "100%", height: "100%", 
+          objectFit: "cover", 
+          zIndex: 0, 
+          filter: "brightness(0.35)",
+          backgroundColor: "#0f172a" 
+        }}
+      >
+        <source src="/assets/videos/login-bg.mp4" type="video/mp4" />
+      </video>
+
+      {/* Login Card */}
+      <div className="animate-fade-in" style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: "28rem" }}>
+        <div 
+          style={{ 
+            background: "rgba(15, 23, 42, 0.75)", 
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)", 
+            border: "1px solid rgba(255, 255, 255, 0.1)", 
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            borderRadius: "1rem",
+            padding: "2rem"
+          }}
+        >
+          <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+            <h1 style={{ fontSize: "2.25rem", fontWeight: 800, color: "#ffffff", marginBottom: "0.5rem", letterSpacing: "-0.025em" }}>ERP AI</h1>
+            <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "#60a5fa", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "1.5rem" }}>Corporate OS</p>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: 600, color: "#ffffff", marginBottom: "0.5rem" }}>Welcome Back</h2>
+            <p style={{ color: "#94a3b8" }}>Sign in to your ERP AI account</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] text-[#ef4444] text-sm">
+            <div style={{ marginBottom: "1.5rem", padding: "1rem", borderRadius: "0.5rem", backgroundColor: "rgba(239, 68, 68, 0.2)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fecaca", fontSize: "0.875rem", fontWeight: 500, textAlign: "center" }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             <div>
-              <label className="block text-sm font-medium text-secondary mb-2">
+              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, color: "#cbd5e1", marginBottom: "0.5rem" }}>
                 Email Address
               </label>
               <input
@@ -81,13 +114,13 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="form-input"
+                style={{ width: "100%", borderRadius: "0.5rem", padding: "0.75rem 1rem", color: "#ffffff", backgroundColor: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", outline: "none" }}
                 placeholder="admin@erp-ai.local"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-secondary mb-2">
+              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, color: "#cbd5e1", marginBottom: "0.5rem" }}>
                 Password
               </label>
               <input
@@ -95,7 +128,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="form-input"
+                style={{ width: "100%", borderRadius: "0.5rem", padding: "0.75rem 1rem", color: "#ffffff", backgroundColor: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", outline: "none" }}
                 placeholder="••••••••"
               />
             </div>
@@ -103,7 +136,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-3 mt-2"
+              style={{ width: "100%", borderRadius: "0.5rem", padding: "0.75rem 1rem", marginTop: "1rem", color: "#ffffff", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, background: "linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)", border: "none", boxShadow: "0 4px 14px 0 rgba(79, 70, 229, 0.4)" }}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>

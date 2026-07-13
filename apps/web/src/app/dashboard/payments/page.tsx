@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
+import toast from "react-hot-toast";
 
 interface Contact {
   id: string;
@@ -75,9 +76,10 @@ export default function PaymentsPage() {
         notes: "",
         reference: "",
       });
+      toast.success("Payment created successfully");
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to create payment");
+      toast.error(err.message || "Failed to create payment");
     },
   });
 
@@ -85,9 +87,10 @@ export default function PaymentsPage() {
     mutationFn: (id: string) => ApiClient.patch(`/business/payments/${id}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
+      toast.success("Payment approved successfully");
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to approve payment");
+      toast.error(err.message || "Failed to approve payment");
     },
   });
 
@@ -186,8 +189,8 @@ export default function PaymentsPage() {
                 >
                   <option value="">— Select Account —</option>
                   {(accounts ?? [])
-                    .filter((a) => a.type === "Asset")
-                    .map((a) => (
+                    .filter((a: any) => a.type === "Asset" && (!a.children || a.children.length === 0))
+                    .map((a: any) => (
                       <option key={a.id} value={a.id}>
                         {a.code} - {a.name}
                       </option>

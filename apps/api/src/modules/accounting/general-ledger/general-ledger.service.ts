@@ -47,12 +47,15 @@ export class GeneralLedgerService {
       const credit = new Decimal(sums.credit || 0);
       
       let balance = new Decimal(0);
+      let balanceType = 'Debit';
       
       // Standard balance calculation based on account type
       if (acc.type === 'Asset' || acc.type === 'Expense') {
          balance = debit.minus(credit);
+         balanceType = balance.isNegative() ? 'Credit' : 'Debit';
       } else {
          balance = credit.minus(debit);
+         balanceType = balance.isNegative() ? 'Debit' : 'Credit';
       }
 
       return {
@@ -62,16 +65,25 @@ export class GeneralLedgerService {
         type: acc.type,
         totalDebit: debit.toString(),
         totalCredit: credit.toString(),
-        balance: balance.toString(),
+        balance: balance.abs().toString(),
+        balanceType,
       };
     });
 
-    // 4. Calculate grand totals
+    // 4. Calculate grand totals based on net balances
     const grandTotals = trialBalance.reduce((acc, row) => {
-       return {
-         debit: acc.debit.plus(row.totalDebit),
-         credit: acc.credit.plus(row.totalCredit)
-       };
+       const bal = new Decimal(row.balance);
+       if (row.balanceType === 'Debit') {
+         return {
+           debit: acc.debit.plus(bal),
+           credit: acc.credit
+         };
+       } else {
+         return {
+           debit: acc.debit,
+           credit: acc.credit.plus(bal)
+         };
+       }
     }, { debit: new Decimal(0), credit: new Decimal(0) });
 
     return {
@@ -82,5 +94,28 @@ export class GeneralLedgerService {
       },
       isBalanced: grandTotals.debit.equals(grandTotals.credit)
     };
+  }
+
+  /**
+   * Retrieves all journal entry lines (transactions) for the general ledger.
+   */
+  async getTransactions(tenantId: string) {
+    return this.prisma.journalEntryLine.findMany({
+      where: {
+        tenantId,
+        journalEntry: {
+          status: 'Posted',
+        },
+      },
+      include: {
+        account: true,
+        journalEntry: true,
+      },
+      orderBy: {
+        journalEntry: {
+          entryDate: 'desc',
+        },
+      },
+    });
   }
 }

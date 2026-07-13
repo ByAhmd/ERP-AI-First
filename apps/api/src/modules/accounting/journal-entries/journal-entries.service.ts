@@ -30,7 +30,7 @@ export class JournalEntriesService {
     private readonly periodsService: AccountingPeriodsService,
   ) {}
 
-  async create(tenantId: string, dto: CreateJournalEntryDto) {
+  async create(tenantId: string, dto: CreateJournalEntryDto, tx?: any) {
     if (!dto.lines || dto.lines.length < 2) {
       throw new BadRequestException('A journal entry must have at least two lines.');
     }
@@ -64,16 +64,19 @@ export class JournalEntriesService {
       throw new BadRequestException(`Journal entry is out of balance. Debits: ${totalDebits.toString()}, Credits: ${totalCredits.toString()}`);
     }
 
+    // Use provided transaction client or fall back to PrismaClient
+    const client = tx || this.prisma;
+
     // 3. Auto-numbering (simplified for now, ideally atomic in DB)
     const year = new Date(dto.entryDate).getUTCFullYear();
-    const count = await this.prisma.journalEntry.count({
+    const count = await client.journalEntry.count({
       where: { tenantId, entryDate: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }
     });
     const entryNumber = `JE-${year}-${String(count + 1).padStart(4, '0')}`;
 
     // 4. Save via Transaction
-    return this.prisma.$transaction(async (tx) => {
-      return tx.journalEntry.create({
+    const execute = async (prismaClient: any) => {
+      return prismaClient.journalEntry.create({
         data: {
           tenantId,
           entryNumber,
@@ -81,7 +84,7 @@ export class JournalEntriesService {
           description: dto.description,
           status: 'Posted', // Post immediately in this phase
           lines: {
-            create: dto.lines.map(line => ({
+            create: dto.lines.map((line: any) => ({
               tenantId,
               accountId: line.accountId,
               description: line.description,
@@ -97,7 +100,13 @@ export class JournalEntriesService {
         },
         include: { lines: true }
       });
-    });
+    };
+
+    if (tx) {
+      return execute(tx);
+    } else {
+      return this.prisma.$transaction(execute);
+    }
   }
 
   async createReversal(tenantId: string, originalEntryId: string, reversalDate: Date) {

@@ -97,97 +97,99 @@ export class PaymentsService {
       controlAccountId = contact.payableAccountId;
     }
 
-    // Process Allocations against invoices
-    if (payment.allocations.length > 0) {
-      for (const allocation of payment.allocations) {
-        const invoice = allocation.invoice;
-        if (invoice.status !== 'Approved' && invoice.status !== 'Paid') {
-           throw new BadRequestException(`Cannot allocate payment to invoice ${invoice.invoiceNumber} as it is not Approved.`);
-        }
-        
-        // Use Prisma's increment to update the paid amount on the invoice atomically
-        const newPaidAmount = new Decimal(invoice.amountPaid).plus(allocation.amount);
-        let newStatus = invoice.status;
-
-        // Note: In real life, floating point tolerance applies. Here we use exact decimal matches.
-        if (newPaidAmount.greaterThanOrEqualTo(invoice.total)) {
-          newStatus = 'Paid';
-        }
-
-        await this.prisma.invoice.update({
-          where: { id: invoice.id },
-          data: {
-            amountPaid: newPaidAmount.toString(),
-            status: newStatus,
+    return this.prisma.$transaction(async (tx) => {
+      // Process Allocations against invoices
+      if (payment.allocations.length > 0) {
+        for (const allocation of payment.allocations) {
+          const invoice = allocation.invoice;
+          if (invoice.status !== 'Approved' && invoice.status !== 'Paid') {
+             throw new BadRequestException(`Cannot allocate payment to invoice ${invoice.invoiceNumber} as it is not Approved.`);
           }
-        });
+          
+          // Use Prisma's increment to update the paid amount on the invoice atomically
+          const newPaidAmount = new Decimal(invoice.amountPaid).plus(allocation.amount);
+          let newStatus = invoice.status;
+
+          // Note: In real life, floating point tolerance applies. Here we use exact decimal matches.
+          if (newPaidAmount.greaterThanOrEqualTo(invoice.total)) {
+            newStatus = 'Paid';
+          }
+
+          await tx.invoice.update({
+            where: { id: invoice.id },
+            data: {
+              amountPaid: newPaidAmount.toString(),
+              status: newStatus,
+            }
+          });
+        }
       }
-    }
 
-    const exRate = payment.exchangeRate ? new Decimal(payment.exchangeRate) : new Decimal(1);
-    const totalBase = new Decimal(payment.amount).mul(exRate);
+      const exRate = payment.exchangeRate ? new Decimal(payment.exchangeRate) : new Decimal(1);
+      const totalBase = new Decimal(payment.amount).mul(exRate);
 
-    // Create Journal Entry
-    // Incoming: Debit Bank/Cash (payment.accountId), Credit AR (controlAccountId)
-    // Outgoing: Debit AP (controlAccountId), Credit Bank/Cash (payment.accountId)
-    const jeLines = [];
+      // Create Journal Entry
+      // Incoming: Debit Bank/Cash (payment.accountId), Credit AR (controlAccountId)
+      // Outgoing: Debit AP (controlAccountId), Credit Bank/Cash (payment.accountId)
+      const jeLines = [];
 
-    jeLines.push({
-      accountId: payment.accountId, // Bank or Cash
-      description: `Payment ${payment.paymentNumber}`,
-      debit: isIncoming ? totalBase.toString() : 0,
-      credit: !isIncoming ? totalBase.toString() : 0,
-      contactId: undefined, // Usually bank account doesn't need contact link
-    });
+      jeLines.push({
+        accountId: payment.accountId, // Bank or Cash
+        description: `Payment ${payment.paymentNumber}`,
+        debit: isIncoming ? totalBase.toString() : 0,
+        credit: !isIncoming ? totalBase.toString() : 0,
+        contactId: undefined, // Usually bank account doesn't need contact link
+      });
 
-    jeLines.push({
-      accountId: controlAccountId, // AR or AP
-      description: `Payment ${payment.paymentNumber}`,
-      debit: !isIncoming ? totalBase.toString() : 0,
-      credit: isIncoming ? totalBase.toString() : 0,
-      contactId: payment.contactId, // Sub-ledger link
-    });
+      jeLines.push({
+        accountId: controlAccountId, // AR or AP
+        description: `Payment ${payment.paymentNumber}`,
+        debit: !isIncoming ? totalBase.toString() : 0,
+        credit: isIncoming ? totalBase.toString() : 0,
+        contactId: payment.contactId, // Sub-ledger link
+      });
 
-    const whtAmountBase = payment.whtAmount ? new Decimal(payment.whtAmount).mul(exRate) : new Decimal(0);
-    
-    // If WHT is deducted on an outgoing payment, the bank credit is less, and the rest goes to WHT Payable (Credit)
-    if (whtAmountBase.greaterThan(0) && payment.whtAccountId) {
-      if (!isIncoming) {
-        // Outgoing: We owe the supplier 100 (Debit AP). We pay 95 (Credit Bank). We owe tax 5 (Credit WHT Payable).
-        jeLines[0].credit = new Decimal(jeLines[0].credit).minus(whtAmountBase).toString(); // Reduce bank credit
-        jeLines.push({
-          accountId: payment.whtAccountId,
-          description: `WHT Deduction for ${payment.paymentNumber}`,
-          debit: 0,
-          credit: whtAmountBase.toString(),
-          contactId: undefined, // Usually tax authority
-        });
-      } else {
-        // Incoming: Customer owes 100 (Credit AR). We receive 95 (Debit Bank). WHT deducted by customer 5 (Debit WHT Receivable).
-        jeLines[0].debit = new Decimal(jeLines[0].debit).minus(whtAmountBase).toString(); // Reduce bank debit
-        jeLines.push({
-          accountId: payment.whtAccountId,
-          description: `WHT Deduction by customer for ${payment.paymentNumber}`,
-          debit: whtAmountBase.toString(),
-          credit: 0,
-          contactId: undefined,
-        });
+      const whtAmountBase = payment.whtAmount ? new Decimal(payment.whtAmount).mul(exRate) : new Decimal(0);
+      
+      // If WHT is deducted on an outgoing payment, the bank credit is less, and the rest goes to WHT Payable (Credit)
+      if (whtAmountBase.greaterThan(0) && payment.whtAccountId) {
+        if (!isIncoming) {
+          // Outgoing: We owe the supplier 100 (Debit AP). We pay 95 (Credit Bank). We owe tax 5 (Credit WHT Payable).
+          jeLines[0].credit = new Decimal(jeLines[0].credit).minus(whtAmountBase).toString(); // Reduce bank credit
+          jeLines.push({
+            accountId: payment.whtAccountId,
+            description: `WHT Deduction for ${payment.paymentNumber}`,
+            debit: 0,
+            credit: whtAmountBase.toString(),
+            contactId: undefined, // Usually tax authority
+          });
+        } else {
+          // Incoming: Customer owes 100 (Credit AR). We receive 95 (Debit Bank). WHT deducted by customer 5 (Debit WHT Receivable).
+          jeLines[0].debit = new Decimal(jeLines[0].debit).minus(whtAmountBase).toString(); // Reduce bank debit
+          jeLines.push({
+            accountId: payment.whtAccountId,
+            description: `WHT Deduction by customer for ${payment.paymentNumber}`,
+            debit: whtAmountBase.toString(),
+            credit: 0,
+            contactId: undefined,
+          });
+        }
       }
-    }
 
-    const journalEntry = await this.journalEntriesService.create(tenantId, {
-      entryDate: payment.paymentDate,
-      description: `${payment.type} Payment ${payment.paymentNumber}`,
-      lines: jeLines,
-    });
+      const journalEntry = await this.journalEntriesService.create(tenantId, {
+        entryDate: payment.paymentDate,
+        description: `${payment.type} Payment ${payment.paymentNumber}`,
+        lines: jeLines,
+      }, tx);
 
-    return this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'Approved',
-        journalEntryId: journalEntry.id,
-      },
-      include: { allocations: true },
+      return tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'Approved',
+          journalEntryId: journalEntry.id,
+        },
+        include: { allocations: true },
+      });
     });
   }
 }

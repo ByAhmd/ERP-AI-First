@@ -68,7 +68,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex gap-2 mb-6" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1rem" }}>
-        {["Company", "Financial", "Integrations"].map((tab) => (
+        {["Company", "Financial", "Compliance", "Integrations"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as any)}
@@ -84,7 +84,7 @@ export default function SettingsPage() {
               transition: "all 0.2s",
             }}
           >
-            {tab} Profile
+            {tab}
           </button>
         ))}
       </div>
@@ -157,15 +157,64 @@ export default function SettingsPage() {
             <div className="mb-6 p-4 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
               <div className="flex justify-between items-center mb-2">
                 <span className="font-bold">Fiscal Year</span>
+                <button className="text-blue-400 text-sm">Edit</button>
               </div>
               <p className="text-sm text-secondary">January 1 to December 31</p>
             </div>
 
             <div className="mb-6 p-4 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
               <div className="flex justify-between items-center mb-2">
-                <span className="font-bold">Default Tax Rate</span>
+                <span className="font-bold">Default Chart of Accounts</span>
               </div>
-              <p className="text-sm text-secondary">15% Standard Rate (KSA VAT)</p>
+              <p className="text-sm text-secondary">KSA Standard Corporate (Pre-seeded)</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && activeTab === "Compliance" && (
+          <div>
+            <h2 className="heading-2 mb-6">Tax & Compliance Settings</h2>
+            <p className="text-secondary mb-8">Manage Zakat, VAT rates, and filing periods for KSA regulations.</p>
+            
+            <div className="mb-6 p-4 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-bold">VAT Configuration</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-secondary mb-1">Standard VAT Rate</label>
+                  <input type="text" value="15%" disabled className="form-input opacity-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-secondary mb-1">Filing Frequency</label>
+                  <select className="form-input" style={{ backgroundColor: "rgba(15,23,42,0.9)" }}>
+                    <option>Monthly</option>
+                    <option>Quarterly</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-bold">Zakat Configuration</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-secondary mb-1">Zakat Rate</label>
+                  <input type="text" value="2.5%" disabled className="form-input opacity-50" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-secondary mb-1">Basis of Calculation</label>
+                  <select className="form-input" style={{ backgroundColor: "rgba(15,23,42,0.9)" }}>
+                    <option>Hijri Year (354 days)</option>
+                    <option>Gregorian Year (365 days)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <button className="btn-primary" onClick={() => alert("Settings updated!")}>Save Compliance Settings</button>
+              </div>
             </div>
           </div>
         )}

@@ -53,4 +53,25 @@ export class CreateContactDto {
   @IsUUID()
   @IsOptional()
   payableAccountId?: string;
+
+  // Employee Specific Fields
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  basicSalary?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  housingAllowance?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  transportAllowance?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  gosiNumber?: string;
 }

@@ -15,6 +15,18 @@ export class PayrollService {
   async createPayrollRun(tenantId: string, dto: CreatePayrollRunDto) {
     const { periodName, payslips } = dto;
 
+    const existingRun = await this.prisma.payrollRun.findUnique({
+      where: { tenantId_periodName: { tenantId, periodName } },
+    });
+
+    if (existingRun) {
+      if (existingRun.status === 'Approved' || existingRun.status === 'Paid') {
+        throw new BadRequestException(`Payroll run for ${periodName} is already ${existingRun.status}.`);
+      }
+      // If it's Draft, delete it so we can recreate it with new data
+      await this.prisma.payrollRun.delete({ where: { id: existingRun.id } });
+    }
+
     // 1. Validate employee profiles
     const profileIds = payslips.map((p) => p.employeeProfileId);
     const profiles = await this.prisma.employeeProfile.findMany({
@@ -106,21 +118,39 @@ export class PayrollService {
     // Credit: GOSI Payable (Total GOSI)
     // Credit: Net Salaries Payable / Bank (Total Net)
     
-    // For MVP, finding standard accounts:
-    const salaryExpenseAccount = await this.prisma.chartOfAccount.findFirst({
-      where: { tenantId, name: { contains: 'Salary' }, type: 'Expense' }
+    // For MVP, finding standard accounts by their seeded codes:
+    let salaryExpenseAccount = await this.prisma.chartOfAccount.findUnique({
+      where: { tenantId_code: { tenantId, code: '5110' } }
     });
     
-    const gosiPayableAccount = await this.prisma.chartOfAccount.findFirst({
-      where: { tenantId, name: { contains: 'GOSI' }, type: 'Liability' }
+    let gosiPayableAccount = await this.prisma.chartOfAccount.findUnique({
+      where: { tenantId_code: { tenantId, code: '2140' } }
     });
 
-    const salariesPayableAccount = await this.prisma.chartOfAccount.findFirst({
-      where: { tenantId, name: { contains: 'Salaries Payable' }, type: 'Liability' }
+    let salariesPayableAccount = await this.prisma.chartOfAccount.findUnique({
+      where: { tenantId_code: { tenantId, code: '2130' } }
     });
 
-    if (!salaryExpenseAccount || !gosiPayableAccount || !salariesPayableAccount) {
-      throw new BadRequestException('Standard payroll accounts not found in Chart of Accounts.');
+    if (!salaryExpenseAccount) {
+      const expenseParent = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '5100' } } });
+      salaryExpenseAccount = await this.prisma.chartOfAccount.create({ 
+        data: { tenantId, code: '5110', name: 'Salaries and Wages', type: 'Expense', parentId: expenseParent?.id } 
+      });
+    }
+    
+    if (!gosiPayableAccount || !salariesPayableAccount) {
+      const liabilityParent = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '2100' } } });
+      
+      if (!gosiPayableAccount) {
+        gosiPayableAccount = await this.prisma.chartOfAccount.create({ 
+          data: { tenantId, code: '2140', name: 'GOSI Payable', type: 'Liability', parentId: liabilityParent?.id } 
+        });
+      }
+      if (!salariesPayableAccount) {
+        salariesPayableAccount = await this.prisma.chartOfAccount.create({ 
+          data: { tenantId, code: '2130', name: 'Salaries Payable', type: 'Liability', parentId: liabilityParent?.id } 
+        });
+      }
     }
 
     const jeLines = [];
@@ -151,19 +181,21 @@ export class PayrollService {
       credit: run.totalNet.toString(),
     });
 
-    const je = await this.journalEntriesService.create(tenantId, {
-      entryDate: new Date(),
-      description: `Payroll Entry: ${run.periodName}`,
-      lines: jeLines,
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const je = await this.journalEntriesService.create(tenantId, {
+        entryDate: new Date(),
+        description: `Payroll Entry: ${run.periodName}`,
+        lines: jeLines,
+      }, tx);
 
-    // je is already posted upon creation via journalEntriesService in this phase
-    return this.prisma.payrollRun.update({
-      where: { id: runId },
-      data: {
-        status: 'Approved',
-        journalEntryId: je.id,
-      },
+      // je is already posted upon creation via journalEntriesService in this phase
+      return tx.payrollRun.update({
+        where: { id: runId },
+        data: {
+          status: 'Approved',
+          journalEntryId: je.id,
+        },
+      });
     });
   }
 }

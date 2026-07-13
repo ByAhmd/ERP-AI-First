@@ -25,6 +25,34 @@ export class InventoryService {
     });
   }
 
+  async getItems(tenantId: string) {
+    return this.prisma.item.findMany({
+      where: { tenantId },
+      include: {
+        inventoryBalances: {
+          include: { warehouse: true },
+        },
+      },
+    });
+  }
+
+  async getWarehouses(tenantId: string) {
+    return this.prisma.warehouse.findMany({
+      where: { tenantId },
+    });
+  }
+
+  async getTransactions(tenantId: string) {
+    return this.prisma.inventoryTransaction.findMany({
+      where: { tenantId },
+      include: {
+        item: true,
+        warehouse: true, // Assuming relation exists, wait, let me verify schema for transaction
+      },
+      orderBy: { date: 'desc' },
+    });
+  }
+
   // Called during Purchase Invoice approval
   async processInwardMovement(tx: any, tenantId: string, itemId: string, warehouseId: string, quantity: number, totalCost: number, date: Date, reference: string) {
     const item = await tx.item.findUnique({ where: { id: itemId } });

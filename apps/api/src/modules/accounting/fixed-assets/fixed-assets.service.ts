@@ -38,6 +38,13 @@ export class FixedAssetsService {
     });
   }
 
+  async getAssets(tenantId: string) {
+    return this.prisma.fixedAsset.findMany({
+      where: { tenantId },
+      orderBy: { purchaseDate: 'desc' },
+    });
+  }
+
   private async generateSchedule(tx: any, asset: any) {
     if (asset.depreciationMethod !== 'StraightLine') {
       // Future scope: Implement DecliningBalance and UnitsOfProduction

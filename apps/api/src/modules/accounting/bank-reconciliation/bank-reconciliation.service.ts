@@ -7,6 +7,32 @@ import { UploadStatementDto } from './dto/bank-reconciliation.dto';
 export class BankReconciliationService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getReconciliations(tenantId: string) {
+    return this.prisma.reconciliation.findMany({
+      where: { tenantId },
+      include: {
+        account: true,
+        bankStatement: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getReconciliation(tenantId: string, id: string) {
+    const recon = await this.prisma.reconciliation.findUnique({
+      where: { id, tenantId },
+      include: {
+        account: true,
+        bankStatement: {
+          include: { transactions: true },
+        },
+        journalLines: true,
+      },
+    });
+    if (!recon) throw new NotFoundException('Reconciliation not found');
+    return recon;
+  }
+
   async uploadStatement(tenantId: string, dto: UploadStatementDto) {
     // Validate account belongs to tenant and is an asset/liability
     const account = await this.prisma.chartOfAccount.findUnique({

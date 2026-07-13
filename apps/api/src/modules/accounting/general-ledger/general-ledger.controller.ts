@@ -29,4 +29,11 @@ export class GeneralLedgerController {
     const end = endDate ? new Date(endDate) : undefined;
     return this.glService.getTrialBalance(user.tenantId!, start, end);
   }
+
+  @Get('transactions')
+  @ApiOperation({ summary: 'Get all General Ledger transactions' })
+  @RequirePermissions(PERMISSIONS.ACCOUNTING_REPORTS_READ)
+  getTransactions(@CurrentUser() user: RequestUser) {
+    return this.glService.getTransactions(user.tenantId!);
+  }
 }

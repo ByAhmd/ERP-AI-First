@@ -1,8 +1,10 @@
-import { Controller, Post, Body, Param, Get, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { FixedAssetsService } from './fixed-assets.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { CreateFixedAssetDto } from './dto/fixed-assets.dto';
 
+@UseGuards(JwtAuthGuard)
 @Controller('accounting/fixed-assets')
 export class FixedAssetsController {
   constructor(private readonly fixedAssetsService: FixedAssetsService) {}
@@ -13,6 +15,11 @@ export class FixedAssetsController {
     @Body() dto: CreateFixedAssetDto,
   ) {
     return this.fixedAssetsService.create(user.tenantId, dto);
+  }
+
+  @Get()
+  async getAssets(@CurrentUser() user: any) {
+    return this.fixedAssetsService.getAssets(user.tenantId);
   }
 
   @Get(':id/schedules')

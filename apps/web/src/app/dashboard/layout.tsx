@@ -116,6 +116,18 @@ export default function DashboardLayout({
             <span>📝</span> Journal Entries
           </Link>
           <Link
+            href="/dashboard/accounting/fixed-assets"
+            className={`nav-item ${isActive("/dashboard/accounting/fixed-assets") ? "active" : ""}`}
+          >
+            <span>🏢</span> Fixed Assets
+          </Link>
+          <Link
+            href="/dashboard/accounting/reconciliation"
+            className={`nav-item ${isActive("/dashboard/accounting/reconciliation") ? "active" : ""}`}
+          >
+            <span>🏦</span> Bank Recon
+          </Link>
+          <Link
             href="/dashboard/ledger"
             className={`nav-item ${isActive("/dashboard/ledger") ? "active" : ""}`}
           >
@@ -140,6 +152,12 @@ export default function DashboardLayout({
             className={`nav-item ${isActive("/dashboard/payroll") ? "active" : ""}`}
           >
             <span>💳</span> Payroll
+          </Link>
+          <Link
+            href="/dashboard/inventory"
+            className={`nav-item ${isActive("/dashboard/inventory") ? "active" : ""}`}
+          >
+            <span>📦</span> Inventory
           </Link>
           <Link
             href="/dashboard/contacts"

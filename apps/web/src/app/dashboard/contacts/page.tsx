@@ -43,6 +43,10 @@ export default function ContactsPage() {
     commercialRegNo: "",
     receivableAccountId: "",
     payableAccountId: "",
+    basicSalary: "",
+    housingAllowance: "",
+    transportAllowance: "",
+    gosiNumber: "",
   });
 
   const { data: contacts, isLoading } = useQuery({
@@ -69,6 +73,10 @@ export default function ContactsPage() {
         commercialRegNo: "",
         receivableAccountId: "",
         payableAccountId: "",
+        basicSalary: "",
+        housingAllowance: "",
+        transportAllowance: "",
+        gosiNumber: "",
       });
     },
     onError: (err: any) => {
@@ -87,6 +95,10 @@ export default function ContactsPage() {
       commercialRegNo: formData.commercialRegNo || undefined,
       receivableAccountId: formData.receivableAccountId || undefined,
       payableAccountId: formData.payableAccountId || undefined,
+      basicSalary: formData.type === 'Employee' && formData.basicSalary ? formData.basicSalary : undefined,
+      housingAllowance: formData.type === 'Employee' && formData.housingAllowance ? formData.housingAllowance : undefined,
+      transportAllowance: formData.type === 'Employee' && formData.transportAllowance ? formData.transportAllowance : undefined,
+      gosiNumber: formData.type === 'Employee' && formData.gosiNumber ? formData.gosiNumber : undefined,
     });
   };
 
@@ -228,6 +240,65 @@ export default function ContactsPage() {
                   <p className="text-xs text-error mt-1">No Liability posting accounts found (Seed Chart of Accounts first)</p>
                 )}
               </div>
+
+              {formData.type === 'Employee' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-1">
+                      Basic Salary
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.basicSalary}
+                      onChange={(e) => setFormData({ ...formData, basicSalary: e.target.value })}
+                      className="form-input"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-1">
+                      Housing Allowance
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.housingAllowance}
+                      onChange={(e) => setFormData({ ...formData, housingAllowance: e.target.value })}
+                      className="form-input"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-1">
+                      Transport Allowance
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.transportAllowance}
+                      onChange={(e) => setFormData({ ...formData, transportAllowance: e.target.value })}
+                      className="form-input"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-secondary mb-1">
+                      GOSI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.gosiNumber}
+                      onChange={(e) => setFormData({ ...formData, gosiNumber: e.target.value })}
+                      className="form-input"
+                      placeholder="Optional"
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex justify-end gap-4">

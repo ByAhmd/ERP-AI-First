@@ -8,10 +8,33 @@ export class ContactsService {
   constructor(private prisma: PrismaService) {}
 
   async create(tenantId: string, dto: CreateContactDto) {
+    const { basicSalary, housingAllowance, transportAllowance, gosiNumber, ...contactData } = dto;
+
+    if (dto.type === 'Employee') {
+      return this.prisma.$transaction(async (tx) => {
+        const contact = await tx.contact.create({
+          data: { tenantId, ...contactData },
+        });
+        
+        await tx.employeeProfile.create({
+          data: {
+            tenantId,
+            contactId: contact.id,
+            basicSalary: basicSalary || '0',
+            housingAllowance: housingAllowance || '0',
+            transportAllowance: transportAllowance || '0',
+            gosiNumber: gosiNumber || null,
+          }
+        });
+        
+        return contact;
+      });
+    }
+
     return this.prisma.contact.create({
       data: {
         tenantId,
-        ...dto,
+        ...contactData,
       },
     });
   }

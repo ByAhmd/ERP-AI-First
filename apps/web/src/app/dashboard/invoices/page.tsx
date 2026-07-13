@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
+import toast from "react-hot-toast";
 
 interface Contact {
   id: string;
@@ -88,9 +89,10 @@ export default function InvoicesPage() {
         notes: "",
       });
       setLines([{ description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "" }]);
+      toast.success("Invoice created successfully");
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to create invoice");
+      toast.error(err.message || "Failed to create invoice");
     },
   });
 
@@ -98,9 +100,10 @@ export default function InvoicesPage() {
     mutationFn: (id: string) => ApiClient.patch(`/business/invoices/${id}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      toast.success("Invoice approved successfully");
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to approve invoice");
+      toast.error(err.message || "Failed to approve invoice");
     },
   });
 

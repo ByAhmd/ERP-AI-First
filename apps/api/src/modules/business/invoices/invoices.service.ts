@@ -119,7 +119,6 @@ export class InvoicesService {
     const contact = invoice.contact;
     const isSales = invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote';
 
-
     let controlAccountId: string;
     if (isSales) {
       if (!contact.receivableAccountId) {
@@ -133,136 +132,108 @@ export class InvoicesService {
       controlAccountId = contact.payableAccountId;
     }
 
-    // Build the journal entry lines
-    // We assume base currency for now for the ledger entry. 
-    // In a fully developed multi-currency system, we would calculate base amounts using exchange rates.
-    const jeLines = [];
-
-    const exRate = invoice.exchangeRate ? new Decimal(invoice.exchangeRate) : new Decimal(1);
-
-    // 1. Add the Control Account line (AR or AP)
-    // For a Sales Invoice, we DEBIT Accounts Receivable.
-    // For a Purchase Invoice, we CREDIT Accounts Payable.
-    // Credit notes are inversed.
-    const totalAmountBase = new Decimal(invoice.total).mul(exRate);
-
-    jeLines.push({
-      accountId: controlAccountId,
-      contactId: invoice.contactId,
-      description: `Invoice ${invoice.invoiceNumber} Total`,
-      debit: (invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote') ? totalAmountBase.toString() : 0,
-      credit: (invoice.type === 'PurchaseInvoice' || invoice.type === 'CreditNote') ? totalAmountBase.toString() : 0,
-    });
-
-    // 2. Add the individual line items (Revenue or Expense)
-    for (const line of invoice.lines) {
-      let lineAccountId = line.accountId;
-      let lineDebit = new Decimal(0);
-      let lineCredit = new Decimal(0);
-      const lineTotalBase = new Decimal(line.total).mul(exRate);
-
-      if (invoice.type === 'PurchaseInvoice') {
-        // Debit Expense/Inventory
-        lineDebit = lineTotalBase;
-
-        // Inventory Processing
-        if (line.itemId && line.warehouseId) {
-          // It's an inventory item purchase. Update WAC and increase stock.
-          // Note: This relies on a Prisma transaction conceptually, but we're chaining here for simplicity.
-          // For true atomicity, this whole approve block should be wrapped in this.prisma.$transaction.
-          // Since InvoicesService doesn't wrap the whole approve in tx yet, we'll pass this.prisma directly to the tx arg for now.
-          await this.inventoryService.processInwardMovement(
-            this.prisma,
-            tenantId,
-            line.itemId,
-            line.warehouseId,
-            Number(line.quantity),
-            Number(lineTotalBase),
-            invoice.issueDate,
-            `PINV-${invoice.invoiceNumber}`
-          );
-        }
-      } else if (invoice.type === 'SalesInvoice') {
-        // Credit Revenue
-        lineCredit = lineTotalBase;
-
-        // Inventory Processing
-        if (line.itemId && line.warehouseId) {
-          // Decrease stock and calculate COGS
-          const { cogsAmount, cogsAccountId, inventoryAccountId } = await this.inventoryService.processOutwardMovement(
-            this.prisma,
-            tenantId,
-            line.itemId,
-            line.warehouseId,
-            Number(line.quantity),
-            invoice.issueDate,
-            `INV-${invoice.invoiceNumber}`
-          );
-
-          // We must add additional COGS Journal Lines:
-          // Debit COGS Expense
-          // Credit Inventory Asset
-          if (cogsAccountId && inventoryAccountId) {
-            jeLines.push({
-              accountId: cogsAccountId,
-              contactId: invoice.contactId,
-              description: `COGS for ${line.description}`,
-              debit: cogsAmount.toString(),
-              credit: 0,
-            });
-            jeLines.push({
-              accountId: inventoryAccountId,
-              contactId: invoice.contactId,
-              description: `Inventory reduction for ${line.description}`,
-              debit: 0,
-              credit: cogsAmount.toString(),
-            });
-          }
-        }
-      } else if (invoice.type === 'CreditNote') {
-        lineDebit = lineTotalBase;
-        // Logic for returning inventory can be added later
-      } else if (invoice.type === 'DebitNote') {
-        lineCredit = lineTotalBase;
-      }
+    // Execute atomic transaction
+    return this.prisma.$transaction(async (tx) => {
+      const jeLines = [];
+      const exRate = invoice.exchangeRate ? new Decimal(invoice.exchangeRate) : new Decimal(1);
+      const totalAmountBase = new Decimal(invoice.total).mul(exRate);
 
       jeLines.push({
-        accountId: lineAccountId,
+        accountId: controlAccountId,
         contactId: invoice.contactId,
-        description: line.description,
-        debit: lineDebit.toString(),
-        credit: lineCredit.toString(),
+        description: `Invoice ${invoice.invoiceNumber} Total`,
+        debit: (invoice.type === 'SalesInvoice' || invoice.type === 'DebitNote') ? totalAmountBase.toString() : 0,
+        credit: (invoice.type === 'PurchaseInvoice' || invoice.type === 'CreditNote') ? totalAmountBase.toString() : 0,
       });
-    }
 
-    // Note: If tax is involved, we ideally separate the taxAmount into a Tax Payable/Receivable account.
-    // For Phase 3, we are assigning the full line.total to the line.accountId.
-    // In Phase 4 (ZATCA/VAT), we will split this.
+      for (const line of invoice.lines) {
+        let lineAccountId = line.accountId;
+        let lineDebit = new Decimal(0);
+        let lineCredit = new Decimal(0);
+        const lineTotalBase = new Decimal(line.total).mul(exRate);
 
-    // 3. Create the Journal Entry
-    const journalEntry = await this.journalEntriesService.create(tenantId, {
-      entryDate: invoice.issueDate,
-      description: `${invoice.type} ${invoice.invoiceNumber}`,
-      lines: jeLines,
-    });
+        if (invoice.type === 'PurchaseInvoice') {
+          lineDebit = lineTotalBase;
 
-    // 4. Generate ZATCA required fields
-    // Placeholder UUID for ZATCA
-    const { randomUUID } = require('crypto');
-    const zatcaUuid = randomUUID();
-    const zatcaPih = await this.sequencesService.getPreviousInvoiceHash(tenantId);
+          if (line.itemId && line.warehouseId) {
+            await this.inventoryService.processInwardMovement(
+              tx,
+              tenantId,
+              line.itemId,
+              line.warehouseId,
+              Number(line.quantity),
+              Number(lineTotalBase),
+              invoice.issueDate,
+              `PINV-${invoice.invoiceNumber}`
+            );
+          }
+        } else if (invoice.type === 'SalesInvoice') {
+          lineCredit = lineTotalBase;
 
-    // 5. Update the Invoice status, link Journal Entry, and set ZATCA fields
-    return this.prisma.invoice.update({
-      where: { id: invoice.id },
-      data: {
-        status: 'Approved',
-        journalEntryId: journalEntry.id,
-        zatcaUuid,
-        zatcaPih,
-        zatcaStatus: 'NotSubmitted',
-      },
-      include: { lines: true },
+          if (line.itemId && line.warehouseId) {
+            const { cogsAmount, cogsAccountId, inventoryAccountId } = await this.inventoryService.processOutwardMovement(
+              tx,
+              tenantId,
+              line.itemId,
+              line.warehouseId,
+              Number(line.quantity),
+              invoice.issueDate,
+              `INV-${invoice.invoiceNumber}`
+            );
+
+            if (cogsAccountId && inventoryAccountId) {
+              jeLines.push({
+                accountId: cogsAccountId,
+                contactId: invoice.contactId,
+                description: `COGS for ${line.description}`,
+                debit: cogsAmount.toString(),
+                credit: 0,
+              });
+              jeLines.push({
+                accountId: inventoryAccountId,
+                contactId: invoice.contactId,
+                description: `Inventory reduction for ${line.description}`,
+                debit: 0,
+                credit: cogsAmount.toString(),
+              });
+            }
+          }
+        } else if (invoice.type === 'CreditNote') {
+          lineDebit = lineTotalBase;
+        } else if (invoice.type === 'DebitNote') {
+          lineCredit = lineTotalBase;
+        }
+
+        jeLines.push({
+          accountId: lineAccountId,
+          contactId: invoice.contactId,
+          description: line.description,
+          debit: lineDebit.toString(),
+          credit: lineCredit.toString(),
+        });
+      }
+
+      const journalEntry = await this.journalEntriesService.create(tenantId, {
+        entryDate: invoice.issueDate,
+        description: `${invoice.type} ${invoice.invoiceNumber}`,
+        lines: jeLines,
+      }, tx);
+
+      const { randomUUID } = require('crypto');
+      const zatcaUuid = randomUUID();
+      const zatcaPih = await this.sequencesService.getPreviousInvoiceHash(tenantId);
+
+      return tx.invoice.update({
+        where: { id: invoice.id },
+        data: {
+          status: 'Approved',
+          journalEntryId: journalEntry.id,
+          zatcaUuid,
+          zatcaPih,
+          zatcaStatus: 'NotSubmitted',
+        },
+        include: { lines: true },
+      });
     });
   }
 }

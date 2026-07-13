@@ -3,78 +3,84 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ApiClient } from "../../lib/api-client";
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Legend
+} from 'recharts';
 
-interface TrialBalanceEntry {
-  accountId: string;
-  accountCode: string;
-  accountName: string;
-  type: string;
-  debit: number;
-  credit: number;
-  balance: number;
+interface DashboardKpiResponse {
+  metrics: {
+    monthlyRevenue: number;
+    monthlyExpenses: number;
+    monthlyProfit: number;
+    allTimeRevenue: number;
+    allTimeProfit: number;
+    openReceivables: number;
+    openPayables: number;
+  };
+  trendData: Array<{
+    name: string;
+    revenue: number;
+    expenses: number;
+    profit: number;
+  }>;
 }
 
 export default function DashboardOverview() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["trial-balance"],
-    queryFn: () => ApiClient.get<TrialBalanceEntry[]>("/accounting/gl/trial-balance"),
+    queryKey: ["dashboard-kpis"],
+    queryFn: () => ApiClient.get<DashboardKpiResponse>("/reports/dashboard-kpis"),
   });
 
-  const summary = (data || []).reduce(
-    (acc, entry) => {
-      if (entry.type === "Revenue") acc.revenue += entry.credit - entry.debit;
-      if (entry.type === "Expense") acc.expenses += entry.debit - entry.credit;
-      if (
-        entry.type === "Asset" &&
-        (entry.accountName.toLowerCase().includes("cash") ||
-          entry.accountName.toLowerCase().includes("bank"))
-      ) {
-        acc.cashBalance += entry.debit - entry.credit;
-      }
-      return acc;
-    },
-    { revenue: 0, expenses: 0, cashBalance: 0 }
-  );
-
-  const netIncome = summary.revenue - summary.expenses;
+  const m = data?.metrics || {
+    monthlyRevenue: 0, monthlyExpenses: 0, monthlyProfit: 0,
+    allTimeRevenue: 0, allTimeProfit: 0, openReceivables: 0, openPayables: 0
+  };
 
   const cards = [
     {
-      label: "Total Revenue",
-      value: summary.revenue,
+      label: "Monthly Revenue",
+      value: m.monthlyRevenue,
       color: "#34d399",
       bg: "rgba(16,185,129,0.1)",
       icon: "📈",
     },
     {
-      label: "Net Income",
-      value: netIncome,
-      color: netIncome >= 0 ? "#60a5fa" : "#f87171",
-      bg: netIncome >= 0 ? "rgba(59,130,246,0.1)" : "rgba(239,68,68,0.1)",
+      label: "Monthly Profit",
+      value: m.monthlyProfit,
+      color: m.monthlyProfit >= 0 ? "#60a5fa" : "#f87171",
+      bg: m.monthlyProfit >= 0 ? "rgba(59,130,246,0.1)" : "rgba(239,68,68,0.1)",
       icon: "💰",
     },
     {
-      label: "Cash & Bank",
-      value: summary.cashBalance,
+      label: "Open Receivables",
+      value: m.openReceivables,
       color: "#a78bfa",
       bg: "rgba(139,92,246,0.1)",
-      icon: "🏦",
+      icon: "📥",
+    },
+    {
+      label: "Open Payables",
+      value: m.openPayables,
+      color: "#fb923c",
+      bg: "rgba(251,146,60,0.1)",
+      icon: "📤",
     },
   ];
 
   const quickLinks = [
     { href: "/dashboard/accounting/journal-entries", label: "Post Journal Entry", icon: "📝" },
-    { href: "/dashboard/accounting/coa", label: "Chart of Accounts", icon: "📂" },
-    { href: "/dashboard/accounting/periods", label: "Accounting Periods", icon: "📅" },
     { href: "/dashboard/invoices", label: "Create Invoice", icon: "🧾" },
-    { href: "/dashboard/contacts", label: "Manage Contacts", icon: "👥" },
-    { href: "/dashboard/ledger", label: "General Ledger", icon: "📒" },
+    { href: "/dashboard/accounting/reconciliation", label: "Bank Recon", icon: "🏦" },
+    { href: "/dashboard/reports/trial-balance", label: "Trial Balance", icon: "⚖️" },
+    { href: "/dashboard/reports/income-statement", label: "Income Statement", icon: "📉" },
+    { href: "/dashboard/reports/balance-sheet", label: "Balance Sheet", icon: "📑" },
   ];
 
   return (
     <div className="animate-fade-in">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-        <h1 className="heading-1" style={{ marginBottom: 0 }}>Financial Overview</h1>
+        <h1 className="heading-1" style={{ marginBottom: 0 }}>Executive Dashboard</h1>
         <div
           style={{
             fontSize: "0.875rem",
@@ -90,68 +96,75 @@ export default function DashboardOverview() {
 
       {/* KPI Cards */}
       {isLoading ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "1.5rem",
-            marginBottom: "2rem",
-          }}
-        >
-          {[1, 2, 3].map((i) => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.5rem", marginBottom: "2rem" }}>
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="glass-panel p-6" style={{ minHeight: "7rem", opacity: 0.5 }} />
           ))}
         </div>
       ) : error ? (
-        <div
-          className="glass-panel p-6 mb-8"
-          style={{ background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.2)" }}
-        >
-          <p style={{ color: "var(--error)" }}>
-            Could not load financial data. Make sure you have an active company selected and journal entries posted.
-          </p>
+        <div className="glass-panel p-6 mb-8" style={{ background: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.2)" }}>
+          <p style={{ color: "var(--error)" }}>Failed to load KPI metrics.</p>
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "1.5rem",
-            marginBottom: "2rem",
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1.5rem", marginBottom: "2rem" }}>
           {cards.map((card) => (
-            <div
-              key={card.label}
-              className="glass-panel p-6"
-              style={{ borderColor: "rgba(255,255,255,0.1)" }}
-            >
+            <div key={card.label} className="glass-panel p-6" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
                 <h3 style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>
                   {card.label}
                 </h3>
                 <span style={{ fontSize: "1.5rem" }}>{card.icon}</span>
               </div>
-              <div
-                style={{ fontSize: "1.75rem", fontWeight: 700, color: card.color, fontFamily: "monospace" }}
-              >
+              <div style={{ fontSize: "1.75rem", fontWeight: 700, color: card.color, fontFamily: "monospace" }}>
                 SAR {Math.abs(card.value).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
               </div>
-              {card.label === "Net Income" && netIncome < 0 && (
-                <div style={{ fontSize: "0.75rem", color: "var(--error)", marginTop: "0.25rem" }}>Net Loss</div>
-              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Quick Actions */}
+      {/* Charts & Actions */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1.5rem" }}>
         <div className="glass-panel p-6">
+          <h2 style={{ fontSize: "1.125rem", fontWeight: 600, marginBottom: "1.5rem" }}>6-Month Trend</h2>
+          
+          <div style={{ height: 300, width: "100%" }}>
+            {isLoading ? (
+               <div className="text-secondary flex items-center justify-center h-full">Loading chart...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data?.trendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#34d399" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f87171" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#f87171" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" tickFormatter={(value) => `${value/1000}k`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Legend />
+                  <Area type="monotone" dataKey="revenue" stroke="#34d399" fillOpacity={1} fill="url(#colorRev)" />
+                  <Area type="monotone" dataKey="expenses" stroke="#f87171" fillOpacity={1} fill="url(#colorExp)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        <div className="glass-panel p-6">
           <h2 style={{ fontSize: "1.125rem", fontWeight: 600, marginBottom: "1.25rem" }}>
-            Quick Actions
+            Quick Links
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.75rem" }}>
             {quickLinks.map((link) => (
               <Link
                 key={link.href}
@@ -170,58 +183,12 @@ export default function DashboardOverview() {
                   transition: "all 0.2s",
                   textDecoration: "none",
                 }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(59,130,246,0.1)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(59,130,246,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "var(--glass-border)";
-                }}
               >
                 <span style={{ fontSize: "1.25rem" }}>{link.icon}</span>
                 {link.label}
               </Link>
             ))}
           </div>
-        </div>
-
-        <div className="glass-panel p-6">
-          <h2 style={{ fontSize: "1.125rem", fontWeight: 600, marginBottom: "1.25rem" }}>
-            Account Summary
-          </h2>
-          {isLoading ? (
-            <div className="text-secondary">Loading...</div>
-          ) : !data || data.length === 0 ? (
-            <div className="text-secondary" style={{ fontSize: "0.875rem" }}>
-              No accounts with activity. Post journal entries to see your account summary.
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              {["Asset", "Liability", "Equity", "Revenue", "Expense"].map((type) => {
-                const typeEntries = data.filter((e) => e.type === type);
-                const total = typeEntries.reduce((s, e) => s + Math.abs(e.balance), 0);
-                if (total === 0) return null;
-                return (
-                  <div
-                    key={type}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "0.5rem 0",
-                      borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{type}</span>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 600, fontFamily: "monospace" }}>
-                      SAR {total.toLocaleString("en-SA", { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </div>

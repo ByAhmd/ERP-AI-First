@@ -53,13 +53,13 @@
 
 body {
   font-family: var(--font-family);
-  background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
   /* Subtle animated gradient background */
   background: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
-              radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+              radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%),
+              var(--bg-primary);
   background-attachment: fixed;
 }
 
@@ -228,6 +228,37 @@ a:hover {
 .hover\:bg-\[rgba\(239\,68\,68\,0\.1\)\]:hover { background-color: rgba(239,68,68,0.1); }
 .text-error { color: var(--error); }
 .max-w-2xl { max-width: 42rem; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.z-0 { z-index: 0; }
+.z-10 { z-index: 10; }
+.z-50 { z-index: 50; }
+.object-cover { object-fit: cover; }
+.pointer-events-none { pointer-events: none; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-2xl { border-radius: 1rem; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.font-extrabold { font-weight: 800; }
+.tracking-tight { letter-spacing: -0.025em; }
+.tracking-widest { letter-spacing: 0.1em; }
+.uppercase { text-transform: uppercase; }
+.outline-none { outline: 2px solid transparent; outline-offset: 2px; }
+.opacity-30 { opacity: 0.3; }
+.opacity-40 { opacity: 0.4; }
+.opacity-50 { opacity: 0.5; }
+.opacity-90 { opacity: 0.9; }
+.bg-black\/50 { background-color: rgba(0,0,0,0.5); }
+.text-blue-400 { color: #60a5fa; }
+.text-slate-300 { color: #cbd5e1; }
+.text-slate-400 { color: #94a3b8; }
+.text-slate-500 { color: #64748b; }
+.bg-red-500\/20 { background-color: rgba(239, 68, 68, 0.2); }
+.border-red-500\/30 { border-color: rgba(239, 68, 68, 0.3); }
+.text-red-200 { color: #fecaca; }
 
 /* Custom Layout Classes */
 .layout-container {

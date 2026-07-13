@@ -45,6 +45,7 @@ import { InventoryModule } from './modules/accounting/inventory/inventory.module
 import { ConsolidationModule } from './modules/accounting/consolidation/consolidation.module';
 
 import { PayrollModule } from './modules/business/payroll/payroll.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { PayrollModule } from './modules/business/payroll/payroll.module';
     PaymentsModule,
     EmployeeProfilesModule,
     PayrollModule,
+    ReportsModule,
     VatModule,
     ZakatModule,
     DateModule,

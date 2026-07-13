@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Post, Body } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PERMISSIONS } from '@erp-ai/shared';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,5 +27,17 @@ export class UsersController {
   @RequirePermissions(PERMISSIONS.AUTH_USERS_READ)
   findOne(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.usersService.findOneByTenant(user.tenantId!, id);
+  }
+
+  @Post('invite')
+  @ApiOperation({ summary: 'Invite a user to the tenant' })
+  @RequirePermissions(PERMISSIONS.AUTH_USERS_MANAGE)
+  async inviteUser(
+    @CurrentUser() user: RequestUser,
+    @Body('email') email: string,
+    @Body('fullName') fullName: string,
+    @Body('roleId') roleId: string,
+  ) {
+    return this.usersService.inviteUser(user.tenantId!, email, fullName, roleId);
   }
 }

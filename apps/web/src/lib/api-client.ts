@@ -83,7 +83,15 @@ export class ApiClient {
       let errorMsg = 'API Request failed';
       try {
         const errorData = await res.json();
-        errorMsg = errorData.message || errorMsg;
+        if (errorData.message) {
+          if (Array.isArray(errorData.message)) {
+            errorMsg = errorData.message.join(', ');
+          } else if (typeof errorData.message === 'object') {
+            errorMsg = JSON.stringify(errorData.message);
+          } else {
+            errorMsg = String(errorData.message);
+          }
+        }
       } catch {
         // Non-JSON error response
       }
