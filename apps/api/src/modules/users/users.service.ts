@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { randomBytes, createHash } from 'crypto';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -95,15 +98,34 @@ export class UsersService {
       where: { email }
     });
 
+    const inviteToken = randomBytes(32).toString('hex');
+    const inviteTokenHash = createHash('sha256').update(inviteToken).digest('hex');
+    const inviteTokenExpiresAt = new Date();
+    inviteTokenExpiresAt.setDate(inviteTokenExpiresAt.getDate() + 7); // 7 days expiry
+
     if (!user) {
       user = await this.prisma.user.create({
         data: {
           email,
           fullName,
-          status: 'Invited'
+          status: 'Invited',
+          inviteTokenHash,
+          inviteTokenExpiresAt,
+        }
+      });
+    } else {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          inviteTokenHash,
+          inviteTokenExpiresAt,
         }
       });
     }
+
+    // Simulate sending email (in a real app, integrate SendGrid, AWS SES, etc.)
+    const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/accept-invite?token=${inviteToken}`;
+    this.logger.log(`[Email Simulation] Sent invite to ${email}. Password-set link: ${inviteLink}`);
 
     // Upsert tenant user
     const tenantUser = await this.prisma.tenantUser.upsert({
@@ -112,13 +134,13 @@ export class UsersService {
       },
       update: {
         roleId,
-        status: 'Active'
+        status: 'Invited'
       },
       create: {
         tenantId,
         userId: user.id,
         roleId,
-        status: 'Active'
+        status: 'Invited'
       }
     });
 

@@ -5,6 +5,7 @@ import { SequencesService } from '../sequences/sequences.service';
 import { JournalEntriesService } from '../../accounting/journal-entries/journal-entries.service';
 import { InventoryService } from '../../accounting/inventory/inventory.service';
 import Decimal from 'decimal.js';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class InvoicesService {
@@ -219,7 +220,7 @@ export class InvoicesService {
         lines: jeLines,
       }, tx);
 
-      const { randomUUID } = require('crypto');
+      // BUG-009 FIX: Use top-level import instead of inline require()
       const zatcaUuid = randomUUID();
       const zatcaPih = await this.sequencesService.getPreviousInvoiceHash(tenantId);
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
+import { useLanguage } from '../../../components/LanguageProvider';
 
 interface VatReturn {
   period: { startDate: string; endDate: string };
@@ -22,6 +23,7 @@ interface ZakatEstimate {
 }
 
 export default function CompliancePage() {
+  const { t, locale } = useLanguage();
   const [activeTab, setActiveTab] = useState<"VAT" | "Zakat" | "ZATCA">("VAT");
   
   const [startDate, setStartDate] = useState(() => {
@@ -63,8 +65,8 @@ export default function CompliancePage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">Compliance</h1>
-          <p className="text-secondary">Manage VAT, Zakat, and ZATCA e-invoicing</p>
+          <h1 className="heading-1 mb-2">{t('compliance.title')}</h1>
+          <p className="text-secondary">{t('compliance.subtitle')}</p>
         </div>
       </div>
 
@@ -85,7 +87,7 @@ export default function CompliancePage() {
               transition: "all 0.2s",
             }}
           >
-            {tab === "VAT" ? "VAT Returns" : tab === "Zakat" ? "Zakat Declaration" : "ZATCA Integration"}
+            {tab === "VAT" ? t('compliance.vat') : tab === "Zakat" ? t('compliance.zakat') : t('compliance.zatca')}
           </button>
         ))}
       </div>
@@ -94,7 +96,7 @@ export default function CompliancePage() {
         {activeTab !== "ZATCA" && (
           <div className="flex gap-4 mb-8">
             <div>
-              <label className="block text-sm font-medium text-secondary mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-secondary mb-1">{t('compliance.startDate')}</label>
               <input
                 type="date"
                 value={startDate}
@@ -103,7 +105,7 @@ export default function CompliancePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-secondary mb-1">End Date</label>
+              <label className="block text-sm font-medium text-secondary mb-1">{t('compliance.endDate')}</label>
               <input
                 type="date"
                 value={endDate}
@@ -116,27 +118,27 @@ export default function CompliancePage() {
 
         {activeTab === "VAT" && (
           <div>
-            <h2 className="heading-2 mb-6">VAT Return Summary</h2>
+            <h2 className="heading-2 mb-6">{t('compliance.vat.title')}</h2>
             {isLoadingVat ? (
-              <div className="p-12 text-center text-secondary">Calculating VAT return...</div>
+              <div className="p-12 text-center text-secondary">{t('compliance.vat.loading')}</div>
             ) : errorVat ? (
               <div className="p-8 text-center" style={{ color: "var(--error)" }}>
-                Failed to calculate VAT return. Check your ledger entries.
+                {t('compliance.vat.error')}
               </div>
             ) : vatReturn ? (
               <div style={{ maxWidth: "600px", margin: "0 auto" }}>
                 <div className="mb-8 p-4 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
-                  <h3 className="text-lg font-bold mb-4" style={{ color: "#60a5fa" }}>Sales & Output Tax</h3>
+                  <h3 className="text-lg font-bold mb-4" style={{ color: "#60a5fa" }}>{t('compliance.vat.outputVat')}</h3>
                   <div className="flex justify-between font-bold">
-                    <span>VAT Collected (Output VAT)</span>
+                    <span>{t('compliance.vat.collected')}</span>
                     <span style={{ fontFamily: "monospace" }}>{vatReturn.outputVat.toLocaleString("en-SA", { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 
                 <div className="mb-8 p-4 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
-                  <h3 className="text-lg font-bold mb-4" style={{ color: "#f87171" }}>Purchases & Input Tax</h3>
+                  <h3 className="text-lg font-bold mb-4" style={{ color: "#f87171" }}>{t('compliance.vat.inputVat')}</h3>
                   <div className="flex justify-between font-bold">
-                    <span>VAT Paid (Input VAT)</span>
+                    <span>{t('compliance.vat.paid')}</span>
                     <span style={{ fontFamily: "monospace" }}>{vatReturn.inputVat.toLocaleString("en-SA", { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
@@ -148,10 +150,10 @@ export default function CompliancePage() {
                     border: `1px solid ${vatReturn.netVatLiability >= 0 ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.3)"}` 
                   }}
                 >
-                  <h3 className="text-sm font-medium mb-2 text-secondary">Net VAT Due to ZATCA</h3>
+                  <h3 className="text-sm font-medium mb-2 text-secondary">{t('compliance.vat.netDue')}</h3>
                   <div className="text-3xl font-bold" style={{ color: vatReturn.netVatLiability >= 0 ? "#ef4444" : "#10b981", fontFamily: "monospace" }}>
                     {Math.abs(vatReturn.netVatLiability).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
-                    <span className="text-sm ml-2">{vatReturn.netVatLiability >= 0 ? "Payable" : "Refundable"}</span>
+                    <span className="text-sm ml-2">{vatReturn.netVatLiability >= 0 ? t('compliance.vat.payable') : t('compliance.vat.refundable')}</span>
                   </div>
                 </div>
               </div>
@@ -161,29 +163,29 @@ export default function CompliancePage() {
 
         {activeTab === "Zakat" && (
           <div>
-            <h2 className="heading-2 mb-6">Zakat Estimation</h2>
-            <p className="text-secondary mb-8">Estimated Zakat provision based on your ledger's net income, equity, and liabilities.</p>
+            <h2 className="heading-2 mb-6">{t('compliance.zakat.title')}</h2>
+            <p className="text-secondary mb-8">{t('compliance.zakat.subtitle')}</p>
 
             {isLoadingZakat ? (
-              <div className="p-12 text-center text-secondary">Estimating Zakat...</div>
+              <div className="p-12 text-center text-secondary">{t('compliance.zakat.loading')}</div>
             ) : errorZakat ? (
               <div className="p-8 text-center" style={{ color: "var(--error)" }}>
-                Failed to estimate Zakat.
+                {t('compliance.zakat.error')}
               </div>
             ) : zakatEstimate ? (
               <div style={{ maxWidth: "600px", margin: "0 auto" }}>
                 <div className="mb-8 p-4 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
-                  <h3 className="text-lg font-bold mb-4" style={{ color: "#fbbf24" }}>Zakat Components</h3>
+                  <h3 className="text-lg font-bold mb-4" style={{ color: "#fbbf24" }}>{t('compliance.zakat.components')}</h3>
                   <div className="flex justify-between mb-2">
-                    <span className="text-secondary">Net Income</span>
+                    <span className="text-secondary">{t('compliance.zakat.netIncome')}</span>
                     <span style={{ fontFamily: "monospace" }}>{zakatEstimate.netIncome.toLocaleString("en-SA", { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-secondary">Equity</span>
+                    <span className="text-secondary">{t('compliance.zakat.equity')}</span>
                     <span style={{ fontFamily: "monospace" }}>{zakatEstimate.equity.toLocaleString("en-SA", { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between font-bold mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-                    <span>Estimated Zakat Base</span>
+                    <span>{t('compliance.zakat.zakatBase')}</span>
                     <span style={{ fontFamily: "monospace" }}>{zakatEstimate.zakatBase.toLocaleString("en-SA", { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
@@ -195,10 +197,10 @@ export default function CompliancePage() {
                     border: "1px solid rgba(251,191,36,0.3)"
                   }}
                 >
-                  <h3 className="text-sm font-medium mb-2" style={{ color: "#fcd34d" }}>Estimated Provision ({zakatEstimate.multiplier}%)</h3>
+                  <h3 className="text-sm font-medium mb-2" style={{ color: "#fcd34d" }}>{t('compliance.zakat.provision')}</h3>
                   <div className="text-3xl font-bold" style={{ color: "#fbbf24", fontFamily: "monospace" }}>
                     {zakatEstimate.estimatedProvision.toLocaleString("en-SA", { minimumFractionDigits: 2 })}
-                    <span className="text-sm ml-2">SAR</span>
+                    <span className="text-sm ml-2">{t('common.sar')}</span>
                   </div>
                 </div>
               </div>
@@ -209,12 +211,12 @@ export default function CompliancePage() {
         {activeTab === "ZATCA" && (
           <div className="p-12 text-center animate-fade-in">
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>✅</div>
-            <h2 className="heading-2 mb-2">ZATCA e-Invoicing (FATOORA)</h2>
+            <h2 className="heading-2 mb-2">{t('compliance.zatca.title')}</h2>
             <p className="text-secondary max-w-md mx-auto mb-6">
-              ZATCA Phase 2 integration is active. Cryptographic stamping and API bridging are configured at the tenant level. All approved invoices will be automatically reported and cleared.
+              {t('compliance.zatca.subtitle')}
             </p>
             <div className="inline-block px-4 py-2 rounded-full" style={{ background: "rgba(16,185,129,0.15)", color: "#10b981", fontWeight: 600 }}>
-              Integration Status: Healthy & Reporting
+              {t('compliance.zatca.status')}
             </div>
           </div>
         )}

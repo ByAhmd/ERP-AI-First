@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiClient } from "../../../lib/api-client";
+import { useLanguage } from '../../../components/LanguageProvider';
 
 interface Tenant {
   id: string;
@@ -11,6 +12,7 @@ interface Tenant {
 
 export default function SetupPage() {
   const router = useRouter();
+  const { t, isRTL } = useLanguage();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -37,19 +39,19 @@ export default function SetupPage() {
       // Redirect to Chart of Accounts setup (first step of accounting setup)
       router.push("/dashboard/accounting/coa");
     } catch (err: any) {
-      setError(err.message || "Failed to create company. Please try again.");
+      setError(err.message || t('setup.error'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" dir={isRTL ? "rtl" : "ltr"}>
       <div className="w-full max-w-md animate-fade-in">
         <div className="glass-panel p-8">
           <div className="text-center mb-8">
-            <h1 className="heading-1 mb-2">Create Company</h1>
-            <p className="text-secondary">Set up your first tenant to get started</p>
+            <h1 className="heading-1 mb-2">{t('setup.title')}</h1>
+            <p className="text-secondary">{t('setup.subtitle')}</p>
           </div>
 
           {error && (
@@ -61,7 +63,7 @@ export default function SetupPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-secondary mb-2">
-                Company Name <span className="text-[#ef4444]">*</span>
+                {t('setup.companyName')} <span className="text-[#ef4444]">*</span>
               </label>
               <input
                 id="name"
@@ -69,33 +71,33 @@ export default function SetupPage() {
                 type="text"
                 required
                 className="form-input"
-                placeholder="e.g. Acme Corp"
+                placeholder={t('setup.companyNamePh')}
               />
             </div>
 
             <div>
               <label htmlFor="cr" className="block text-sm font-medium text-secondary mb-2">
-                Commercial Registration No.
+                {t('setup.crn')}
               </label>
               <input
                 id="cr"
                 name="cr"
                 type="text"
                 className="form-input"
-                placeholder="Optional"
+                placeholder={t('common.optional')}
               />
             </div>
 
             <div>
               <label htmlFor="vat" className="block text-sm font-medium text-secondary mb-2">
-                VAT Registration No.
+                {t('setup.vatNo')}
               </label>
               <input
                 id="vat"
                 name="vat"
                 type="text"
                 className="form-input"
-                placeholder="Optional"
+                placeholder={t('common.optional')}
               />
             </div>
 
@@ -104,7 +106,7 @@ export default function SetupPage() {
               disabled={loading}
               className="btn-primary w-full flex justify-center py-3 mt-2"
             >
-              {loading ? "Creating..." : "Create Company"}
+              {loading ? t('setup.submitting') : t('setup.submit')}
             </button>
           </form>
         </div>

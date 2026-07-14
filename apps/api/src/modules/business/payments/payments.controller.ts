@@ -22,7 +22,7 @@ export class PaymentsController {
   @RequirePermissions(PERMISSIONS.BUSINESS_PAYMENTS_MANAGE)
   @Auditable({ action: 'CREATE', entityType: 'Payment' })
   create(@CurrentUser() user: RequestUser, @Body() createPaymentDto: CreatePaymentDto) {
-    return this.paymentsService.create(user.tenantId!, createPaymentDto);
+    return this.paymentsService.create(user.tenantId!, createPaymentDto, user.id);
   }
 
   @Get()

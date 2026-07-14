@@ -1,24 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from '../../../components/LanguageProvider';
 
 export default function ReportsIndex() {
+  const { t } = useLanguage();
+
   const reports = [
     {
-      title: "Trial Balance",
-      description: "A summary of all account balances to ensure debits equal credits.",
+      title: t('reports.trialBalance'),
+      description: t('reports.trialBalance.subtitle'),
       href: "/dashboard/reports/trial-balance",
       icon: "⚖️"
     },
     {
-      title: "Income Statement (P&L)",
-      description: "Shows your company's revenue and expenses over a specific period.",
+      title: t('reports.incomeStatement'),
+      description: t('reports.incomeStatement.subtitle'),
       href: "/dashboard/reports/income-statement",
       icon: "📉"
     },
     {
-      title: "Balance Sheet",
-      description: "A snapshot of your assets, liabilities, and equity at a specific point in time.",
+      title: t('reports.balanceSheet'),
+      description: t('reports.balanceSheet.subtitle'),
       href: "/dashboard/reports/balance-sheet",
       icon: "📑"
     }
@@ -27,8 +30,8 @@ export default function ReportsIndex() {
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: "2rem" }}>
-        <h1 className="heading-1 mb-2">Financial Reports</h1>
-        <p className="text-secondary">Generate and view your core financial statements.</p>
+        <h1 className="heading-1 mb-2">{t('reports.title')}</h1>
+        <p className="text-secondary">{t('reports.subtitle')}</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>

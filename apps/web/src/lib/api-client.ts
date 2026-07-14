@@ -109,23 +109,34 @@ export class ApiClient {
     return this.fetch<T>(endpoint, { method: 'GET', headers });
   }
 
-  static async post<T>(endpoint: string, data?: any, headers?: HeadersInit): Promise<T> {
+  static async post<T>(endpoint: string, data?: any, options?: RequestInit): Promise<T> {
     return this.fetch<T>(endpoint, {
+      ...options,
       method: 'POST',
-      body: JSON.stringify(data),
-      headers,
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  static async patch<T>(endpoint: string, data?: any, headers?: HeadersInit): Promise<T> {
+  static async put<T>(endpoint: string, data?: any, options?: RequestInit): Promise<T> {
     return this.fetch<T>(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-      headers,
+      ...options,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  static async delete<T>(endpoint: string, headers?: HeadersInit): Promise<T> {
-    return this.fetch<T>(endpoint, { method: 'DELETE', headers });
+  static async patch<T>(endpoint: string, data?: any, options?: RequestInit): Promise<T> {
+    return this.fetch<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  static async delete<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.fetch<T>(endpoint, {
+      ...options,
+      method: 'DELETE',
+    });
   }
 }

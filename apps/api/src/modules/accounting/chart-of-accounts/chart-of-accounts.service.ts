@@ -116,7 +116,7 @@ export class ChartOfAccountsService {
     return account;
   }
 
-  async seedSmeTemplate(tenantId: string) {
+  async seedSmeTemplate(tenantId: string, txClient?: any) {
     const template = [
       // Assets (1000)
       { code: '1000', name: 'Assets', type: 'Asset' as const, parentCode: null },
@@ -148,14 +148,17 @@ export class ChartOfAccountsService {
       { code: '5120', name: 'Rent Expense', type: 'Expense' as const, parentCode: '5100' },
     ];
 
-    const existingAccounts = await this.prisma.chartOfAccount.findMany({ where: { tenantId } });
-    const existingCodes = new Set(existingAccounts.map(a => a.code));
+    const client = txClient || this.prisma;
+    const existingAccounts = await client.chartOfAccount.findMany({ where: { tenantId } });
+    const existingCodes = new Set(existingAccounts.map((a: any) => a.code));
 
-    return this.prisma.$transaction(async (tx) => {
+    const executeSeeding = async (tx: any) => {
       const createdMap = new Map<string, string>();
       
       // Add existing accounts to the created map so children can find them
-      existingAccounts.forEach(a => createdMap.set(a.code, a.id));
+      if (existingAccounts.length > 0) {
+        existingAccounts.forEach((a: any) => createdMap.set(a.code, a.id));
+      }
 
       for (const acc of template) {
         if (existingCodes.has(acc.code)) {
@@ -180,6 +183,12 @@ export class ChartOfAccountsService {
 
         createdMap.set(acc.code, created.id);
       }
-    });
+    };
+
+    if (txClient) {
+      return executeSeeding(txClient);
+    } else {
+      return this.prisma.$transaction(executeSeeding);
+    }
   }
 }

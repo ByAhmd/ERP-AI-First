@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
 import toast from "react-hot-toast";
+import { useLanguage } from "../../../components/LanguageProvider";
 
 interface Contact {
   id: string;
@@ -36,6 +37,7 @@ const statusColor: Record<string, { bg: string; color: string }> = {
 
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
+  const { t, locale } = useLanguage();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     type: "Incoming",
@@ -76,10 +78,10 @@ export default function PaymentsPage() {
         notes: "",
         reference: "",
       });
-      toast.success("Payment created successfully");
+      toast.success(t("payments.form.success"));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to create payment");
+      toast.error(err.message || t("payments.form.error"));
     },
   });
 
@@ -87,10 +89,10 @@ export default function PaymentsPage() {
     mutationFn: (id: string) => ApiClient.patch(`/business/payments/${id}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
-      toast.success("Payment approved successfully");
+      toast.success(t("payments.approve.success"));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to approve payment");
+      toast.error(err.message || t("payments.approve.error"));
     },
   });
 
@@ -111,17 +113,17 @@ export default function PaymentsPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">Payments</h1>
-          <p className="text-secondary">Manage incoming and outgoing payments</p>
+          <h1 className="heading-1 mb-2">{t("payments.title")}</h1>
+          <p className="text-secondary">{t("payments.subtitle")}</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? "Cancel" : "+ New Payment"}
+          {showForm ? t("common.cancel") : t("payments.newPayment")}
         </button>
       </div>
 
       {showForm && (
         <div className="glass-panel p-6 mb-8 animate-fade-in">
-          <h2 className="heading-2 mb-6">Create Payment</h2>
+          <h2 className="heading-2 mb-6">{t("payments.form.title")}</h2>
           <form onSubmit={handleSubmit}>
             <div
               style={{
@@ -132,7 +134,7 @@ export default function PaymentsPage() {
               }}
             >
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Type</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t("payments.form.type")}</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -140,14 +142,14 @@ export default function PaymentsPage() {
                   style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
                   required
                 >
-                  <option value="Incoming">Incoming (Receipt)</option>
-                  <option value="Outgoing">Outgoing (Payment)</option>
+                  <option value="Incoming">{t("payments.type.incoming")}</option>
+                  <option value="Outgoing">{t("payments.type.outgoing")}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Contact (Customer/Supplier)
+                  {t("payments.form.contact")}
                 </label>
                 <select
                   value={formData.contactId}
@@ -156,17 +158,17 @@ export default function PaymentsPage() {
                   style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
                   required
                 >
-                  <option value="">— Select Contact —</option>
+                  <option value="">{t("common.select")}</option>
                   {(contacts ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.type})
+                      {c.name} ({c.type === 'Customer' ? t('contacts.type.customer') : c.type === 'Supplier' ? t('contacts.type.supplier') : t('contacts.type.employee')})
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Payment Date</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t("payments.form.date")}</label>
                 <input
                   type="date"
                   required
@@ -178,7 +180,7 @@ export default function PaymentsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Bank / Cash Account
+                  {t("payments.form.account")}
                 </label>
                 <select
                   value={formData.accountId}
@@ -187,7 +189,7 @@ export default function PaymentsPage() {
                   style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
                   required
                 >
-                  <option value="">— Select Account —</option>
+                  <option value="">{t("common.select")}</option>
                   {(accounts ?? [])
                     .filter((a: any) => a.type === "Asset" && (!a.children || a.children.length === 0))
                     .map((a: any) => (
@@ -200,7 +202,7 @@ export default function PaymentsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Amount (SAR)
+                  {t("payments.form.amount")}
                 </label>
                 <input
                   type="number"
@@ -216,7 +218,7 @@ export default function PaymentsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Reference No. (Cheque / Transfer ID)
+                  {t("payments.form.reference")}
                 </label>
                 <input
                   type="text"
@@ -228,7 +230,7 @@ export default function PaymentsPage() {
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
-                <label className="block text-sm font-medium text-secondary mb-1">Notes</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t("payments.form.notes")}</label>
                 <input
                   type="text"
                   value={formData.notes}
@@ -245,14 +247,14 @@ export default function PaymentsPage() {
                 onClick={() => setShowForm(false)}
                 className="btn-secondary"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={createMutation.isPending}
                 className="btn-primary"
               >
-                {createMutation.isPending ? "Creating..." : "Create Payment"}
+                {createMutation.isPending ? t("common.saving") : t("payments.form.submit")}
               </button>
             </div>
           </form>
@@ -261,25 +263,25 @@ export default function PaymentsPage() {
 
       <div className="glass-panel overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-secondary">Loading payments...</div>
+          <div className="p-12 text-center text-secondary">{t("payments.loading")}</div>
         ) : !payments || payments.length === 0 ? (
           <div className="p-12 text-center">
-            <h3 className="heading-2 mb-2">No payments yet</h3>
+            <h3 className="heading-2 mb-2">{t("payments.noPayments")}</h3>
             <p className="text-secondary" style={{ maxWidth: "28rem", margin: "0 auto 1.5rem" }}>
-              Create your first payment by clicking the "New Payment" button above.
+              Create your first payment by clicking the &quot;New Payment&quot; button above.
             </p>
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Payment No.</th>
-                <th>Type</th>
-                <th>Contact</th>
-                <th>Date</th>
-                <th style={{ textAlign: "right" }}>Amount (SAR)</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t("payments.number")}</th>
+                <th>{t("payments.type")}</th>
+                <th>{t("payments.contact")}</th>
+                <th>{t("payments.date")}</th>
+                <th style={{ textAlign: "right" }}>{t("payments.amount")}</th>
+                <th>{t("payments.status")}</th>
+                <th>{t("payments.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -289,7 +291,7 @@ export default function PaymentsPage() {
                 return (
                   <tr key={payment.id}>
                     <td style={{ fontWeight: 600 }}>{payment.paymentNumber}</td>
-                    <td className="text-secondary">{payment.type}</td>
+                    <td className="text-secondary">{payment.type === 'Incoming' ? t('payments.type.incoming') : t('payments.type.outgoing')}</td>
                     <td>{payment.contact?.name ?? "—"}</td>
                     <td className="text-secondary">
                       {new Date(payment.paymentDate).toLocaleDateString("en-SA")}
@@ -308,7 +310,7 @@ export default function PaymentsPage() {
                           color: sc.color,
                         }}
                       >
-                        {payment.status}
+                        {payment.status === 'Draft' ? t('status.draft') : payment.status === 'Approved' ? t('status.approved') : payment.status === 'Cancelled' ? t('status.cancelled') : payment.status}
                       </span>
                     </td>
                     <td>
@@ -327,7 +329,7 @@ export default function PaymentsPage() {
                             cursor: "pointer",
                           }}
                         >
-                          Approve
+                          {t("payments.approve")}
                         </button>
                       )}
                     </td>

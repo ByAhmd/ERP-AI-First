@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Providers } from "../components/providers";
+import { LanguageProvider } from "../components/LanguageProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ERP AI",
-  description: "Enterprise Accounting & Intelligence Platform",
+  title: "ERP AI | نظام إدارة الموارد",
+  description: "Enterprise Accounting & Intelligence Platform | نظام المحاسبة والذكاء المؤسسي",
 };
 
 export default function RootLayout({
@@ -13,11 +14,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" dir="ltr" suppressHydrationWarning>
       <body>
-        <Providers>
-          {children}
-        </Providers>
+        <LanguageProvider>
+          <Providers>
+            {children}
+          </Providers>
+        </LanguageProvider>
       </body>
     </html>
   );

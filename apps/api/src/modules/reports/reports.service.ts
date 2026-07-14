@@ -111,6 +111,35 @@ export class ReportsService {
 
     const openPayables = Number(unpaidPurchases._sum.total || 0) - Number(unpaidPurchases._sum.amountPaid || 0);
 
+    // Get HR Headcount
+    const headcount = await this.prisma.employeeProfile.count({
+      where: { tenantId }
+    });
+
+    // Get CRM Pipeline (Open Opportunities)
+    const pipeline = await this.prisma.opportunity.aggregate({
+      where: {
+        tenantId,
+        stage: { notIn: ['Won', 'Lost'] }
+      },
+      _sum: {
+        value: true
+      }
+    });
+    const crmPipelineValue = Number(pipeline._sum.value || 0);
+
+    // Get Total Inventory Valuation
+    const inventoryItems = await this.prisma.item.findMany({
+      where: { tenantId, type: 'Product' },
+      include: { inventoryBalances: true }
+    });
+    let inventoryValuation = 0;
+    inventoryItems.forEach(item => {
+      const wac = Number(item.weightedAverageCost || 0);
+      const totalQty = item.inventoryBalances.reduce((sum, bal) => sum + Number(bal.quantity || 0), 0);
+      inventoryValuation += (wac * totalQty);
+    });
+
     // Mock trend data for chart (6 months)
     const trendData = [];
     for (let i = 5; i >= 0; i--) {
@@ -134,6 +163,9 @@ export class ReportsService {
         allTimeProfit: Number(plAllTime.netIncome),
         openReceivables,
         openPayables,
+        headcount,
+        crmPipelineValue,
+        inventoryValuation,
       },
       trendData
     };

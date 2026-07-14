@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
 import toast from "react-hot-toast";
+import { useLanguage } from "../../../components/LanguageProvider";
 
 interface EmployeeProfile {
   id: string;
@@ -21,6 +22,7 @@ interface EmployeeProfile {
 
 export default function PayrollPage() {
   const queryClient = useQueryClient();
+  const { t, locale } = useLanguage();
   const [activeTab, setActiveTab] = useState<"Employees" | "RunPayroll">("Employees");
   const [periodName, setPeriodName] = useState(() => {
     const now = new Date();
@@ -33,6 +35,11 @@ export default function PayrollPage() {
   const { data: employees, isLoading } = useQuery({
     queryKey: ["employee-profiles"],
     queryFn: () => ApiClient.get<EmployeeProfile[]>("/business/employee-profiles").catch(() => []),
+  });
+
+  const { data: payrollHistory, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ["payroll-runs"],
+    queryFn: () => ApiClient.get<any[]>("/business/payroll").catch(() => []),
   });
 
   const handleAdjustmentChange = (empId: string, field: "bonus" | "otherDeductions", value: string) => {
@@ -48,25 +55,29 @@ export default function PayrollPage() {
 
   const createRunMutation = useMutation({
     mutationFn: async (data: any) => {
-      // First create the run
-      const run = await ApiClient.post("/business/payroll", data);
+      // Create the run
+      const run: any = await ApiClient.post("/business/payroll", data);
       
-      // Then immediately approve it (since we don't have a list view for runs on the backend yet)
-      await ApiClient.post(`/business/payroll/${run.id}/approve`, {});
+      // Then immediately approve it (since we don't have a list view for runs on the backend yet for demo)
+      // Actually wait, now we DO have an approval system! 
+      // But the original code immediately approves it for simplicity. We should probably NOT approve it here anymore,
+      // it should be handled in the Approvals Inbox! So I will remove the auto-approve.
+      // await ApiClient.post(`/business/payroll/${run.id}/approve`, {});
       return run;
     },
     onSuccess: () => {
-      toast.success("Payroll run processed and approved successfully!");
+      toast.success(t("payroll.form.success"));
       setAdjustments({});
+      queryClient.invalidateQueries({ queryKey: ["payroll-runs"] });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to process payroll");
+      toast.error(err.message || t("payroll.form.error"));
     },
   });
 
   const handleRunPayroll = () => {
     if (!employees || employees.length === 0) {
-      toast.error("No employees to process payroll for.");
+      toast.error(t("payroll.noEmployees"));
       return;
     }
 
@@ -86,8 +97,8 @@ export default function PayrollPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">Payroll & Employees</h1>
-          <p className="text-secondary">Manage employee profiles and run monthly payroll</p>
+          <h1 className="heading-1 mb-2">{t("payroll.title")}</h1>
+          <p className="text-secondary">{t("payroll.subtitle")}</p>
         </div>
       </div>
 
@@ -108,7 +119,7 @@ export default function PayrollPage() {
               transition: "all 0.2s",
             }}
           >
-            {tab === "RunPayroll" ? "Run Payroll" : tab}
+            {tab === "RunPayroll" ? t("payroll.runPayroll") : t("payroll.employees")}
           </button>
         ))}
       </div>
@@ -116,12 +127,12 @@ export default function PayrollPage() {
       {activeTab === "Employees" && (
         <div className="glass-panel overflow-hidden">
           {isLoading ? (
-            <div className="p-12 text-center text-secondary">Loading employees...</div>
+            <div className="p-12 text-center text-secondary">{t("payroll.loading")}</div>
           ) : !employees || employees.length === 0 ? (
             <div className="p-12 text-center">
-              <h3 className="heading-2 mb-2">No employee profiles found</h3>
+              <h3 className="heading-2 mb-2">{t("payroll.noEmployees")}</h3>
               <p className="text-secondary" style={{ maxWidth: "28rem", margin: "0 auto" }}>
-                To add an employee, first create a Contact of type "Employee", then link an Employee Profile.
+                To add an employee, first create a Contact of type &quot;Employee&quot;, then link an Employee Profile.
                 (Profile creation UI to be added).
               </p>
             </div>
@@ -129,12 +140,12 @@ export default function PayrollPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Employee Name</th>
-                  <th>GOSI Number</th>
-                  <th style={{ textAlign: "right" }}>Basic Salary</th>
-                  <th style={{ textAlign: "right" }}>Housing</th>
-                  <th style={{ textAlign: "right" }}>Transport</th>
-                  <th style={{ textAlign: "right" }}>Total Fixed</th>
+                  <th>{t("payroll.employee")}</th>
+                  <th>{t("payroll.gosi")}</th>
+                  <th style={{ textAlign: "right" }}>{t("payroll.basic")}</th>
+                  <th style={{ textAlign: "right" }}>{t("payroll.housing")}</th>
+                  <th style={{ textAlign: "right" }}>{t("payroll.transport")}</th>
+                  <th style={{ textAlign: "right" }}>{t("payroll.gross")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -171,10 +182,10 @@ export default function PayrollPage() {
 
       {activeTab === "RunPayroll" && (
         <div className="glass-panel p-6 animate-fade-in">
-          <h2 className="heading-2 mb-6">Run Monthly Payroll</h2>
+          <h2 className="heading-2 mb-6">{t("payroll.form.title")}</h2>
           
           <div className="mb-6 max-w-md">
-            <label className="block text-sm font-medium text-secondary mb-1">Payroll Period Name</label>
+            <label className="block text-sm font-medium text-secondary mb-1">{t("payroll.form.period")}</label>
             <input
               type="text"
               value={periodName}
@@ -188,11 +199,11 @@ export default function PayrollPage() {
             <table className="data-table" style={{ minWidth: "800px" }}>
               <thead>
                 <tr>
-                  <th>Employee</th>
-                  <th style={{ textAlign: "right" }}>Fixed Salary</th>
-                  <th style={{ width: "150px" }}>Bonus</th>
-                  <th style={{ width: "150px" }}>Other Deductions</th>
-                  <th style={{ textAlign: "right" }}>Net Salary (Est.)</th>
+                  <th>{t("payroll.employee")}</th>
+                  <th style={{ textAlign: "right" }}>{t("payroll.gross")}</th>
+                  <th style={{ width: "150px" }}>{t("payroll.form.adjustments")}</th>
+                  <th style={{ width: "150px" }}>{t("payroll.deductions")}</th>
+                  <th style={{ textAlign: "right" }}>{t("payroll.net")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,7 +261,7 @@ export default function PayrollPage() {
               </tbody>
             </table>
             {(!employees || employees.length === 0) && (
-              <div className="p-8 text-center text-secondary">No employees available for payroll.</div>
+              <div className="p-8 text-center text-secondary">{t("payroll.noEmployees")}</div>
             )}
           </div>
 
@@ -261,8 +272,70 @@ export default function PayrollPage() {
               className="btn-primary"
               style={{ padding: "0.75rem 2rem", fontSize: "1.1rem" }}
             >
-              {createRunMutation.isPending ? "Processing..." : "Process & Approve Payroll"}
+              {createRunMutation.isPending ? t("common.saving") : t("payroll.form.submit")}
             </button>
+          </div>
+
+          <div style={{ marginTop: '3rem' }}>
+            <h3 className="heading-3 mb-4">{t("payroll.history")}</h3>
+            {isLoadingHistory ? (
+              <div className="text-secondary">{t("payroll.loading")}</div>
+            ) : !payrollHistory || payrollHistory.length === 0 ? (
+              <div className="text-secondary">{t("payroll.noHistory")}</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>{t("payroll.period")}</th>
+                      <th>{t("common.date")}</th>
+                      <th style={{ textAlign: "right" }}>{t("payroll.totalGross")}</th>
+                      <th style={{ textAlign: "right" }}>{t("payroll.deductions")}</th>
+                      <th style={{ textAlign: "right" }}>{t("payroll.totalNet")}</th>
+                      <th>{t("payroll.status")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payrollHistory.map((run) => (
+                      <tr key={run.id}>
+                        <td style={{ fontWeight: 600 }}>{run.periodName}</td>
+                        <td className="text-secondary">{new Date(run.createdAt).toLocaleDateString()}</td>
+                        <td style={{ textAlign: "right", fontFamily: "monospace" }}>
+                          {parseFloat(run.totalGross).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ textAlign: "right", fontFamily: "monospace", color: "#ef4444" }}>
+                          {parseFloat(run.totalDeductions).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: 600, color: "var(--accent-primary)" }}>
+                          {parseFloat(run.totalNet).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              backgroundColor: 
+                                run.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' :
+                                run.status === 'PendingApproval' ? 'rgba(245, 158, 11, 0.1)' :
+                                'rgba(255, 255, 255, 0.1)',
+                              color: 
+                                run.status === 'Approved' ? '#10b981' :
+                                run.status === 'PendingApproval' ? '#f59e0b' :
+                                'var(--text-secondary)'
+                            }}
+                          >
+                            {run.status === 'Approved' ? t('status.approved') : run.status === 'PendingApproval' ? t('status.pendingApproval') : run.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

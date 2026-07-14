@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ApiClient } from "../../lib/api-client";
+import { useLanguage } from "../../components/LanguageProvider";
 
 interface UserProfile {
   id: string;
@@ -23,36 +25,41 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t, toggleLanguage, locale, isRTL } = useLanguage();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [activeTenant, setActiveTenant] = useState<Tenant | null>(null);
   const [showCompanySwitcher, setShowCompanySwitcher] = useState(false);
 
+  // Poll for pending approvals every 10 seconds
+  const { data: pendingApprovals } = useQuery({
+    queryKey: ["pending-approvals"],
+    queryFn: () => ApiClient.get<any[]>("/business/approvals/pending"),
+    refetchInterval: 10000,
+    enabled: !!activeTenant,
+  });
+
+  const pendingApprovalsCount = pendingApprovals?.length || 0;
+
   useEffect(() => {
     const init = async () => {
       try {
-        // Fetch current user profile
         const profile = await ApiClient.get<UserProfile>("/auth/me");
         setUser(profile);
 
-        // Fetch all tenants this user belongs to
         const tenantList = await ApiClient.get<Tenant[]>("/tenants");
         setTenants(tenantList);
 
-        // Find which one is active
         const activeId = ApiClient.getActiveTenantId();
         const found = tenantList.find((t) => t.id === activeId) ?? tenantList[0] ?? null;
         if (found) {
           setActiveTenant(found);
-          // Make sure localStorage is set
           ApiClient.setActiveTenantId(found.id);
         }
       } catch {
-        // Session expired — redirect to login
         router.push("/login");
       }
     };
-
     init();
   }, [router]);
 
@@ -70,7 +77,6 @@ export default function DashboardLayout({
     ApiClient.setActiveTenantId(tenant.id);
     setActiveTenant(tenant);
     setShowCompanySwitcher(false);
-    // Reload to refresh all data with the new tenant context
     window.location.href = "/dashboard";
   };
 
@@ -84,132 +90,155 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1 className="sidebar-title">ERP AI</h1>
+          <h1 className="sidebar-title">{t("app.name")}</h1>
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-section-label">Overview</div>
+          <div className="nav-section-label">{t("nav.overview")}</div>
           <Link
             href="/dashboard"
             className={`nav-item ${isActive("/dashboard") ? "active" : ""}`}
           >
-            <span>📊</span> Dashboard
+            <span>📊</span> {t("nav.dashboard")}
           </Link>
 
-          <div className="nav-section-label">Accounting</div>
+          <div className="nav-section-label">{t("nav.accounting")}</div>
           <Link
             href="/dashboard/accounting/coa"
             className={`nav-item ${isActive("/dashboard/accounting/coa") ? "active" : ""}`}
           >
-            <span>📂</span> Chart of Accounts
+            <span>📂</span> {t("nav.coa")}
           </Link>
           <Link
             href="/dashboard/accounting/periods"
             className={`nav-item ${isActive("/dashboard/accounting/periods") ? "active" : ""}`}
           >
-            <span>📅</span> Accounting Periods
+            <span>📅</span> {t("nav.periods")}
           </Link>
           <Link
             href="/dashboard/accounting/journal-entries"
             className={`nav-item ${isActive("/dashboard/accounting/journal-entries") ? "active" : ""}`}
           >
-            <span>📝</span> Journal Entries
+            <span>📝</span> {t("nav.journalEntries")}
           </Link>
           <Link
             href="/dashboard/accounting/fixed-assets"
             className={`nav-item ${isActive("/dashboard/accounting/fixed-assets") ? "active" : ""}`}
           >
-            <span>🏢</span> Fixed Assets
+            <span>🏢</span> {t("nav.fixedAssets")}
           </Link>
           <Link
             href="/dashboard/accounting/reconciliation"
             className={`nav-item ${isActive("/dashboard/accounting/reconciliation") ? "active" : ""}`}
           >
-            <span>🏦</span> Bank Recon
+            <span>🏦</span> {t("nav.bankRecon")}
           </Link>
           <Link
             href="/dashboard/ledger"
             className={`nav-item ${isActive("/dashboard/ledger") ? "active" : ""}`}
           >
-            <span>📒</span> General Ledger
+            <span>📒</span> {t("nav.generalLedger")}
           </Link>
 
-          <div className="nav-section-label">Business</div>
+          <div className="nav-section-label">{t("nav.business")}</div>
+          <Link
+            href="/dashboard/approvals"
+            className={`nav-item ${isActive("/dashboard/approvals") ? "active" : ""}`}
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexDirection: isRTL ? "row-reverse" : "row" }}>
+              <span>🔔</span> {t("nav.approvals")}
+            </div>
+            {pendingApprovalsCount > 0 && (
+              <span
+                style={{
+                  background: "var(--error)",
+                  color: "white",
+                  fontSize: "0.7rem",
+                  fontWeight: "bold",
+                  padding: "2px 6px",
+                  borderRadius: "10px",
+                }}
+              >
+                {pendingApprovalsCount}
+              </span>
+            )}
+          </Link>
           <Link
             href="/dashboard/crm"
             className={`nav-item ${isActive("/dashboard/crm") ? "active" : ""}`}
           >
-            <span>🤝</span> CRM
+            <span>🤝</span> {t("nav.crm")}
           </Link>
           <Link
             href="/dashboard/procurement"
             className={`nav-item ${isActive("/dashboard/procurement") ? "active" : ""}`}
           >
-            <span>🛒</span> Procurement
+            <span>🛒</span> {t("nav.procurement")}
           </Link>
           <Link
             href="/dashboard/invoices"
             className={`nav-item ${isActive("/dashboard/invoices") ? "active" : ""}`}
           >
-            <span>🧾</span> Invoices
+            <span>🧾</span> {t("nav.invoices")}
           </Link>
           <Link
             href="/dashboard/payments"
             className={`nav-item ${isActive("/dashboard/payments") ? "active" : ""}`}
           >
-            <span>💸</span> Payments
+            <span>💸</span> {t("nav.payments")}
           </Link>
           <Link
             href="/dashboard/payroll"
             className={`nav-item ${isActive("/dashboard/payroll") ? "active" : ""}`}
           >
-            <span>💳</span> Payroll
+            <span>💳</span> {t("nav.payroll")}
           </Link>
           <Link
             href="/dashboard/hr"
             className={`nav-item ${isActive("/dashboard/hr") ? "active" : ""}`}
           >
-            <span>🧑‍🤝‍🧑</span> HR
+            <span>🧑‍🤝‍🧑</span> {t("nav.hr")}
           </Link>
           <Link
             href="/dashboard/inventory"
             className={`nav-item ${isActive("/dashboard/inventory") ? "active" : ""}`}
           >
-            <span>📦</span> Inventory
+            <span>📦</span> {t("nav.inventory")}
           </Link>
           <Link
             href="/dashboard/contacts"
             className={`nav-item ${isActive("/dashboard/contacts") ? "active" : ""}`}
           >
-            <span>👥</span> Contacts
+            <span>👥</span> {t("nav.contacts")}
           </Link>
 
-          <div className="nav-section-label">Reports & Compliance</div>
+          <div className="nav-section-label">{t("nav.reportsCompliance")}</div>
           <Link
             href="/dashboard/reports"
             className={`nav-item ${isActive("/dashboard/reports") ? "active" : ""}`}
           >
-            <span>📈</span> Reports
+            <span>📈</span> {t("nav.reports")}
           </Link>
           <Link
             href="/dashboard/compliance"
             className={`nav-item ${isActive("/dashboard/compliance") ? "active" : ""}`}
           >
-            <span>⚖️</span> Compliance
+            <span>⚖️</span> {t("nav.compliance")}
           </Link>
 
-          <div className="nav-section-label">System</div>
+          <div className="nav-section-label">{t("nav.system")}</div>
           <Link
             href="/dashboard/users"
             className={`nav-item ${isActive("/dashboard/users") ? "active" : ""}`}
           >
-            <span>👤</span> Users
+            <span>👤</span> {t("nav.users")}
           </Link>
           <Link
             href="/dashboard/settings"
             className={`nav-item ${isActive("/dashboard/settings") ? "active" : ""}`}
           >
-            <span>⚙️</span> Settings
+            <span>⚙️</span> {t("nav.settings")}
           </Link>
         </nav>
 
@@ -227,17 +256,17 @@ export default function DashboardLayout({
                   padding: "0.5rem 0.75rem",
                   color: "var(--text-primary)",
                   cursor: "pointer",
-                  textAlign: "left",
+                  textAlign: isRTL ? "right" : "left",
                   fontSize: "0.875rem",
                 }}
               >
                 <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "2px" }}>
-                  Active Company
+                  {t("common.activeTenant")}
                 </div>
-                <div style={{ fontWeight: 600 }}>{activeTenant?.name ?? "Loading..."}</div>
+                <div style={{ fontWeight: 600 }}>{activeTenant?.name ?? t("common.loading")}</div>
                 {tenants.length > 1 && (
                   <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginTop: "2px" }}>
-                    ↕ Switch company
+                    {t("common.switchCompany")}
                   </div>
                 )}
               </button>
@@ -247,8 +276,9 @@ export default function DashboardLayout({
                   style={{
                     position: "absolute",
                     bottom: "100%",
-                    left: 0,
-                    right: 0,
+                    left: isRTL ? "auto" : 0,
+                    right: isRTL ? 0 : "auto",
+                    width: "100%",
                     background: "var(--bg-card)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     borderRadius: "0.5rem",
@@ -265,11 +295,14 @@ export default function DashboardLayout({
                         display: "block",
                         width: "100%",
                         padding: "0.75rem 1rem",
-                        background: tenant.id === activeTenant?.id ? "rgba(99,102,241,0.2)" : "transparent",
+                        background:
+                          tenant.id === activeTenant?.id
+                            ? "rgba(99,102,241,0.2)"
+                            : "transparent",
                         border: "none",
                         color: "var(--text-primary)",
                         cursor: "pointer",
-                        textAlign: "left",
+                        textAlign: isRTL ? "right" : "left",
                         fontSize: "0.875rem",
                       }}
                     >
@@ -287,9 +320,10 @@ export default function DashboardLayout({
                       color: "var(--accent-primary)",
                       fontSize: "0.875rem",
                       textDecoration: "none",
+                      textAlign: isRTL ? "right" : "left",
                     }}
                   >
-                    + Add New Company
+                    {t("common.addNewCompany")}
                   </Link>
                 </div>
               )}
@@ -299,19 +333,35 @@ export default function DashboardLayout({
           {/* User Profile */}
           <div className="user-profile">
             <div className="user-avatar">
-              {user?.fullName?.charAt(0)?.toUpperCase() ?? user?.email?.charAt(0)?.toUpperCase() ?? "?"}
+              {user?.fullName?.charAt(0)?.toUpperCase() ??
+                user?.email?.charAt(0)?.toUpperCase() ??
+                "?"}
             </div>
             <div style={{ overflow: "hidden" }}>
-              <div className="user-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user?.fullName ?? user?.email ?? "Loading..."}
+              <div
+                className="user-name"
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {user?.fullName ?? user?.email ?? t("common.loading")}
               </div>
-              <div className="user-role" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div
+                className="user-role"
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {user?.email ?? ""}
               </div>
             </div>
           </div>
           <button className="btn-logout" onClick={handleLogout}>
-            Log Out
+            {t("common.logout")}
           </button>
         </div>
       </aside>
@@ -321,15 +371,21 @@ export default function DashboardLayout({
         {/* Top Header */}
         <header className="top-header">
           <div className="header-brand">
-            <h2 className="company-name">{activeTenant?.name ?? "Loading..."}</h2>
-            <span className="tenant-badge">Active Tenant</span>
+            <h2 className="company-name">{activeTenant?.name ?? t("common.loading")}</h2>
+            <span className="tenant-badge">{t("header.activeTenant")}</span>
           </div>
+          {/* Language Toggle */}
+          <button
+            className="lang-toggle"
+            onClick={toggleLanguage}
+            title={locale === "en" ? "Switch to Arabic" : "التبديل إلى الإنجليزية"}
+          >
+            🌐 {locale === "en" ? "العربية" : "English"}
+          </button>
         </header>
 
         {/* Page Content */}
-        <div className="page-content">
-          {children}
-        </div>
+        <div className="page-content">{children}</div>
       </main>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
+import { useLanguage } from "../../../components/LanguageProvider";
 
 interface TrialBalanceEntry {
   id: string;
@@ -24,6 +25,7 @@ interface TrialBalanceResponse {
 }
 
 export default function GeneralLedgerPage() {
+  const { t } = useLanguage();
   const [filterType, setFilterType] = useState<string>("all");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -60,8 +62,8 @@ export default function GeneralLedgerPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">General Ledger</h1>
-          <p className="text-secondary">View trial balance and posted transactions</p>
+          <h1 className="heading-1 mb-2">{t('ledger.title')}</h1>
+          <p className="text-secondary">{t('ledger.subtitle')}</p>
         </div>
         {activeTab === "TrialBalance" && response && (
           <div
@@ -106,7 +108,7 @@ export default function GeneralLedgerPage() {
         <>
           <div className="glass-panel p-4 mb-6 flex gap-4 items-end" style={{ flexWrap: "wrap" }}>
             <div>
-              <label className="block text-sm font-medium text-secondary mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-secondary mb-1">{t('reports.startDate')}</label>
               <input
                 type="date"
                 value={startDate}
@@ -116,7 +118,7 @@ export default function GeneralLedgerPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-secondary mb-1">End Date</label>
+              <label className="block text-sm font-medium text-secondary mb-1">{t('reports.endDate')}</label>
               <input
                 type="date"
                 value={endDate}
@@ -144,7 +146,7 @@ export default function GeneralLedgerPage() {
                     transition: "all 0.2s",
                   }}
                 >
-                  {type === "all" ? "All Types" : type}
+                  {type === "all" ? t('common.all') : type}
                 </button>
               ))}
             </div>
@@ -152,17 +154,17 @@ export default function GeneralLedgerPage() {
 
           <div className="glass-panel overflow-hidden">
             {isLoading ? (
-              <div className="p-12 text-center text-secondary">Loading ledger data...</div>
+              <div className="p-12 text-center text-secondary">{t('ledger.loading')}</div>
             ) : error ? (
               <div className="p-12 text-center" style={{ color: "var(--error)" }}>
-                <h3 className="heading-2 mb-2">Failed to load ledger</h3>
-                <p className="text-secondary">Make sure you have an active tenant selected and journal entries posted.</p>
+                <h3 className="heading-2 mb-2">{t('common.failedLoad')}</h3>
+                <p className="text-secondary">{t('ledger.noData')}</p>
               </div>
             ) : filtered.length === 0 ? (
               <div className="p-12 text-center">
-                <h3 className="heading-2 mb-2">No ledger data</h3>
+                <h3 className="heading-2 mb-2">{t('ledger.noData')}</h3>
                 <p className="text-secondary max-w-sm" style={{ margin: "0 auto" }}>
-                  No transactions found for the selected period.
+                  {t('ledger.selectAccount')}
                 </p>
               </div>
             ) : (
@@ -171,10 +173,10 @@ export default function GeneralLedgerPage() {
                   <tr>
                     <th>Account Code</th>
                     <th>Account Name</th>
-                    <th>Type</th>
-                    <th style={{ textAlign: "right" }}>Total Debit</th>
-                    <th style={{ textAlign: "right" }}>Total Credit</th>
-                    <th style={{ textAlign: "right" }}>Balance</th>
+                    <th>{t('common.type')}</th>
+                    <th style={{ textAlign: "right" }}>{t('ledger.debit')}</th>
+                    <th style={{ textAlign: "right" }}>{t('ledger.credit')}</th>
+                    <th style={{ textAlign: "right" }}>{t('ledger.balance')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -235,7 +237,7 @@ export default function GeneralLedgerPage() {
                 {totals && filterType === "all" && (
                   <tfoot>
                     <tr style={{ background: "rgba(255,255,255,0.04)", fontWeight: 700 }}>
-                      <td colSpan={3} style={{ padding: "1rem 1.5rem" }}>Totals</td>
+                      <td colSpan={3} style={{ padding: "1rem 1.5rem" }}>{t('common.total')}</td>
                       <td style={{ textAlign: "right", padding: "1rem 1.5rem", fontFamily: "monospace" }}>
                         {parseFloat(totals.debit).toLocaleString("en-SA", { minimumFractionDigits: 2 })}
                       </td>
@@ -255,22 +257,22 @@ export default function GeneralLedgerPage() {
       {activeTab === "Transactions" && (
         <div className="glass-panel overflow-hidden">
           {loadingTx ? (
-            <div className="p-12 text-center text-secondary">Loading transactions...</div>
+            <div className="p-12 text-center text-secondary">{t('ledger.loading')}</div>
           ) : !transactions || transactions.length === 0 ? (
             <div className="p-12 text-center">
-              <h3 className="heading-2 mb-2">No transactions found</h3>
-              <p className="text-secondary">Approve an invoice or payment to see journal entries here.</p>
+              <h3 className="heading-2 mb-2">{t('ledger.noData')}</h3>
+              <p className="text-secondary">{t('ledger.selectAccount')}</p>
             </div>
           ) : (
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Entry No.</th>
+                  <th>{t('ledger.date')}</th>
+                  <th>{t('ledger.reference')}</th>
                   <th>Account</th>
-                  <th>Description</th>
-                  <th style={{ textAlign: "right" }}>Debit</th>
-                  <th style={{ textAlign: "right" }}>Credit</th>
+                  <th>{t('ledger.description')}</th>
+                  <th style={{ textAlign: "right" }}>{t('ledger.debit')}</th>
+                  <th style={{ textAlign: "right" }}>{t('ledger.credit')}</th>
                 </tr>
               </thead>
               <tbody>

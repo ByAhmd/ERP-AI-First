@@ -26,10 +26,16 @@ export class EmployeeProfilesService {
   }
 
   async findAll(tenantId: string) {
-    return this.prisma.employeeProfile.findMany({
+    const profiles = await this.prisma.employeeProfile.findMany({
       where: { tenantId },
       include: { contact: true },
     });
+    return profiles.map(p => ({
+      ...p,
+      basicSalary: p.basicSalary.toString(),
+      housingAllowance: p.housingAllowance.toString(),
+      transportAllowance: p.transportAllowance.toString(),
+    }));
   }
 
   /**

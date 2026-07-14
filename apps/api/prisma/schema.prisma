@@ -80,6 +80,7 @@ enum PaymentType {
 
 enum PaymentStatus {
   Draft
+  PendingApproval
   Approved
   Reconciled
 }
@@ -126,6 +127,7 @@ enum InventoryTransactionType {
 
 enum PayrollStatus {
   Draft
+  PendingApproval
   Approved
   Paid
 }
@@ -159,10 +161,18 @@ enum LeaveStatus {
 
 enum PurchaseOrderStatus {
   Draft
+  PendingApproval
   Sent
   PartiallyReceived
   Received
   Billed
+  Cancelled
+}
+
+enum ApprovalStatus {
+  Pending
+  Approved
+  Rejected
   Cancelled
 }
 
@@ -184,6 +194,25 @@ enum QuoteStatus {
 }
 
 // ─── Core Identity ───────────────────────────────────────────────────────────
+
+model ApprovalRequest {
+  id              String         @id @default(uuid())
+  tenantId        String
+  entityType      String         // e.g. "PurchaseOrder", "PayrollRun", "LeaveRequest"
+  entityId        String         // The ID of the record
+  requestedById   String         // User who initiated the request
+  approverId      String?        // User assigned to approve
+  status          ApprovalStatus @default(Pending)
+  comments        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  requestedBy     User           @relation("RequestedApprovals", fields: [requestedById], references: [id])
+  approver        User?          @relation("AssignedApprovals", fields: [approverId], references: [id])
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+}
 
 model Tenant {
   id                String                 @id @default(uuid())
@@ -230,6 +259,7 @@ model Tenant {
   purchaseOrders    PurchaseOrder[]
   opportunities     Opportunity[]
   quotes            Quote[]
+  approvalRequests  ApprovalRequest[]
 
   @@index([status])
 }
@@ -245,12 +275,16 @@ model User {
   mfaEnabled          Boolean      @default(false)
   mfaSecret           String?
   status              UserStatus   @default(Invited)
+  inviteTokenHash     String?
+  inviteTokenExpiresAt DateTime?
   lastLoginAt         DateTime?
   lastLoginIp         String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   tenantUsers         TenantUser[]
   auditLogs           AuditLog[]
+  requestedApprovals  ApprovalRequest[] @relation("RequestedApprovals")
+  assignedApprovals   ApprovalRequest[] @relation("AssignedApprovals")
 
   @@index([email])
   @@index([status])
@@ -535,6 +569,7 @@ model Contact {
   shippingAddress     String?
   receivableAccountId String?
   payableAccountId    String?
+  isBusinessCustomer  Boolean            @default(false)
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   tenant              Tenant             @relation(fields: [tenantId], references: [id])
@@ -583,6 +618,8 @@ model Invoice {
   zatcaPih       String?
   zatcaUuid      String?
   zatcaQrCode    String?
+  zatcaXml       String?             @db.Text
+  zatcaHash      String?
   zatcaStatus    ZatcaStatus         @default(NotSubmitted)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
@@ -725,6 +762,10 @@ model EmployeeProfile {
   contractSalary Decimal   @default(0) @db.Decimal(18, 2)
   qiwaContractId String?
   hajjLeaveUsed  Boolean   @default(false)
+  
+  // Bank details for WPS
+  bankName       String?
+  iban           String?
 
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -955,18 +996,20 @@ model PeriodExchangeRate {
 
 // Payroll
 model PayrollRun {
-  id              String        @id @default(uuid())
-  tenantId        String
-  periodName      String // e.g., "July 2026"
-  status          PayrollStatus @default(Draft)
-  totalGross      Decimal       @default(0) @db.Decimal(18, 2)
-  totalNet        Decimal       @default(0) @db.Decimal(18, 2)
-  totalDeductions Decimal       @default(0) @db.Decimal(18, 2)
-  journalEntryId  String?       @unique
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  tenant          Tenant        @relation(fields: [tenantId], references: [id])
-  payslips        Payslip[]
+  id                    String        @id @default(uuid())
+  tenantId              String
+  periodName            String // e.g., "July 2026"
+  status                PayrollStatus @default(Draft)
+  totalGross            Decimal       @default(0) @db.Decimal(18, 2)
+  totalNet              Decimal       @default(0) @db.Decimal(18, 2)
+  totalDeductions       Decimal       @default(0) @db.Decimal(18, 2)
+  totalGosi             Decimal       @default(0) @db.Decimal(18, 2)
+  totalOtherDeductions  Decimal       @default(0) @db.Decimal(18, 2)
+  journalEntryId        String?       @unique
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  tenant                Tenant        @relation(fields: [tenantId], references: [id])
+  payslips              Payslip[]
 
   @@unique([tenantId, periodName])
   @@index([tenantId])

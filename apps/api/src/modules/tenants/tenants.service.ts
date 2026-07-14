@@ -98,18 +98,17 @@ export class TenantsService {
         },
       });
 
+      // 8. Seed the standard SME Chart of Accounts template for the new tenant
+      try {
+        await this.chartOfAccountsService.seedSmeTemplate(tenant.id, tx);
+        this.logger.log(`Successfully seeded SME Chart of Accounts for tenant ${tenant.id}`);
+      } catch (error) {
+        this.logger.error(`Failed to seed SME Chart of Accounts for tenant ${tenant.id}`, error);
+        throw error; // Let the transaction fail if seeding fails
+      }
+
       return tenant;
     });
-
-    // Seed the standard SME Chart of Accounts template for the new tenant
-    try {
-      await this.chartOfAccountsService.seedSmeTemplate(tenant.id);
-      this.logger.log(`Successfully seeded SME Chart of Accounts for tenant ${tenant.id}`);
-    } catch (error) {
-      this.logger.error(`Failed to seed SME Chart of Accounts for tenant ${tenant.id}`, error);
-      // We don't throw here to avoid failing tenant creation if seeding fails
-    }
-
     return tenant;
   }
 

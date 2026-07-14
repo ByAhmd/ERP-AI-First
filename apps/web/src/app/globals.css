@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Kufi+Arabic:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* Core Colors */
@@ -25,7 +25,7 @@
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 
   /* Typography */
-  --font-family: 'Outfit', sans-serif;
+  --font-family: 'Outfit', 'Noto Kufi Arabic', sans-serif;
   
   /* Layout */
   --radius-sm: 4px;
@@ -471,7 +471,89 @@ a:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Tables */
+.form-group {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+.form-row .form-group {
+  flex: 1;
+}
+
+/* Modals */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-content {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btn-close:hover {
+  color: var(--text-primary);
+}
+.modal-body {
+  padding: 1.5rem;
+  flex: 1;
+}
+.modal-actions {
+  padding: 1.5rem;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Data Tables */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -494,3 +576,143 @@ a:hover {
 .data-table tr:hover td {
   background-color: rgba(255, 255, 255, 0.02);
 }
+
+/* ─── RTL (Arabic) Support ──────────────────────────────────────────────────── */
+
+[dir="rtl"] body {
+  font-family: 'Noto Kufi Arabic', 'Outfit', sans-serif;
+}
+
+/* Layout: flip sidebar to right */
+[dir="rtl"] .layout-container {
+  flex-direction: row-reverse;
+}
+
+/* Sidebar: flip border side */
+[dir="rtl"] .sidebar {
+  border-right: none;
+  border-left: 1px solid var(--glass-border);
+}
+
+/* Nav active: flip indicator border side */
+[dir="rtl"] .nav-item.active {
+  border-left: none;
+  border-right: 2px solid var(--accent-primary);
+}
+
+/* Nav section label: reset letter-spacing for Arabic */
+[dir="rtl"] .nav-section-label {
+  letter-spacing: 0;
+}
+
+/* Tables: flip alignment */
+[dir="rtl"] .data-table {
+  text-align: right;
+}
+
+[dir="rtl"] .data-table th,
+[dir="rtl"] .data-table td {
+  text-align: right;
+}
+
+/* Modal actions: reverse button order visually */
+[dir="rtl"] .modal-actions {
+  flex-direction: row-reverse;
+}
+
+/* Heading gradients: work both ways */
+[dir="rtl"] .heading-1 {
+  letter-spacing: 0;
+}
+
+/* Form rows: maintain gap in RTL */
+[dir="rtl"] .form-row {
+  flex-direction: row-reverse;
+}
+
+/* Sidebar company switcher: flip text alignment */
+[dir="rtl"] .sidebar-footer button,
+[dir="rtl"] .sidebar-footer a {
+  text-align: right;
+}
+
+/* Sidebar header brand: center stays centered */
+[dir="rtl"] .sidebar-title {
+  text-align: center;
+}
+
+/* User profile in sidebar: natural RTL flow */
+[dir="rtl"] .user-profile {
+  flex-direction: row-reverse;
+}
+
+/* Nav items: natural RTL gap */
+[dir="rtl"] .nav-item {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+/* Top header brand area */
+[dir="rtl"] .header-brand {
+  flex-direction: row-reverse;
+}
+
+/* Company switcher button positioning */
+[dir="rtl"] .showCompanySwitcher {
+  left: 0;
+  right: auto;
+}
+
+/* Scrollbar: keep on right in RTL browsers */
+[dir="rtl"] {
+  scroll-behavior: smooth;
+}
+
+/* Language toggle button */
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-family: 'Outfit', 'Noto Kufi Arabic', sans-serif;
+}
+.lang-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Prevent text-overflow on Arabic text */
+[dir="rtl"] .user-name,
+[dir="rtl"] .user-role {
+  text-align: right;
+}
+
+/* Fix flex gap display for RTL */
+[dir="rtl"] .flex {
+  direction: rtl;
+}
+
+/* Badge RTL */
+[dir="rtl"] .tenant-badge {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+/* Fix justify content for RTL nav approvals count */
+[dir="rtl"] .nav-item > div:first-child {
+  flex-direction: row-reverse;
+}
+
+/* mb-2/mb-4/mb-8 works fine in RTL - margin is not directional */

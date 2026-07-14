@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { Decimal } from 'decimal.js';
+import Decimal from 'decimal.js';
 import { UploadStatementDto } from './dto/bank-reconciliation.dto';
 
 @Injectable()
@@ -11,7 +11,9 @@ export class BankReconciliationService {
     return this.prisma.reconciliation.findMany({
       where: { tenantId },
       include: {
-        bankStatement: true,
+        bankStatement: {
+          include: { account: true }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -22,7 +24,10 @@ export class BankReconciliationService {
       where: { id, tenantId },
       include: {
         bankStatement: {
-          include: { transactions: true },
+          include: { 
+            transactions: true,
+            account: true
+          },
         },
         journalLines: true,
       },
@@ -31,39 +36,45 @@ export class BankReconciliationService {
     return recon;
   }
 
+  async getUnreconciledLines(tenantId: string, accountId: string) {
+    return this.prisma.journalEntryLine.findMany({
+      where: {
+        tenantId,
+        accountId,
+        reconciliationId: null,
+      },
+    });
+  }
+
   async uploadStatement(tenantId: string, dto: UploadStatementDto) {
-    // Validate account belongs to tenant and is an asset/liability
     const account = await this.prisma.chartOfAccount.findUnique({
       where: { id: dto.accountId, tenantId },
     });
     if (!account) throw new NotFoundException('Account not found');
 
     return this.prisma.$transaction(async (tx: any) => {
-      // 1. Create a BankStatement
       const statement = await tx.bankStatement.create({
         data: {
           tenantId,
           accountId: dto.accountId,
           statementDate: new Date(dto.statementDate),
-          openingBalance: new Decimal(dto.openingBalance),
-          closingBalance: new Decimal(dto.closingBalance),
+          openingBalance: new Decimal(dto.openingBalance).toString(),
+          closingBalance: new Decimal(dto.closingBalance).toString(),
         },
       });
 
-      // 2. Create BankStatementTransaction records
       if (dto.transactions && dto.transactions.length > 0) {
         await tx.bankStatementTransaction.createMany({
           data: dto.transactions.map((t: any) => ({
             bankStatementId: statement.id,
             date: new Date(t.date),
             description: t.description,
-            amount: new Decimal(t.amount),
+            amount: new Decimal(t.amount).toString(),
             reference: t.reference,
           })),
         });
       }
 
-      // 3. Create a Reconciliation record in 'Draft'
       const reconciliation = await tx.reconciliation.create({
         data: {
           tenantId,
@@ -82,71 +93,6 @@ export class BankReconciliationService {
   }
 
   async autoMatch(tenantId: string, reconciliationId: string) {
-    // Auto-match logic:
-    // Finds exact matches between un-reconciled JournalEntryLines for the given account
-    // and BankStatementTransactions based on Date and Amount.
-    const reconciliation = await this.prisma.reconciliation.findUnique({
-      where: { id: reconciliationId, tenantId },
-      include: {
-        bankStatement: {
-          include: { transactions: true },
-        },
-        journalLines: true, // Already matched lines
-      },
-    });
-
-    if (!reconciliation) throw new NotFoundException('Reconciliation not found');
-    if (reconciliation.status === 'Reconciled') throw new BadRequestException('Already reconciled');
-
-    // Find all unreconciled journal lines for this account (where reconciliationId is null)
-    // For a bank account (Asset), debit increases balance, credit decreases balance.
-    // For statement amounts, positive = deposit (debit), negative = withdrawal (credit)
-    const unreconciledLines = await this.prisma.journalEntryLine.findMany({
-      where: {
-        tenantId,
-        accountId: reconciliation.accountId,
-        reconciliationId: null,
-      },
-    });
-
-    let matchedCount = 0;
-
-    await this.prisma.$transaction(async (tx: any) => {
-      for (const stxn of reconciliation.bankStatement.transactions) {
-        const stmtAmount = new Decimal(stxn.amount);
-        
-        // Find a matching journal line
-        const match = unreconciledLines.find((jl: any) => {
-          if (jl.reconciliationId) return false; // Already matched in this loop
-          
-          const jlAmount = jl.debit.minus(jl.credit); // net effect
-          // Tolerance could be added here. Currently exact match.
-          // Also date check (exact date or within a few days)
-          const isAmountMatch = stmtAmount.equals(jlAmount);
-          
-          const daysDiff = Math.abs((stxn.date.getTime() - jl.createdAt.getTime()) / (1000 * 3600 * 24));
-          const isDateMatch = daysDiff <= 3; // Within 3 days
-
-          return isAmountMatch && isDateMatch;
-        });
-
-        if (match) {
-          // Mark matched
-          match.reconciliationId = reconciliation.id;
-          matchedCount++;
-          
-          await tx.journalEntryLine.update({
-            where: { id: match.id },
-            data: { reconciliationId: reconciliation.id },
-          });
-        }
-      }
-    });
-
-    return { matchedCount };
-  }
-
-  async completeReconciliation(tenantId: string, reconciliationId: string) {
     const reconciliation = await this.prisma.reconciliation.findUnique({
       where: { id: reconciliationId, tenantId },
       include: {
@@ -158,20 +104,138 @@ export class BankReconciliationService {
     });
 
     if (!reconciliation) throw new NotFoundException('Reconciliation not found');
-    
-    // In a real system, we'd ensure Closing Balance matches (Opening Balance + net transactions),
-    // and that all statement transactions have a corresponding matched journal line.
-    
-    // For V1 momentum, we just seal the reconciliation.
-    const updated = await this.prisma.reconciliation.update({
+    if (reconciliation.status === 'Reconciled') throw new BadRequestException('Already reconciled');
+
+    const unreconciledLines = await this.prisma.journalEntryLine.findMany({
+      where: {
+        tenantId,
+        accountId: reconciliation.accountId,
+        reconciliationId: null,
+      },
+    });
+
+    let matchedCount = 0;
+    const matchedLineIds = new Set<string>();
+
+    await this.prisma.$transaction(async (tx: any) => {
+      for (const stxn of reconciliation.bankStatement.transactions) {
+        const stmtAmount = new Decimal(stxn.amount.toString());
+
+        const match = unreconciledLines.find((jl: any) => {
+          if (matchedLineIds.has(jl.id)) return false;
+
+          const jlAmount = new Decimal(jl.debit.toString()).minus(new Decimal(jl.credit.toString()));
+          const isAmountMatch = stmtAmount.equals(jlAmount);
+
+          const daysDiff = Math.abs((stxn.date.getTime() - jl.createdAt.getTime()) / (1000 * 3600 * 24));
+          const isDateMatch = daysDiff <= 3; 
+
+          return isAmountMatch && isDateMatch;
+        });
+
+        if (match) {
+          matchedLineIds.add(match.id);
+          matchedCount++;
+
+          await tx.journalEntryLine.update({
+            where: { id: match.id },
+            data: { reconciliationId: reconciliation.id },
+          });
+        }
+      }
+    });
+
+    return { matchedCount };
+  }
+
+  async manualMatch(tenantId: string, reconciliationId: string, journalLineIds: string[]) {
+    const reconciliation = await this.prisma.reconciliation.findUnique({
+      where: { id: reconciliationId, tenantId },
+    });
+
+    if (!reconciliation) throw new NotFoundException('Reconciliation not found');
+    if (reconciliation.status === 'Reconciled') throw new BadRequestException('Already reconciled');
+
+    const updated = await this.prisma.journalEntryLine.updateMany({
+      where: {
+        tenantId,
+        id: { in: journalLineIds },
+        accountId: reconciliation.accountId,
+        reconciliationId: null, // Only match if currently unreconciled
+      },
+      data: {
+        reconciliationId,
+      },
+    });
+
+    return { matchedCount: updated.count };
+  }
+
+  async manualUnmatch(tenantId: string, reconciliationId: string, journalLineIds: string[]) {
+    const reconciliation = await this.prisma.reconciliation.findUnique({
+      where: { id: reconciliationId, tenantId },
+    });
+
+    if (!reconciliation) throw new NotFoundException('Reconciliation not found');
+    if (reconciliation.status === 'Reconciled') throw new BadRequestException('Already reconciled');
+
+    const updated = await this.prisma.journalEntryLine.updateMany({
+      where: {
+        tenantId,
+        id: { in: journalLineIds },
+        accountId: reconciliation.accountId,
+        reconciliationId, // Only unmatch if currently matched to this recon
+      },
+      data: {
+        reconciliationId: null,
+      },
+    });
+
+    return { unmatchedCount: updated.count };
+  }
+
+  async completeReconciliation(tenantId: string, reconciliationId: string, userId: string) {
+    const reconciliation = await this.prisma.reconciliation.findUnique({
+      where: { id: reconciliationId, tenantId },
+      include: {
+        bankStatement: {
+          include: { transactions: true },
+        },
+        journalLines: true,
+      },
+    });
+
+    if (!reconciliation) throw new NotFoundException('Reconciliation not found');
+    if (reconciliation.status === 'Reconciled') {
+      throw new BadRequestException('This reconciliation is already complete.');
+    }
+
+    const openingBalance = new Decimal(reconciliation.bankStatement.openingBalance.toString());
+    const closingBalance = new Decimal(reconciliation.bankStatement.closingBalance.toString());
+
+    const matchedLineAmounts = reconciliation.journalLines.reduce((sum: Decimal, jl: any) => {
+      const net = new Decimal(jl.debit.toString()).minus(new Decimal(jl.credit.toString()));
+      return sum.plus(net);
+    }, new Decimal(0));
+
+    const calculatedClosing = openingBalance.plus(matchedLineAmounts);
+
+    if (!calculatedClosing.equals(closingBalance)) {
+      throw new BadRequestException(
+        `Reconciliation balance mismatch. ` +
+        `Expected closing balance: ${closingBalance.toString()}, ` +
+        `Calculated from matched entries: ${calculatedClosing.toString()}. ` +
+        `Please match all transactions before completing.`
+      );
+    }
+
+    return this.prisma.reconciliation.update({
       where: { id: reconciliationId },
       data: {
         status: 'Reconciled',
         reconciledAt: new Date(),
-        // reconciledById would come from req.user
+        reconciledById: userId,
       },
     });
-
-    return updated;
   }
 }

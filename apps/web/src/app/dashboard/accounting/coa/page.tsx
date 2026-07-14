@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../../lib/api-client";
 import { useRouter } from "next/navigation";
+import { useLanguage } from '../../../../components/LanguageProvider';
 
 interface Account {
   id: string;
@@ -16,6 +17,7 @@ interface Account {
 export default function ChartOfAccountsPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const { data: accounts, isLoading } = useQuery({
     queryKey: ['coa'],
@@ -39,8 +41,8 @@ export default function ChartOfAccountsPage() {
       <div className="page-content max-w-6xl w-full mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="heading-1 mb-2">Chart of Accounts</h1>
-            <p className="text-secondary">Manage your financial accounts and standard classifications.</p>
+            <h1 className="heading-1 mb-2">{t('coa.title')}</h1>
+            <p className="text-secondary">{t('coa.subtitle')}</p>
           </div>
           <div className="flex gap-4">
             <button
@@ -48,7 +50,7 @@ export default function ChartOfAccountsPage() {
               disabled={isSeeding}
               className="btn-secondary flex items-center gap-2"
             >
-              {isSeeding ? "Seeding..." : "Seed Standard SME Template"}
+              {isSeeding ? t('common.loading') : "Seed Standard SME Template"}
             </button>
             
             <button 
@@ -62,16 +64,16 @@ export default function ChartOfAccountsPage() {
 
         <div className="glass-panel overflow-hidden">
           {isLoading ? (
-            <div className="p-8 text-center text-secondary">Loading accounts...</div>
+            <div className="p-8 text-center text-secondary">{t('coa.loading')}</div>
           ) : accounts && accounts.length > 0 ? (
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Status</th>
+                  <th>{t('coa.code')}</th>
+                  <th>{t('coa.name')}</th>
+                  <th>{t('coa.type')}</th>
+                  <th>{t('common.description')}</th>
+                  <th>{t('common.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -96,9 +98,9 @@ export default function ChartOfAccountsPage() {
             </table>
           ) : (
             <div className="p-12 text-center">
-              <h3 className="heading-2">No accounts found</h3>
+              <h3 className="heading-2">{t('coa.noAccounts')}</h3>
               <p className="text-secondary mb-6 max-w-md mx-auto">
-                Your chart of accounts is currently empty. Seed the standard SME template to get started quickly.
+                {t('coa.createFirst')}
               </p>
               <button
                 onClick={() => seedMutation.mutate()}

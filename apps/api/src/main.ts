@@ -40,8 +40,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
-  app.useGlobalInterceptors(new RequestLoggingInterceptor());
-  app.useGlobalInterceptors(new TenantInterceptor());
+  app.useGlobalInterceptors(new RequestLoggingInterceptor(), new TenantInterceptor());
 
   // ─── Swagger / OpenAPI ─────────────────────────────────────────────────────
   const swaggerConfig = new DocumentBuilder()

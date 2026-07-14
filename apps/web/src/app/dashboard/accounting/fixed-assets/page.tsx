@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../../lib/api-client";
 import toast from "react-hot-toast";
+import { useLanguage } from "../../../../components/LanguageProvider";
 
 export default function FixedAssetsPage() {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const [showForm, setShowForm] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
 
@@ -45,10 +47,10 @@ export default function FixedAssetsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fixed-assets"] });
       setShowForm(false);
-      toast.success("Fixed Asset registered successfully");
+      toast.success(t('assets.form.title') + " — OK");
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to register asset");
+      toast.error(err.message || t('common.error'));
     },
   });
 
@@ -60,7 +62,7 @@ export default function FixedAssetsPage() {
       toast.success(`Successfully posted ${data.postedCount} depreciation journals.`);
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to run depreciation");
+      toast.error(err.message || t('common.error'));
     },
   });
 
@@ -85,22 +87,22 @@ export default function FixedAssetsPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">Fixed Assets</h1>
-          <p className="text-secondary">Register assets and manage automated depreciation</p>
+          <h1 className="heading-1 mb-2">{t('assets.title')}</h1>
+          <p className="text-secondary">{t('assets.subtitle')}</p>
         </div>
         <div className="flex gap-4">
           <button onClick={handleRunDepreciation} disabled={runDepreciationMutation.isPending} className="btn-secondary" style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}>
-            {runDepreciationMutation.isPending ? "Running..." : "Run Monthly Depreciation"}
+            {runDepreciationMutation.isPending ? t('common.saving') : t('assets.depreciate')}
           </button>
           <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-            {showForm ? "Cancel" : "+ Register Asset"}
+            {showForm ? t('common.cancel') : t('assets.newAsset')}
           </button>
         </div>
       </div>
 
       {showForm && (
         <div className="glass-panel p-6 mb-8 animate-fade-in">
-          <h2 className="heading-2 mb-6">Register Fixed Asset</h2>
+          <h2 className="heading-2 mb-6">{t('assets.form.title')}</h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
@@ -108,32 +110,32 @@ export default function FixedAssetsPage() {
                 <input required type="text" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} className="form-input" placeholder="e.g. FA-001" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Name *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.name')} *</label>
                 <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="form-input" placeholder="e.g. Delivery Van" />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Purchase Date *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.purchaseDate')} *</label>
                 <input required type="date" value={formData.purchaseDate} onChange={e => setFormData({...formData, purchaseDate: e.target.value})} className="form-input" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Purchase Price (SAR) *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.purchaseCost')} *</label>
                 <input required type="number" step="0.01" value={formData.purchasePrice} onChange={e => setFormData({...formData, purchasePrice: e.target.value})} className="form-input" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Salvage Value (SAR) *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.residualValue')} *</label>
                 <input required type="number" step="0.01" value={formData.salvageValue} onChange={e => setFormData({...formData, salvageValue: e.target.value})} className="form-input" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Useful Life (Months) *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.usefulLife')} *</label>
                 <input required type="number" value={formData.usefulLifeMonths} onChange={e => setFormData({...formData, usefulLifeMonths: e.target.value})} className="form-input" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Asset GL Account *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.assetAccount')} *</label>
                 <select required value={formData.assetAccountId} onChange={e => setFormData({...formData, assetAccountId: e.target.value})} className="form-input" style={{ backgroundColor: 'rgba(15,23,42,0.9)' }}>
-                  <option value="">Select Account...</option>
+                  <option value="">{t('common.select')}</option>
                   {(accounts ?? []).filter((a: any) => a.type === 'Asset' && (!a.children || a.children.length === 0)).map((a: any) => (
                     <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
                   ))}
@@ -141,9 +143,9 @@ export default function FixedAssetsPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Accumulated Depreciation GL *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.depAccount')} *</label>
                 <select required value={formData.depreciationAccountId} onChange={e => setFormData({...formData, depreciationAccountId: e.target.value})} className="form-input" style={{ backgroundColor: 'rgba(15,23,42,0.9)' }}>
-                  <option value="">Select Account...</option>
+                  <option value="">{t('common.select')}</option>
                   {(accounts ?? []).filter((a: any) => a.type === 'Asset' && (!a.children || a.children.length === 0)).map((a: any) => (
                     <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
                   ))}
@@ -151,9 +153,9 @@ export default function FixedAssetsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Depreciation Expense GL *</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('assets.form.expAccount')} *</label>
                 <select required value={formData.expenseAccountId} onChange={e => setFormData({...formData, expenseAccountId: e.target.value})} className="form-input" style={{ backgroundColor: 'rgba(15,23,42,0.9)' }}>
-                  <option value="">Select Account...</option>
+                  <option value="">{t('common.select')}</option>
                   {(accounts ?? []).filter((a: any) => a.type === 'Expense' && (!a.children || a.children.length === 0)).map((a: any) => (
                     <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
                   ))}
@@ -161,9 +163,9 @@ export default function FixedAssetsPage() {
               </div>
             </div>
             <div className="flex justify-end gap-4">
-              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">{t('common.cancel')}</button>
               <button type="submit" disabled={createMutation.isPending} className="btn-primary">
-                {createMutation.isPending ? "Saving..." : "Register Asset"}
+                {createMutation.isPending ? t('common.saving') : t('common.create')}
               </button>
             </div>
           </form>
@@ -173,17 +175,17 @@ export default function FixedAssetsPage() {
       {selectedAsset && schedules && (
         <div className="glass-panel p-6 mb-8 animate-fade-in border-blue-500/30">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="heading-2 mb-0">Depreciation Schedule: {schedules.name}</h2>
-            <button onClick={() => setSelectedAsset(null)} className="text-secondary hover:text-white">✕ Close</button>
+            <h2 className="heading-2 mb-0">{t('assets.depreciationMethod')}: {schedules.name}</h2>
+            <button onClick={() => setSelectedAsset(null)} className="text-secondary hover:text-white">✕ {t('common.close')}</button>
           </div>
           <div className="overflow-hidden rounded border border-[rgba(255,255,255,0.1)]">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[rgba(255,255,255,0.02)]">
-                  <th className="p-3 font-medium text-secondary border-b border-[rgba(255,255,255,0.1)]">Date</th>
+                  <th className="p-3 font-medium text-secondary border-b border-[rgba(255,255,255,0.1)]">{t('ledger.date')}</th>
                   <th className="p-3 font-medium text-secondary border-b border-[rgba(255,255,255,0.1)] text-right">Expense Amount</th>
                   <th className="p-3 font-medium text-secondary border-b border-[rgba(255,255,255,0.1)] text-right">Accumulated</th>
-                  <th className="p-3 font-medium text-secondary border-b border-[rgba(255,255,255,0.1)] text-center">Status</th>
+                  <th className="p-3 font-medium text-secondary border-b border-[rgba(255,255,255,0.1)] text-center">{t('common.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -194,7 +196,7 @@ export default function FixedAssetsPage() {
                     <td className="p-3 text-right font-mono">SAR {parseFloat(s.accumulated).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     <td className="p-3 text-center">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${s.posted ? 'bg-green-900/30 text-green-400' : 'bg-gray-800 text-gray-400'}`}>
-                        {s.posted ? "POSTED" : "PENDING"}
+                        {s.posted ? t('status.posted') : t('status.pending')}
                       </span>
                     </td>
                   </tr>
@@ -207,19 +209,19 @@ export default function FixedAssetsPage() {
 
       <div className="glass-panel overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-secondary">Loading assets...</div>
+          <div className="p-12 text-center text-secondary">{t('assets.loading')}</div>
         ) : !assets || assets.length === 0 ? (
-          <div className="p-12 text-center text-secondary">No fixed assets registered.</div>
+          <div className="p-12 text-center text-secondary">{t('assets.noAssets')}</div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
                 <th>Code</th>
-                <th>Name</th>
-                <th>Purchase Date</th>
-                <th>Purchase Price</th>
-                <th>Method</th>
-                <th>Actions</th>
+                <th>{t('assets.assetName')}</th>
+                <th>{t('assets.purchaseDate')}</th>
+                <th>{t('assets.purchaseValue')}</th>
+                <th>{t('assets.depreciationMethod')}</th>
+                <th>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -239,7 +241,7 @@ export default function FixedAssetsPage() {
                       onClick={() => setSelectedAsset(asset.id)}
                       className="text-blue-400 hover:text-blue-300 text-sm font-medium"
                     >
-                      View Schedule
+                      {t('common.view')}
                     </button>
                   </td>
                 </tr>

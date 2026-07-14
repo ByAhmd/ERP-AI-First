@@ -1,12 +1,21 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { OnEvent } from '@nestjs/event-emitter';
 import { Decimal } from 'decimal.js';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createPO(tenantId: string, data: any) {
+  async getPOs(tenantId: string) {
+    return this.prisma.purchaseOrder.findMany({
+      where: { tenantId },
+      include: { contact: true, lines: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async createPO(tenantId: string, data: any, userId: string) {
     const { contactId, issueDate, deliveryDate, notes, lines } = data;
     
     // Auto-generate PO number
@@ -29,19 +38,38 @@ export class PurchaseOrdersService {
       };
     });
 
-    return this.prisma.purchaseOrder.create({
-      data: {
-        tenantId,
-        poNumber,
-        contactId,
-        issueDate: new Date(issueDate),
-        deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
-        totalAmount,
-        notes,
-        status: 'Draft',
-        lines: { create: poLines }
-      },
-      include: { lines: true }
+    const requiresApproval = totalAmount.greaterThan(10000);
+    const initialStatus = requiresApproval ? 'PendingApproval' : 'Draft';
+
+    return this.prisma.$transaction(async (tx) => {
+      const po = await tx.purchaseOrder.create({
+        data: {
+          tenantId,
+          poNumber,
+          contactId,
+          issueDate: new Date(issueDate),
+          deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
+          totalAmount,
+          notes,
+          status: initialStatus,
+          lines: { create: poLines }
+        },
+        include: { lines: true }
+      });
+
+      if (requiresApproval) {
+        await tx.approvalRequest.create({
+          data: {
+            tenantId,
+            entityType: 'PurchaseOrder',
+            entityId: po.id,
+            requestedById: userId,
+            status: 'Pending',
+          }
+        });
+      }
+
+      return po;
     });
   }
 
@@ -79,6 +107,20 @@ export class PurchaseOrdersService {
         where: { id: po.id },
         data: { status: 'Received' }
       });
+    });
+  }
+
+  async approvePurchaseOrder(tenantId: string, poId: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id: poId, tenantId }
+    });
+    if (!po) throw new NotFoundException('Purchase Order not found');
+    if (po.status !== 'Draft' && po.status !== 'PendingApproval') {
+       throw new BadRequestException('Only Draft or PendingApproval POs can be approved manually.');
+    }
+    return this.prisma.purchaseOrder.update({
+      where: { id: poId },
+      data: { status: 'Sent' }
     });
   }
 
@@ -129,5 +171,25 @@ export class PurchaseOrdersService {
 
       return invoice;
     });
+  }
+
+  @OnEvent('approval.approved')
+  async handleApprovalApproved(payload: { tenantId: string; entityType: string; entityId: string }) {
+    if (payload.entityType === 'PurchaseOrder') {
+      await this.prisma.purchaseOrder.update({
+        where: { id: payload.entityId },
+        data: { status: 'Sent' },
+      });
+    }
+  }
+
+  @OnEvent('approval.rejected')
+  async handleApprovalRejected(payload: { tenantId: string; entityType: string; entityId: string }) {
+    if (payload.entityType === 'PurchaseOrder') {
+      await this.prisma.purchaseOrder.update({
+        where: { id: payload.entityId },
+        data: { status: 'Draft' }, // Revert back to Draft
+      });
+    }
   }
 }

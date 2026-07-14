@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
 import toast from "react-hot-toast";
+import { useLanguage } from '../../../components/LanguageProvider';
 
 export default function InventoryPage() {
+  const { t, locale } = useLanguage();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"items" | "warehouses" | "transactions">("items");
   const [showItemForm, setShowItemForm] = useState(false);
@@ -45,10 +47,10 @@ export default function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ["inventory-items"] });
       setShowItemForm(false);
       setItemForm({ code: "", name: "", type: "Product", description: "" });
-      toast.success("Item created successfully");
+      toast.success(t('contacts.form.success'));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to create item");
+      toast.error(err.message || t('contacts.form.error'));
     },
   });
 
@@ -79,53 +81,56 @@ export default function InventoryPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">Inventory Management</h1>
-          <p className="text-secondary">Manage products, services, warehouses, and stock balances</p>
+          <h1 className="heading-1 mb-2">{t('inventory.title')}</h1>
+          <p className="text-secondary">{t('inventory.subtitle')}</p>
         </div>
         <div>
           {activeTab === "items" && (
             <button onClick={() => setShowItemForm(!showItemForm)} className="btn-primary">
-              {showItemForm ? "Cancel" : "+ New Item"}
+              {showItemForm ? t('common.cancel') : t('inventory.newItem')}
             </button>
           )}
           {activeTab === "warehouses" && (
             <button onClick={() => setShowWarehouseForm(!showWarehouseForm)} className="btn-primary">
-              {showWarehouseForm ? "Cancel" : "+ New Warehouse"}
+              {showWarehouseForm ? t('common.cancel') : t('inventory.newWarehouse')}
             </button>
           )}
         </div>
       </div>
 
       <div className="flex gap-6 mb-8 border-b border-[rgba(255,255,255,0.1)]">
-        <button
-          onClick={() => setActiveTab("items")}
-          className={`pb-3 font-medium transition-colors ${
-            activeTab === "items"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-secondary hover:text-white"
-          }`}
+        <button 
+          onClick={() => setActiveTab('items')}
+          style={{ 
+            background: 'none', border: 'none', padding: '0.75rem 1rem', cursor: 'pointer',
+            color: activeTab === 'items' ? '#6366f1' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'items' ? '2px solid #6366f1' : '2px solid transparent',
+            fontWeight: activeTab === 'items' ? 600 : 400
+          }}
         >
-          Items & Stock
+          {t('inventory.items')}
         </button>
-        <button
-          onClick={() => setActiveTab("warehouses")}
-          className={`pb-3 font-medium transition-colors ${
-            activeTab === "warehouses"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-secondary hover:text-white"
-          }`}
+        <button 
+          onClick={() => setActiveTab('warehouses')}
+          style={{ 
+            background: 'none', border: 'none', padding: '0.75rem 1rem', cursor: 'pointer',
+            color: activeTab === 'warehouses' ? '#6366f1' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'warehouses' ? '2px solid #6366f1' : '2px solid transparent',
+            fontWeight: activeTab === 'warehouses' ? 600 : 400
+          }}
         >
-          Warehouses
+          {t('inventory.warehouses')}
         </button>
-        <button
-          onClick={() => setActiveTab("transactions")}
-          className={`pb-3 font-medium transition-colors ${
-            activeTab === "transactions"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-secondary hover:text-white"
-          }`}
+        <button 
+          onClick={() => setActiveTab('transactions')}
+          style={{ 
+            background: 'none', border: 'none', padding: '0.75rem 1rem', cursor: 'pointer',
+            color: activeTab === 'transactions' ? '#6366f1' : 'var(--text-secondary)',
+            borderBottom: activeTab === 'transactions' ? '2px solid #6366f1' : '2px solid transparent',
+            fontWeight: activeTab === 'transactions' ? 600 : 400
+          }}
         >
-          Transactions
+          {t('inventory.movements')}
         </button>
       </div>
 
@@ -155,9 +160,9 @@ export default function InventoryPage() {
               </div>
             </div>
             <div className="flex justify-end gap-4">
-              <button type="button" onClick={() => setShowItemForm(false)} className="btn-secondary">Cancel</button>
+              <button type="button" onClick={() => setShowItemForm(false)} className="btn-secondary">{t('common.cancel')}</button>
               <button type="submit" disabled={createItemMutation.isPending} className="btn-primary">
-                {createItemMutation.isPending ? "Creating..." : "Create Item"}
+                {createItemMutation.isPending ? t('common.saving') : t('common.create')}
               </button>
             </div>
           </form>
@@ -183,9 +188,9 @@ export default function InventoryPage() {
               </div>
             </div>
             <div className="flex justify-end gap-4">
-              <button type="button" onClick={() => setShowWarehouseForm(false)} className="btn-secondary">Cancel</button>
+              <button type="button" onClick={() => setShowWarehouseForm(false)} className="btn-secondary">{t('common.cancel')}</button>
               <button type="submit" disabled={createWarehouseMutation.isPending} className="btn-primary">
-                {createWarehouseMutation.isPending ? "Creating..." : "Create Warehouse"}
+                {createWarehouseMutation.isPending ? t('common.saving') : t('common.create')}
               </button>
             </div>
           </form>
@@ -195,18 +200,18 @@ export default function InventoryPage() {
       {activeTab === "items" && (
         <div className="glass-panel overflow-hidden">
           {itemsLoading ? (
-            <div className="p-12 text-center text-secondary">Loading items...</div>
+            <div className="p-12 text-center text-secondary">{t('inventory.loading')}</div>
           ) : !items || items.length === 0 ? (
-            <div className="p-12 text-center text-secondary">No items found. Create a product or service.</div>
+            <div className="p-12 text-center text-secondary">{t('inventory.noItems')}</div>
           ) : (
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>WAC (Cost)</th>
-                  <th>Total Stock</th>
+                  <th>{t('inventory.sku')}</th>
+                  <th>{t('inventory.item')}</th>
+                  <th>{t('inventory.type')}</th>
+                  <th>{t('inventory.avgCost')}</th>
+                  <th>{t('inventory.onHand')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,7 +240,7 @@ export default function InventoryPage() {
       {activeTab === "warehouses" && (
         <div className="glass-panel overflow-hidden">
           {warehousesLoading ? (
-            <div className="p-12 text-center text-secondary">Loading warehouses...</div>
+            <div className="p-12 text-center text-secondary">{t('inventory.loading')}</div>
           ) : !warehouses || warehouses.length === 0 ? (
             <div className="p-12 text-center text-secondary">No warehouses found. Create one first.</div>
           ) : (
@@ -264,7 +269,7 @@ export default function InventoryPage() {
       {activeTab === "transactions" && (
         <div className="glass-panel overflow-hidden">
           {transactionsLoading ? (
-            <div className="p-12 text-center text-secondary">Loading transactions...</div>
+            <div className="p-12 text-center text-secondary">{t('inventory.loading')}</div>
           ) : !transactions || transactions.length === 0 ? (
             <div className="p-12 text-center text-secondary">No inventory transactions found.</div>
           ) : (
@@ -273,7 +278,7 @@ export default function InventoryPage() {
                 <tr>
                   <th>Date</th>
                   <th>Type</th>
-                  <th>Item</th>
+                  <th>{t('inventory.item')}</th>
                   <th>Warehouse</th>
                   <th>Quantity</th>
                   <th>Unit Cost</th>

@@ -64,19 +64,23 @@ export class JournalEntriesService {
       throw new BadRequestException(`Journal entry is out of balance. Debits: ${totalDebits.toString()}, Credits: ${totalCredits.toString()}`);
     }
 
-    // Use provided transaction client or fall back to PrismaClient
-    const client = tx || this.prisma;
+    // BUG-001 FIX: The entry number count MUST happen inside the transaction to be atomic.
+    // Using the provided tx client if available, otherwise falling back to prisma.
+    const executeCreate = async (client: any) => {
+      const year = new Date(dto.entryDate).getUTCFullYear();
+      // BUG-029 FIX: Use `lt: new Date(year+1, 0, 1)` to properly capture all entries on Dec 31
+      const count = await client.journalEntry.count({
+        where: {
+          tenantId,
+          entryDate: {
+            gte: new Date(`${year}-01-01T00:00:00.000Z`),
+            lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+          },
+        },
+      });
+      const entryNumber = `JE-${year}-${String(count + 1).padStart(4, '0')}`;
 
-    // 3. Auto-numbering (simplified for now, ideally atomic in DB)
-    const year = new Date(dto.entryDate).getUTCFullYear();
-    const count = await client.journalEntry.count({
-      where: { tenantId, entryDate: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }
-    });
-    const entryNumber = `JE-${year}-${String(count + 1).padStart(4, '0')}`;
-
-    // 4. Save via Transaction
-    const execute = async (prismaClient: any) => {
-      return prismaClient.journalEntry.create({
+      return client.journalEntry.create({
         data: {
           tenantId,
           entryNumber,
@@ -95,24 +99,26 @@ export class JournalEntriesService {
               foreignCredit: line.foreignCredit ? new Decimal(line.foreignCredit).toString() : null,
               exchangeRate: line.exchangeRate ? new Decimal(line.exchangeRate).toString() : null,
               contactId: line.contactId,
-            }))
-          }
+            })),
+          },
         },
-        include: { lines: true }
+        include: { lines: true },
       });
     };
 
     if (tx) {
-      return execute(tx);
+      // Already inside a transaction — run directly with the provided client
+      return executeCreate(tx);
     } else {
-      return this.prisma.$transaction(execute);
+      // Not in a transaction — wrap in one for atomicity
+      return this.prisma.$transaction(executeCreate);
     }
   }
 
   async createReversal(tenantId: string, originalEntryId: string, reversalDate: Date) {
     const original = await this.prisma.journalEntry.findUnique({
       where: { id: originalEntryId },
-      include: { lines: true }
+      include: { lines: true },
     });
 
     if (!original || original.tenantId !== tenantId) {
@@ -126,7 +132,7 @@ export class JournalEntriesService {
     await this.periodsService.findActivePeriodByDate(tenantId, new Date(reversalDate));
 
     // Prepare inverted lines
-    const reversalLines: CreateJournalEntryLineDto[] = original.lines.map(line => ({
+    const reversalLines: CreateJournalEntryLineDto[] = original.lines.map((line) => ({
       accountId: line.accountId,
       description: `Reversal of ${original.entryNumber}`,
       // Swap debits and credits
@@ -139,14 +145,21 @@ export class JournalEntriesService {
       contactId: line.contactId || undefined,
     }));
 
-    // Auto-numbering
-    const year = new Date(reversalDate).getUTCFullYear();
-    const count = await this.prisma.journalEntry.count({
-      where: { tenantId, entryDate: { gte: new Date(`${year}-01-01`), lte: new Date(`${year}-12-31`) } }
-    });
-    const entryNumber = `REV-${year}-${String(count + 1).padStart(4, '0')}`;
-
+    // BUG-002 FIX: Move the count INSIDE the $transaction to prevent race conditions
     return this.prisma.$transaction(async (tx) => {
+      const year = new Date(reversalDate).getUTCFullYear();
+      // BUG-029 FIX: Use proper year-end boundary
+      const count = await tx.journalEntry.count({
+        where: {
+          tenantId,
+          entryDate: {
+            gte: new Date(`${year}-01-01T00:00:00.000Z`),
+            lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
+          },
+        },
+      });
+      const entryNumber = `REV-${year}-${String(count + 1).padStart(4, '0')}`;
+
       // 1. Create the reversing entry
       const reversal = await tx.journalEntry.create({
         data: {
@@ -156,7 +169,7 @@ export class JournalEntriesService {
           description: `Reversal of ${original.entryNumber}`,
           status: 'Posted',
           lines: {
-            create: reversalLines.map(line => ({
+            create: reversalLines.map((line) => ({
               tenantId,
               accountId: line.accountId,
               description: line.description,
@@ -167,15 +180,15 @@ export class JournalEntriesService {
               foreignCredit: line.foreignCredit,
               exchangeRate: line.exchangeRate,
               contactId: line.contactId,
-            }))
-          }
-        }
+            })),
+          },
+        },
       });
 
       // 2. Link the original to the reversal
       await tx.journalEntry.update({
         where: { id: original.id },
-        data: { reversalId: reversal.id }
+        data: { reversalId: reversal.id },
       });
 
       return reversal;
@@ -186,7 +199,7 @@ export class JournalEntriesService {
     return this.prisma.journalEntry.findMany({
       where: { tenantId },
       include: { lines: { include: { account: true } } },
-      orderBy: { entryDate: 'desc' }
+      orderBy: { entryDate: 'desc' },
     });
   }
 }

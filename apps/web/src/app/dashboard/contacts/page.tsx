@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
+import { useLanguage } from '../../../components/LanguageProvider';
 
 interface Contact {
   id: string;
@@ -31,6 +32,7 @@ const typeColor: Record<string, { bg: string; color: string }> = {
 };
 
 export default function ContactsPage() {
+  const { t, locale } = useLanguage();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
@@ -63,6 +65,7 @@ export default function ContactsPage() {
     mutationFn: (data: any) => ApiClient.post("/business/contacts", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["employee-profiles"] });
       setShowForm(false);
       setFormData({ 
         name: "", 
@@ -80,7 +83,7 @@ export default function ContactsPage() {
       });
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to create contact");
+      alert(err.message || t('contacts.form.error'));
     },
   });
 
@@ -110,24 +113,24 @@ export default function ContactsPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">Contacts</h1>
-          <p className="text-secondary">Manage customers, suppliers, and employees</p>
+          <h1 className="heading-1 mb-2">{t('contacts.title')}</h1>
+          <p className="text-secondary">{t('contacts.subtitle')}</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? "Cancel" : "+ New Contact"}
+          {showForm ? t('common.cancel') : t('contacts.newContact')}
         </button>
       </div>
 
       {showForm && (
         <div className="glass-panel p-6 mb-8 animate-fade-in">
-          <h2 className="heading-2 mb-6">Create Contact</h2>
+          <h2 className="heading-2 mb-6">{t('contacts.form.title')}</h2>
           <form onSubmit={handleSubmit}>
             <div
               style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}
             >
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Name <span style={{ color: "var(--error)" }}>*</span>
+                  {t('contacts.form.name')} <span style={{ color: "var(--error)" }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -140,21 +143,21 @@ export default function ContactsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Type</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('contacts.form.type')}</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="form-input"
                   style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
                 >
-                  <option value="Customer">Customer</option>
-                  <option value="Supplier">Supplier</option>
-                  <option value="Employee">Employee</option>
+                  <option value="Customer">{t('contacts.type.customer')}</option>
+                  <option value="Supplier">{t('contacts.type.supplier')}</option>
+                  <option value="Employee">{t('contacts.type.employee')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Email</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('contacts.form.email')}</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -165,7 +168,7 @@ export default function ContactsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Phone</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('contacts.form.phone')}</label>
                 <input
                   type="text"
                   value={formData.phone}
@@ -176,7 +179,7 @@ export default function ContactsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Tax ID (VAT)</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t('contacts.form.vat')}</label>
                 <input
                   type="text"
                   value={formData.taxId}
@@ -188,7 +191,7 @@ export default function ContactsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Commercial Reg. No.
+                  {t('contacts.form.crn')}
                 </label>
                 <input
                   type="text"
@@ -201,7 +204,7 @@ export default function ContactsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Accounts Receivable Account (Optional)
+                  {t('contacts.form.ar')}
                 </label>
                 <select
                   value={formData.receivableAccountId}
@@ -210,7 +213,7 @@ export default function ContactsPage() {
                   style={{ backgroundColor: 'rgba(15,23,42,0.9)' }}
                   disabled={!accounts || accounts.filter((a: any) => a.type === 'Asset' && (!a.children || a.children.length === 0)).length === 0}
                 >
-                  <option value="">Select an account...</option>
+                  <option value="">{t('common.select')}</option>
                   {(accounts ?? []).filter((a: any) => a.type === 'Asset' && (!a.children || a.children.length === 0)).map(a => (
                     <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
                   ))}
@@ -222,7 +225,7 @@ export default function ContactsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Accounts Payable Account (Optional)
+                  {t('contacts.form.ap')}
                 </label>
                 <select
                   value={formData.payableAccountId}
@@ -231,7 +234,7 @@ export default function ContactsPage() {
                   style={{ backgroundColor: 'rgba(15,23,42,0.9)' }}
                   disabled={!accounts || accounts.filter((a: any) => a.type === 'Liability' && (!a.children || a.children.length === 0)).length === 0}
                 >
-                  <option value="">Select an account...</option>
+                  <option value="">{t('common.select')}</option>
                   {(accounts ?? []).filter((a: any) => a.type === 'Liability' && (!a.children || a.children.length === 0)).map(a => (
                     <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
                   ))}
@@ -245,7 +248,7 @@ export default function ContactsPage() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-secondary mb-1">
-                      Basic Salary
+                      {t('hr.salary')}
                     </label>
                     <input
                       type="number"
@@ -259,7 +262,7 @@ export default function ContactsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-secondary mb-1">
-                      Housing Allowance
+                      {t('payroll.housing')}
                     </label>
                     <input
                       type="number"
@@ -273,7 +276,7 @@ export default function ContactsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-secondary mb-1">
-                      Transport Allowance
+                      {t('payroll.transport')}
                     </label>
                     <input
                       type="number"
@@ -287,7 +290,7 @@ export default function ContactsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-secondary mb-1">
-                      GOSI Number
+                      {t('hr.gosi')}
                     </label>
                     <input
                       type="text"
@@ -303,10 +306,10 @@ export default function ContactsPage() {
 
             <div className="flex justify-end gap-4">
               <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
-                Cancel
+                {t('common.cancel')}
               </button>
               <button type="submit" disabled={createMutation.isPending} className="btn-primary">
-                {createMutation.isPending ? "Creating..." : "Create Contact"}
+                {createMutation.isPending ? t('common.saving') : t('common.create')}
               </button>
             </div>
           </form>
@@ -332,17 +335,17 @@ export default function ContactsPage() {
               transition: "all 0.2s",
             }}
           >
-            {type === "all" ? "All" : type + "s"}
+            {type === "all" ? t('common.all') : type === "Customer" ? t('contacts.type.customer') : type === "Supplier" ? t('contacts.type.supplier') : t('contacts.type.employee')}
           </button>
         ))}
       </div>
 
       <div className="glass-panel overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-secondary">Loading contacts...</div>
+          <div className="p-12 text-center text-secondary">{t('contacts.loading')}</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
-            <h3 className="heading-2 mb-2">No contacts found</h3>
+            <h3 className="heading-2 mb-2">{t('contacts.noContacts')}</h3>
             <p className="text-secondary" style={{ maxWidth: "28rem", margin: "0 auto" }}>
               Add your first customer or supplier to start issuing invoices.
             </p>
@@ -351,12 +354,12 @@ export default function ContactsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Tax ID</th>
-                <th>Added</th>
+                <th>{t('contacts.name')}</th>
+                <th>{t('contacts.type')}</th>
+                <th>{t('contacts.email')}</th>
+                <th>{t('contacts.phone')}</th>
+                <th>{t('contacts.vatNo')}</th>
+                <th>{t('common.date')}</th>
               </tr>
             </thead>
             <tbody>
@@ -376,7 +379,7 @@ export default function ContactsPage() {
                           color: tc.color,
                         }}
                       >
-                        {contact.type}
+                        {contact.type === 'Customer' ? t('contacts.type.customer') : contact.type === 'Supplier' ? t('contacts.type.supplier') : t('contacts.type.employee')}
                       </span>
                     </td>
                     <td className="text-secondary">{contact.email ?? "—"}</td>

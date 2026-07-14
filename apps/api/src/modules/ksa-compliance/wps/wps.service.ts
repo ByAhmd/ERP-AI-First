@@ -17,24 +17,33 @@ export class WpsService {
       throw new NotFoundException('Payroll run not found');
     }
 
+    // BUG-013 FIX: Fetch all employee profiles in one query (prevent N+1)
+    const profileIds = payrollRun.payslips.map(p => p.employeeProfileId);
+    const profiles = await this.prisma.employeeProfile.findMany({
+      where: { id: { in: profileIds } },
+      include: { contact: true }
+    });
+    
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+
     const lines = [];
     // Standard MHRSD unified format headers
     lines.push('Employee ID,Employee Name,Bank Name,IBAN,Basic Salary,Housing Allowance,Other Allowances,Deductions,Net Salary');
     
     for (const payslip of payrollRun.payslips) {
-      const employeeProfile = await this.prisma.employeeProfile.findUnique({
-        where: { id: payslip.employeeProfileId },
-        include: { contact: true }
-      });
+      const emp = profileMap.get(payslip.employeeProfileId);
+      if (!emp) continue;
 
-      const emp = employeeProfile;
-      const iqama = emp?.gosiNumber || '0000000000';
-      const name = emp?.contact?.name?.replace(/,/g, '') || 'Unknown';
-      const bank = 'Al Rajhi Bank';
-      const iban = 'SA0000000000000000000000';
+      const iqama = emp.gosiNumber || '0000000000';
+      // BUG-027 FIX: Prevent CSV injection via =+-@
+      const name = emp.contact?.name?.replace(/[,=+\-@]/g, '_') || 'Unknown';
       
-      const basic = Number(emp?.basicSalary || 0);
-      const housing = Number(emp?.housingAllowance || 0);
+      // BUG-012 FIX: Use database fields instead of hardcoded strings
+      const bank = emp.bankName || 'Unknown Bank';
+      const iban = emp.iban || 'SA0000000000000000000000';
+      
+      const basic = Number(emp.basicSalary || 0);
+      const housing = Number(emp.housingAllowance || 0);
       const gross = Number(payslip.grossSalary);
       const other = gross - basic - housing;
       

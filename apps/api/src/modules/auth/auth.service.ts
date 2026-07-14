@@ -10,8 +10,10 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -108,6 +110,51 @@ export class AuthService {
     });
 
     return this.generateTokensResponse(user);
+  }
+
+  async acceptInvite(dto: AcceptInviteDto): Promise<AuthResponseDto> {
+    const inviteTokenHash = createHash('sha256').update(dto.token).digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        inviteTokenHash,
+      },
+    });
+
+    if (!user || user.status !== 'Invited') {
+      throw new UnauthorizedException('Invalid or expired invitation token');
+    }
+
+    if (user.inviteTokenExpiresAt && user.inviteTokenExpiresAt < new Date()) {
+      throw new UnauthorizedException('Invitation token has expired');
+    }
+
+    const strength = this.passwordService.validateStrength(dto.password);
+    if (!strength.isValid) {
+      throw new BadRequestException(strength.message);
+    }
+
+    const passwordHash = await this.passwordService.hash(dto.password);
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordChangedAt: new Date(),
+        status: 'Active',
+        inviteTokenHash: null,
+        inviteTokenExpiresAt: null,
+      },
+    });
+
+    await this.auditLogsService.create({
+      actorUserId: user.id,
+      action: 'USER_ACCEPT_INVITE',
+      entityType: 'User',
+      entityId: user.id,
+    });
+
+    return this.generateTokensResponse(updatedUser);
   }
 
   async refreshTokens(userId: string, refreshToken: string): Promise<AuthResponseDto> {

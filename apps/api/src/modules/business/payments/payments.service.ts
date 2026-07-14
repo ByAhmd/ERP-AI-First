@@ -3,6 +3,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { SequencesService } from '../sequences/sequences.service';
 import { JournalEntriesService } from '../../accounting/journal-entries/journal-entries.service';
+import { OnEvent } from '@nestjs/event-emitter';
 import Decimal from 'decimal.js';
 
 @Injectable()
@@ -13,7 +14,7 @@ export class PaymentsService {
     private journalEntriesService: JournalEntriesService,
   ) {}
 
-  async create(tenantId: string, dto: CreatePaymentDto) {
+  async create(tenantId: string, dto: CreatePaymentDto, userId: string) {
     // Basic validation for allocations
     if (dto.allocations && dto.allocations.length > 0) {
       let allocatedTotal = new Decimal(0);
@@ -28,31 +29,50 @@ export class PaymentsService {
     const prefix = dto.type === 'Incoming' ? 'RCPT' : 'PYMT';
     const paymentNumber = await this.sequencesService.getNextSequence(tenantId, dto.type, prefix);
 
-    return this.prisma.payment.create({
-      data: {
-        tenantId,
-        paymentNumber,
-        contactId: dto.contactId,
-        type: dto.type,
-        status: 'Draft',
-        paymentDate: new Date(dto.paymentDate),
-        amount: dto.amount.toString(),
-        accountId: dto.accountId,
-        currencyId: dto.currencyId,
-        exchangeRate: dto.exchangeRate ? dto.exchangeRate.toString() : null,
-        reference: dto.reference,
-        notes: dto.notes,
-        whtAmount: dto.whtAmount ? dto.whtAmount.toString() : '0',
-        whtAccountId: dto.whtAccountId,
-        allocations: {
-          create: dto.allocations?.map(a => ({
-            tenantId,
-            invoiceId: a.invoiceId,
-            amount: a.amount.toString(),
-          })) || [],
+    const requiresApproval = new Decimal(dto.amount).greaterThan(10000);
+    const initialStatus = requiresApproval ? 'PendingApproval' : 'Draft';
+
+    return this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          tenantId,
+          paymentNumber,
+          contactId: dto.contactId,
+          type: dto.type,
+          status: initialStatus,
+          paymentDate: new Date(dto.paymentDate),
+          amount: dto.amount.toString(),
+          accountId: dto.accountId,
+          currencyId: dto.currencyId,
+          exchangeRate: dto.exchangeRate ? dto.exchangeRate.toString() : null,
+          reference: dto.reference,
+          notes: dto.notes,
+          whtAmount: dto.whtAmount ? dto.whtAmount.toString() : '0',
+          whtAccountId: dto.whtAccountId,
+          allocations: {
+            create: dto.allocations?.map(a => ({
+              tenantId,
+              invoiceId: a.invoiceId,
+              amount: a.amount.toString(),
+            })) || [],
+          },
         },
-      },
-      include: { allocations: true },
+        include: { allocations: true },
+      });
+
+      if (requiresApproval) {
+        await tx.approvalRequest.create({
+          data: {
+            tenantId,
+            entityType: 'Payment',
+            entityId: payment.id,
+            requestedById: userId,
+            status: 'Pending',
+          }
+        });
+      }
+
+      return payment;
     });
   }
 
@@ -73,11 +93,32 @@ export class PaymentsService {
     return payment;
   }
 
+  @OnEvent('approval.approved')
+  async handleApprovalApproved(payload: { tenantId: string; entityType: string; entityId: string }) {
+    if (payload.entityType === 'Payment') {
+      await this.approve(payload.tenantId, payload.entityId);
+    }
+  }
+
+  @OnEvent('approval.rejected')
+  async handleApprovalRejected(payload: { tenantId: string; entityType: string; entityId: string }) {
+    if (payload.entityType === 'Payment') {
+      await this.prisma.payment.update({
+        where: { id: payload.entityId },
+        data: { status: 'Draft' }, // Revert back to Draft
+      });
+    }
+  }
+
   async approve(tenantId: string, id: string) {
     const payment = await this.findOne(tenantId, id);
 
-    if (payment.status !== 'Draft') {
-      throw new BadRequestException('Only Draft payments can be approved.');
+    // BUG-008 FIX: Must allow 'PendingApproval' status here.
+    // When a payment > 10,000 SAR is created, it is set to 'PendingApproval'.
+    // The approval event fires handleApprovalApproved() which calls this approve() method.
+    // The old check `!== 'Draft'` would always throw because status was 'PendingApproval'.
+    if (payment.status !== 'Draft' && payment.status !== 'PendingApproval') {
+      throw new BadRequestException('Only Draft or PendingApproval payments can be approved.');
     }
 
     const contact = payment.contact;

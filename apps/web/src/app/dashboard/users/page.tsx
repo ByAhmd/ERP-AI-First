@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../lib/api-client";
 import toast from "react-hot-toast";
+import { useLanguage } from '../../../components/LanguageProvider';
 
 interface Role {
   id: string;
@@ -24,6 +25,7 @@ interface User {
 
 export default function UsersPage() {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteData, setInviteData] = useState({ email: "", fullName: "", roleId: "" });
 
@@ -40,13 +42,13 @@ export default function UsersPage() {
   const inviteMutation = useMutation({
     mutationFn: (data: any) => ApiClient.post("/users/invite", data),
     onSuccess: () => {
-      toast.success("User invited successfully!");
+      toast.success(t('users.form.success'));
       setShowInviteForm(false);
       setInviteData({ email: "", fullName: "", roleId: "" });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to invite user");
+      toast.error(err.message || t('users.form.error'));
     },
   });
 
@@ -63,28 +65,28 @@ export default function UsersPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">User Management</h1>
-          <p className="text-secondary">View access and roles for your team</p>
+          <h1 className="heading-1 mb-2">{t('users.title')}</h1>
+          <p className="text-secondary">{t('users.subtitle')}</p>
         </div>
         <button className="btn-primary" onClick={() => setShowInviteForm(!showInviteForm)}>
-          {showInviteForm ? "Cancel" : "+ Invite User"}
+          {showInviteForm ? t('common.cancel') : `+ ${t('users.invite')}`}
         </button>
       </div>
 
       {showInviteForm && (
         <div className="glass-panel p-6 mb-8 animate-fade-in">
-          <h2 className="heading-2 mb-4">Invite New User</h2>
+          <h2 className="heading-2 mb-4">{t('users.form.title')}</h2>
           <form onSubmit={handleInvite} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-secondary mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-secondary mb-1">{t('users.form.name')}</label>
               <input required type="text" className="form-input" value={inviteData.fullName} onChange={e => setInviteData({...inviteData, fullName: e.target.value})} placeholder="John Doe" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-secondary mb-1">Email</label>
+              <label className="block text-sm font-medium text-secondary mb-1">{t('users.form.email')}</label>
               <input required type="email" className="form-input" value={inviteData.email} onChange={e => setInviteData({...inviteData, email: e.target.value})} placeholder="john@example.com" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-secondary mb-1">Role</label>
+              <label className="block text-sm font-medium text-secondary mb-1">{t('users.form.role')}</label>
               <select required className="form-input" style={{ backgroundColor: "rgba(15,23,42,0.9)" }} value={inviteData.roleId} onChange={e => setInviteData({...inviteData, roleId: e.target.value})}>
                 <option value="">Select a role...</option>
                 {roles?.map(role => (
@@ -94,7 +96,7 @@ export default function UsersPage() {
             </div>
             <div className="md:col-span-3 flex justify-end">
               <button type="submit" className="btn-primary" disabled={inviteMutation.isPending}>
-                {inviteMutation.isPending ? "Inviting..." : "Send Invite"}
+                {inviteMutation.isPending ? t('users.form.submitting') : t('users.form.submit')}
               </button>
             </div>
           </form>
@@ -103,23 +105,23 @@ export default function UsersPage() {
 
       <div className="glass-panel overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-secondary">Loading users...</div>
+          <div className="p-12 text-center text-secondary">{t('users.loading')}</div>
         ) : error ? (
           <div className="p-12 text-center" style={{ color: "var(--error)" }}>
-            Failed to load users.
+            {t('common.error')}
           </div>
         ) : !users || users.length === 0 ? (
           <div className="p-12 text-center text-secondary">
-            No users found for this tenant.
+            {t('users.noUsers')}
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
+                <th>{t('users.name')}</th>
+                <th>{t('users.email')}</th>
+                <th>{t('users.role')}</th>
+                <th>{t('users.status')}</th>
               </tr>
             </thead>
             <tbody>

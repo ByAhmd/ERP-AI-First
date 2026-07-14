@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { ApiClient } from "../../../lib/api-client";
 import toast from "react-hot-toast";
+import { useLanguage } from "../../../components/LanguageProvider";
 
 interface Contact {
   id: string;
@@ -33,8 +35,8 @@ interface Invoice {
   status: string;
   invoiceDate: string;
   dueDate?: string;
-  totalAmount: number;
-  taxAmount: number;
+  total: number;
+  taxTotal: number;
   contact?: Contact;
 }
 
@@ -47,7 +49,9 @@ const statusColor: Record<string, { bg: string; color: string }> = {
 };
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const { t, locale } = useLanguage();
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     type: "SalesInvoice",
@@ -89,10 +93,10 @@ export default function InvoicesPage() {
         notes: "",
       });
       setLines([{ description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "" }]);
-      toast.success("Invoice created successfully");
+      toast.success(t("invoices.form.success"));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to create invoice");
+      toast.error(err.message || t("invoices.form.error"));
     },
   });
 
@@ -100,10 +104,10 @@ export default function InvoicesPage() {
     mutationFn: (id: string) => ApiClient.patch(`/business/invoices/${id}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      toast.success("Invoice approved successfully");
+      toast.success(t("invoices.approve.success"));
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to approve invoice");
+      toast.error(err.message || t("invoices.approve.error"));
     },
   });
 
@@ -150,17 +154,17 @@ export default function InvoicesPage() {
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="heading-1 mb-2">Invoices</h1>
-          <p className="text-secondary">Manage sales and purchase invoices</p>
+          <h1 className="heading-1 mb-2">{t("invoices.title")}</h1>
+          <p className="text-secondary">{t("invoices.subtitle")}</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? "Cancel" : "+ New Invoice"}
+          {showForm ? t("common.cancel") : t("invoices.newInvoice")}
         </button>
       </div>
 
       {showForm && (
         <div className="glass-panel p-6 mb-8 animate-fade-in">
-          <h2 className="heading-2 mb-6">Create Invoice</h2>
+          <h2 className="heading-2 mb-6">{t("invoices.form.title")}</h2>
           <form onSubmit={handleSubmit}>
             <div
               style={{
@@ -171,7 +175,7 @@ export default function InvoicesPage() {
               }}
             >
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Type</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t("invoices.form.type")}</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -179,16 +183,16 @@ export default function InvoicesPage() {
                   style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
                   required
                 >
-                  <option value="SalesInvoice">Sales Invoice</option>
-                  <option value="PurchaseInvoice">Purchase Invoice</option>
-                  <option value="CreditNote">Credit Note</option>
-                  <option value="DebitNote">Debit Note</option>
+                  <option value="SalesInvoice">{t("invoices.type.sales")}</option>
+                  <option value="PurchaseInvoice">{t("invoices.type.purchase")}</option>
+                  <option value="CreditNote">{t("invoices.type.creditNote")}</option>
+                  <option value="DebitNote">{t("invoices.type.debitNote")}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
-                  Contact (Customer/Supplier)
+                  {t("invoices.form.contact")}
                 </label>
                 <select
                   value={formData.contactId}
@@ -197,7 +201,7 @@ export default function InvoicesPage() {
                   style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
                   required
                 >
-                  <option value="">— Select Contact —</option>
+                  <option value="">{t("common.select")}</option>
                   {(contacts ?? []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.type})
@@ -207,7 +211,7 @@ export default function InvoicesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Issue Date</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t("invoices.form.issueDate")}</label>
                 <input
                   type="date"
                   required
@@ -218,7 +222,7 @@ export default function InvoicesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-secondary mb-1">Due Date</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t("invoices.form.dueDate")}</label>
                 <input
                   type="date"
                   value={formData.dueDate}
@@ -228,23 +232,23 @@ export default function InvoicesPage() {
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
-                <label className="block text-sm font-medium text-secondary mb-1">Notes</label>
+                <label className="block text-sm font-medium text-secondary mb-1">{t("invoices.form.notes")}</label>
                 <input
                   type="text"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="form-input"
-                  placeholder="Optional notes..."
+                  placeholder={t("invoices.form.notesPh")}
                 />
               </div>
             </div>
 
-            <h3 className="heading-2 text-lg mb-4">Line Items</h3>
+            <h3 className="heading-2 text-lg mb-4">{t("invoices.form.lineItems")}</h3>
             <div className="mb-6 space-y-4">
               {lines.map((line, index) => (
                 <div key={index} style={{ display: "flex", gap: "1rem", alignItems: "flex-end" }}>
                   <div style={{ flex: 2 }}>
-                    <label className="block text-xs text-secondary mb-1">Description</label>
+                    <label className="block text-xs text-secondary mb-1">{t("invoices.form.lineDesc")}</label>
                     <input
                       type="text"
                       required
@@ -255,7 +259,7 @@ export default function InvoicesPage() {
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label className="block text-xs text-secondary mb-1">Account</label>
+                    <label className="block text-xs text-secondary mb-1">{t("invoices.form.lineAccount")}</label>
                     <select
                       required
                       value={line.accountId}
@@ -263,7 +267,7 @@ export default function InvoicesPage() {
                       className="form-input"
                       style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
                     >
-                      <option value="">Select...</option>
+                      <option value="">{t("common.select")}</option>
                       {(accounts ?? [])
                         .filter((a: any) => (a.type === "Revenue" || a.type === "Expense") && (!a.children || a.children.length === 0))
                         .map((a) => (
@@ -274,7 +278,7 @@ export default function InvoicesPage() {
                     </select>
                   </div>
                   <div style={{ width: "80px" }}>
-                    <label className="block text-xs text-secondary mb-1">Qty</label>
+                    <label className="block text-xs text-secondary mb-1">{t("invoices.form.lineQty")}</label>
                     <input
                       type="number"
                       required
@@ -285,7 +289,7 @@ export default function InvoicesPage() {
                     />
                   </div>
                   <div style={{ width: "100px" }}>
-                    <label className="block text-xs text-secondary mb-1">Price</label>
+                    <label className="block text-xs text-secondary mb-1">{t("invoices.form.linePrice")}</label>
                     <input
                       type="number"
                       required
@@ -297,7 +301,7 @@ export default function InvoicesPage() {
                     />
                   </div>
                   <div style={{ width: "80px" }}>
-                    <label className="block text-xs text-secondary mb-1">Tax %</label>
+                    <label className="block text-xs text-secondary mb-1">{t("invoices.form.lineTax")}</label>
                     <input
                       type="number"
                       min="0"
@@ -331,22 +335,22 @@ export default function InvoicesPage() {
                 onClick={addLine}
                 style={{ fontSize: "0.875rem", color: "var(--accent-primary)", marginTop: "0.5rem" }}
               >
-                + Add Line Item
+                {t("invoices.form.addLine")}
               </button>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "2rem" }}>
               <div style={{ width: "300px", background: "rgba(0,0,0,0.2)", padding: "1rem", borderRadius: "0.5rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                  <span className="text-secondary">Subtotal:</span>
+                  <span className="text-secondary">{t("invoices.form.subtotal")}</span>
                   <span>{subTotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                  <span className="text-secondary">Tax:</span>
+                  <span className="text-secondary">{t("invoices.form.tax")}</span>
                   <span>{taxTotal.toFixed(2)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "0.5rem" }}>
-                  <span>Total (SAR):</span>
+                  <span>{t("invoices.form.total")}</span>
                   <span style={{ color: "var(--accent-primary)" }}>{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
@@ -358,14 +362,14 @@ export default function InvoicesPage() {
                 onClick={() => setShowForm(false)}
                 className="btn-secondary"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
                 disabled={createMutation.isPending}
                 className="btn-primary"
               >
-                {createMutation.isPending ? "Creating..." : "Create Invoice"}
+                {createMutation.isPending ? t("invoices.form.submitting") : t("invoices.form.submit")}
               </button>
             </div>
           </form>
@@ -374,37 +378,42 @@ export default function InvoicesPage() {
 
       <div className="glass-panel overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-secondary">Loading invoices...</div>
+          <div className="p-12 text-center text-secondary">{t("invoices.loading")}</div>
         ) : !invoices || invoices.length === 0 ? (
           <div className="p-12 text-center">
-            <h3 className="heading-2 mb-2">No invoices yet</h3>
+            <h3 className="heading-2 mb-2">{t("invoices.noInvoices")}</h3>
             <p className="text-secondary" style={{ maxWidth: "28rem", margin: "0 auto 1.5rem" }}>
-              Create your first invoice by clicking the "New Invoice" button above.
+              {t("invoices.createFirst")}
             </p>
           </div>
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Invoice No.</th>
-                <th>Type</th>
-                <th>Contact</th>
-                <th>Date</th>
-                <th>Due Date</th>
-                <th style={{ textAlign: "right" }}>Amount (SAR)</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t("invoices.number")}</th>
+                <th>{t("invoices.type")}</th>
+                <th>{t("invoices.contact")}</th>
+                <th>{t("invoices.date")}</th>
+                <th>{t("invoices.dueDate")}</th>
+                <th style={{ textAlign: "right" }}>{t("invoices.amount")}</th>
+                <th>{t("invoices.status")}</th>
+                <th>{t("invoices.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {invoices.map((inv) => {
                 const sc = statusColor[inv.status] ?? statusColor.Draft;
                 // Backend returns strings for Decimals, so parseFloat them
-                const totalAmount = parseFloat(inv.totalAmount as any);
+                const totalAmount = parseFloat(inv.total as any);
                 return (
                   <tr key={inv.id}>
                     <td style={{ fontWeight: 600 }}>{inv.invoiceNumber}</td>
-                    <td className="text-secondary">{inv.type.replace(/([A-Z])/g, " $1").trim()}</td>
+                    <td className="text-secondary">
+                      {inv.type === 'SalesInvoice' ? t('invoices.type.sales') : 
+                       inv.type === 'PurchaseInvoice' ? t('invoices.type.purchase') : 
+                       inv.type === 'CreditNote' ? t('invoices.type.creditNote') : 
+                       inv.type === 'DebitNote' ? t('invoices.type.debitNote') : inv.type.replace(/([A-Z])/g, " $1").trim()}
+                    </td>
                     <td>{inv.contact?.name ?? "—"}</td>
                     <td className="text-secondary">
                       {new Date(inv.invoiceDate || (inv as any).issueDate).toLocaleDateString("en-SA")}
@@ -428,28 +437,49 @@ export default function InvoicesPage() {
                           color: sc.color,
                         }}
                       >
-                        {inv.status}
+                        {inv.status === 'Draft' ? t('status.draft') : 
+                         inv.status === 'Approved' ? t('status.approved') : 
+                         inv.status === 'PendingApproval' ? t('status.pendingApproval') : 
+                         inv.status === 'Paid' ? t('status.paid') : 
+                         inv.status === 'Cancelled' ? t('status.cancelled') : inv.status}
                       </span>
                     </td>
                     <td>
-                      {inv.status === "Draft" && (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
-                          onClick={() => approveMutation.mutate(inv.id)}
-                          disabled={approveMutation.isPending}
+                          onClick={() => router.push(`/dashboard/invoices/${inv.id}`)}
                           style={{
                             padding: "0.25rem 0.75rem",
                             borderRadius: "0.375rem",
                             fontSize: "0.75rem",
                             fontWeight: 600,
-                            background: "rgba(59,130,246,0.15)",
-                            border: "1px solid rgba(59,130,246,0.3)",
-                            color: "#60a5fa",
+                            background: "rgba(255,255,255,0.1)",
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            color: "var(--text-primary)",
                             cursor: "pointer",
                           }}
                         >
-                          Approve
+                          {t("common.details")}
                         </button>
-                      )}
+                        {inv.status === "Draft" && (
+                          <button
+                            onClick={() => approveMutation.mutate(inv.id)}
+                            disabled={approveMutation.isPending}
+                            style={{
+                              padding: "0.25rem 0.75rem",
+                              borderRadius: "0.375rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              background: "rgba(59,130,246,0.15)",
+                              border: "1px solid rgba(59,130,246,0.3)",
+                              color: "#60a5fa",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {t("common.approve")}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

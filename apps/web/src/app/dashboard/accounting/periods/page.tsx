@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../../lib/api-client";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../../../components/LanguageProvider";
 
 interface AccountingPeriod {
   id: string;
@@ -15,6 +16,7 @@ interface AccountingPeriod {
 export default function AccountingPeriodsPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const { data: periods, isLoading } = useQuery({
     queryKey: ['accounting-periods'],
@@ -30,13 +32,20 @@ export default function AccountingPeriodsPage() {
 
   const isInitializing = initMutation.isPending;
 
+  const getStatusLabel = (status: string) => {
+    if (status === 'Open') return t('status.open');
+    if (status === 'Closed') return t('status.closed');
+    if (status === 'Adjusting') return t('status.adjusting');
+    return status;
+  };
+
   return (
     <div className="layout-container flex-col">
       <div className="page-content max-w-6xl w-full mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="heading-1 mb-2">Accounting Periods</h1>
-            <p className="text-secondary">Manage fiscal years and accounting periods to control postings.</p>
+            <h1 className="heading-1 mb-2">{t('periods.title')}</h1>
+            <p className="text-secondary">{t('periods.subtitle')}</p>
           </div>
           <div className="flex gap-4">
             <button
@@ -44,29 +53,29 @@ export default function AccountingPeriodsPage() {
               disabled={isInitializing || (periods && periods.length > 0)}
               className="btn-secondary flex items-center gap-2"
             >
-              {isInitializing ? "Initializing..." : `Initialize ${new Date().getFullYear()} Fiscal Year`}
+              {isInitializing ? t('common.saving') : `${t('periods.newFiscalYear')} ${new Date().getFullYear()}`}
             </button>
             
             <button 
                onClick={() => router.push("/dashboard/accounting/journal-entries")}
                className="btn-primary"
             >
-              Next: Journal Entries
+              {t('common.next')}: {t('nav.journalEntries')}
             </button>
           </div>
         </div>
 
         <div className="glass-panel overflow-hidden">
           {isLoading ? (
-            <div className="p-8 text-center text-secondary">Loading periods...</div>
+            <div className="p-8 text-center text-secondary">{t('periods.loading')}</div>
           ) : periods && periods.length > 0 ? (
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Period Name</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Status</th>
+                  <th>{t('periods.period')}</th>
+                  <th>{t('periods.startDate')}</th>
+                  <th>{t('periods.endDate')}</th>
+                  <th>{t('periods.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,7 +86,7 @@ export default function AccountingPeriodsPage() {
                     <td className="text-secondary">{new Date(period.endDate).toLocaleDateString()}</td>
                     <td>
                       <span className="tenant-badge">
-                        {period.status}
+                        {getStatusLabel(period.status)}
                       </span>
                     </td>
                   </tr>
@@ -86,9 +95,9 @@ export default function AccountingPeriodsPage() {
             </table>
           ) : (
             <div className="p-12 text-center">
-              <h3 className="heading-2">No periods initialized</h3>
+              <h3 className="heading-2">{t('periods.noPeriods')}</h3>
               <p className="text-secondary max-w-sm mx-auto mb-6">
-                You must initialize a fiscal year and its accounting periods before you can post any journal entries.
+                {t('periods.subtitle')}
               </p>
             </div>
           )}

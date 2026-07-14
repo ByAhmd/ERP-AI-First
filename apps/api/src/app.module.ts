@@ -48,9 +48,12 @@ import { PayrollModule } from './modules/business/payroll/payroll.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ProcurementModule } from './modules/business/procurement/procurement.module';
 import { CrmModule } from './modules/business/crm/crm.module';
+import { ApprovalsModule } from './modules/approvals/approvals.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
@@ -87,6 +90,7 @@ import { CrmModule } from './modules/business/crm/crm.module';
     ReportsModule,
     ProcurementModule,
     CrmModule,
+    ApprovalsModule,
     VatModule,
     ZakatModule,
     DateModule,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "../../../../lib/api-client";
+import { useLanguage } from "../../../../components/LanguageProvider";
 
 interface Account {
   id: string;
@@ -30,6 +31,7 @@ interface JournalEntry {
 
 export default function JournalEntriesPage() {
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const [showForm, setShowForm] = useState(false);
   
   // Form State
@@ -63,7 +65,7 @@ export default function JournalEntriesPage() {
       ]);
     },
     onError: (err: any) => {
-      alert(err.message || "Failed to create journal entry");
+      alert(err.message || t('je.form.error'));
     }
   });
 
@@ -107,24 +109,24 @@ export default function JournalEntriesPage() {
       <div className="page-content max-w-6xl w-full mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="heading-1 mb-2">Journal Entries</h1>
-            <p className="text-secondary">Record and view manual double-entry accounting transactions.</p>
+            <h1 className="heading-1 mb-2">{t('je.title')}</h1>
+            <p className="text-secondary">{t('je.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
             className="btn-primary"
           >
-            {showForm ? "Cancel" : "New Journal Entry"}
+            {showForm ? t('common.cancel') : t('je.newEntry')}
           </button>
         </div>
 
         {showForm && (
           <div className="glass-panel p-6 mb-8">
-            <h2 className="heading-2 mb-4">Create Journal Entry</h2>
+            <h2 className="heading-2 mb-4">{t('je.form.title')}</h2>
             <form onSubmit={handleSubmit}>
               <div className="grid md-grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-secondary mb-1">Date</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">{t('je.form.date')}</label>
                   <input 
                     type="date" 
                     required
@@ -134,7 +136,7 @@ export default function JournalEntriesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-secondary mb-1">Description</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">{t('je.form.description')}</label>
                   <input 
                     type="text" 
                     required
@@ -149,9 +151,9 @@ export default function JournalEntriesPage() {
               <table className="data-table mb-4">
                 <thead>
                   <tr>
-                    <th>Account</th>
-                    <th className="w-64">Debit</th>
-                    <th className="w-64">Credit</th>
+                    <th>{t('je.form.account')}</th>
+                    <th className="w-64">{t('je.form.debit')}</th>
+                    <th className="w-64">{t('je.form.credit')}</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
@@ -166,7 +168,7 @@ export default function JournalEntriesPage() {
                           className="form-input"
                           style={{ backgroundColor: 'rgba(15,23,42,0.9)' }}
                         >
-                          <option value="">Select Account</option>
+                          <option value="">{t('common.select')}</option>
                           {(accounts as any[])?.filter(a => !a.children || a.children.length === 0).map(acc => (
                             <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
                           ))}
@@ -206,7 +208,7 @@ export default function JournalEntriesPage() {
                 </tbody>
                 <tfoot>
                   <tr style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                    <td className="font-bold">Total</td>
+                    <td className="font-bold">{t('common.total')}</td>
                     <td className={`font-bold ${!isBalanced ? 'text-error' : ''}`}>{totalDebits.toFixed(2)}</td>
                     <td className={`font-bold ${!isBalanced ? 'text-error' : ''}`}>{totalCredits.toFixed(2)}</td>
                     <td></td>
@@ -220,7 +222,7 @@ export default function JournalEntriesPage() {
                   onClick={handleAddLine}
                   className="btn-secondary"
                 >
-                  + Add Line
+                  {t('je.form.addLine')}
                 </button>
                 
                 <button 
@@ -228,7 +230,7 @@ export default function JournalEntriesPage() {
                   disabled={!isBalanced || createMutation.isPending}
                   className="btn-primary"
                 >
-                  {createMutation.isPending ? "Posting..." : "Post Entry"}
+                  {createMutation.isPending ? t('common.saving') : t('common.submit')}
                 </button>
               </div>
             </form>
@@ -237,7 +239,7 @@ export default function JournalEntriesPage() {
 
         <div className="glass-panel overflow-hidden">
           {loadingEntries ? (
-            <div className="p-8 text-center text-secondary">Loading entries...</div>
+            <div className="p-8 text-center text-secondary">{t('je.loading')}</div>
           ) : entries && entries.length > 0 ? (
             <div className="flex flex-col">
               {entries.map((entry) => (
@@ -248,16 +250,16 @@ export default function JournalEntriesPage() {
                       <p className="text-secondary text-sm">{new Date(entry.entryDate).toLocaleDateString()} • {entry.description}</p>
                     </div>
                     <span className="tenant-badge">
-                      {entry.status}
+                      {entry.status === 'Posted' ? t('status.posted') : entry.status === 'Draft' ? t('status.draft') : entry.status}
                     </span>
                   </div>
                   
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>Account</th>
-                        <th style={{ textAlign: 'right' }}>Debit</th>
-                        <th style={{ textAlign: 'right' }}>Credit</th>
+                        <th>{t('je.form.account')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('je.form.debit')}</th>
+                        <th style={{ textAlign: 'right' }}>{t('je.form.credit')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -275,9 +277,9 @@ export default function JournalEntriesPage() {
             </div>
           ) : (
             <div className="p-12 text-center">
-              <h3 className="heading-2">No journal entries found</h3>
+              <h3 className="heading-2">{t('je.noEntries')}</h3>
               <p className="text-secondary max-w-sm mx-auto mb-6">
-                You haven't posted any journal entries yet. Click "New Journal Entry" to get started.
+                {t('je.subtitle')}
               </p>
             </div>
           )}

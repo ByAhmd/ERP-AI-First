@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../database/prisma.service';
 import { JournalEntriesService } from '../../accounting/journal-entries/journal-entries.service';
 import { CreatePayrollRunDto } from './dto/payroll.dto';
@@ -12,7 +13,22 @@ export class PayrollService {
     private readonly journalEntriesService: JournalEntriesService,
   ) {}
 
-  async createPayrollRun(tenantId: string, dto: CreatePayrollRunDto) {
+  async findAll(tenantId: string) {
+    const runs = await this.prisma.payrollRun.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return runs.map(r => ({
+      ...r,
+      totalGross: r.totalGross.toString(),
+      totalNet: r.totalNet.toString(),
+      totalDeductions: r.totalDeductions.toString(),
+      totalGosi: r.totalGosi.toString(),
+      totalOtherDeductions: r.totalOtherDeductions.toString(),
+    }));
+  }
+
+  async createPayrollRun(tenantId: string, dto: CreatePayrollRunDto, userId: string) {
     const { periodName, payslips } = dto;
 
     const existingRun = await this.prisma.payrollRun.findUnique({
@@ -92,21 +108,55 @@ export class PayrollService {
       });
     }
 
-    return this.prisma.payrollRun.create({
-      data: {
-        tenantId,
-        periodName,
-        totalGross,
-        totalNet,
-        totalDeductions: totalGosi.plus(totalOtherDeductions),
-        payslips: {
-          create: payslipsData,
+    return this.prisma.$transaction(async (tx) => {
+      const payrollRun = await tx.payrollRun.create({
+        data: {
+          tenantId,
+          periodName,
+          totalGross,
+          totalNet,
+          status: 'PendingApproval',
+          totalDeductions: totalGosi.plus(totalOtherDeductions),
+          totalGosi,
+          totalOtherDeductions,
+          payslips: {
+            create: payslipsData,
+          },
         },
-      },
-      include: {
-        payslips: true,
-      },
+        include: {
+          payslips: true,
+        },
+      });
+
+      await tx.approvalRequest.create({
+        data: {
+          tenantId,
+          entityType: 'PayrollRun',
+          entityId: payrollRun.id,
+          requestedById: userId,
+          status: 'Pending',
+        }
+      });
+
+      return payrollRun;
     });
+  }
+
+  @OnEvent('approval.approved')
+  async handleApprovalApproved(payload: { tenantId: string; entityType: string; entityId: string }) {
+    if (payload.entityType === 'PayrollRun') {
+      await this.approvePayrollRun(payload.tenantId, payload.entityId);
+    }
+  }
+
+  @OnEvent('approval.rejected')
+  async handleApprovalRejected(payload: { tenantId: string; entityType: string; entityId: string }) {
+    if (payload.entityType === 'PayrollRun') {
+      await this.prisma.payrollRun.update({
+        where: { id: payload.entityId },
+        data: { status: 'Draft' }, // Revert back to Draft
+      });
+    }
   }
 
   async approvePayrollRun(tenantId: string, runId: string) {
@@ -137,6 +187,10 @@ export class PayrollService {
       where: { tenantId_code: { tenantId, code: '2140' } }
     });
 
+    let otherDeductionsPayableAccount = await this.prisma.chartOfAccount.findUnique({
+      where: { tenantId_code: { tenantId, code: '2150' } }
+    });
+
     let salariesPayableAccount = await this.prisma.chartOfAccount.findUnique({
       where: { tenantId_code: { tenantId, code: '2130' } }
     });
@@ -148,12 +202,17 @@ export class PayrollService {
       });
     }
     
-    if (!gosiPayableAccount || !salariesPayableAccount) {
+    if (!gosiPayableAccount || !salariesPayableAccount || !otherDeductionsPayableAccount) {
       const liabilityParent = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '2100' } } });
       
       if (!gosiPayableAccount) {
         gosiPayableAccount = await this.prisma.chartOfAccount.create({ 
           data: { tenantId, code: '2140', name: 'GOSI Payable', type: 'Liability', parentId: liabilityParent?.id } 
+        });
+      }
+      if (!otherDeductionsPayableAccount) {
+        otherDeductionsPayableAccount = await this.prisma.chartOfAccount.create({ 
+          data: { tenantId, code: '2150', name: 'Other Deductions Payable', type: 'Liability', parentId: liabilityParent?.id } 
         });
       }
       if (!salariesPayableAccount) {
@@ -174,12 +233,22 @@ export class PayrollService {
     });
 
     // Credit GOSI Payable
-    if (new Decimal(run.totalDeductions).gt(0)) {
+    if (new Decimal(run.totalGosi).gt(0)) {
        jeLines.push({
         accountId: gosiPayableAccount.id,
         description: `GOSI Deductions for ${run.periodName}`,
         debit: '0',
-        credit: run.totalDeductions.toString(),
+        credit: run.totalGosi.toString(),
+      });
+    }
+
+    // Credit Other Deductions Payable
+    if (new Decimal(run.totalOtherDeductions).gt(0)) {
+      jeLines.push({
+        accountId: otherDeductionsPayableAccount.id,
+        description: `Other Deductions for ${run.periodName}`,
+        debit: '0',
+        credit: run.totalOtherDeductions.toString(),
       });
     }
 

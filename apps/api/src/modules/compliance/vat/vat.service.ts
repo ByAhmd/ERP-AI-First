@@ -10,13 +10,19 @@ export class VatService {
   async calculateVatReturn(tenantId: string, dto: GetVatReturnDto) {
     const { startDate, endDate } = dto;
 
+    const start = new Date(startDate);
+    start.setUTCHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setUTCHours(23, 59, 59, 999);
+
     // Fetch all approved invoices within the date range
     const invoices = await this.prisma.invoice.findMany({
       where: {
         tenantId,
         issueDate: {
-          gte: startDate,
-          lte: endDate,
+          gte: start,
+          lte: end,
         },
         status: { in: ['Approved', 'Paid'] },
       },

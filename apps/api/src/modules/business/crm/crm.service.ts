@@ -8,6 +8,14 @@ export class CrmService {
 
   // --- Opportunities ---
 
+  async getOpportunities(tenantId: string) {
+    return this.prisma.opportunity.findMany({
+      where: { tenantId },
+      include: { contact: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async createOpportunity(tenantId: string, data: any) {
     const { contactId, title, value, expectedClose, probability, notes } = data;
     return this.prisma.opportunity.create({
@@ -32,6 +40,14 @@ export class CrmService {
   }
 
   // --- Quotes ---
+
+  async getQuotes(tenantId: string) {
+    return this.prisma.quote.findMany({
+      where: { tenantId },
+      include: { contact: true, opportunity: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
 
   async createQuote(tenantId: string, data: any) {
     const { opportunityId, contactId, totalAmount, issueDate, expiryDate, notes } = data;
