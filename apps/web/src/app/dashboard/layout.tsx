@@ -136,6 +136,18 @@ export default function DashboardLayout({
 
           <div className="nav-section-label">Business</div>
           <Link
+            href="/dashboard/crm"
+            className={`nav-item ${isActive("/dashboard/crm") ? "active" : ""}`}
+          >
+            <span>🤝</span> CRM
+          </Link>
+          <Link
+            href="/dashboard/procurement"
+            className={`nav-item ${isActive("/dashboard/procurement") ? "active" : ""}`}
+          >
+            <span>🛒</span> Procurement
+          </Link>
+          <Link
             href="/dashboard/invoices"
             className={`nav-item ${isActive("/dashboard/invoices") ? "active" : ""}`}
           >
@@ -152,6 +164,12 @@ export default function DashboardLayout({
             className={`nav-item ${isActive("/dashboard/payroll") ? "active" : ""}`}
           >
             <span>💳</span> Payroll
+          </Link>
+          <Link
+            href="/dashboard/hr"
+            className={`nav-item ${isActive("/dashboard/hr") ? "active" : ""}`}
+          >
+            <span>🧑‍🤝‍🧑</span> HR
           </Link>
           <Link
             href="/dashboard/inventory"

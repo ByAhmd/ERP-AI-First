@@ -61,6 +61,16 @@ export class PayrollService {
 
       const gross = basicSalary.plus(housing).plus(transport).plus(bonus);
       
+      // WPS: Contract Matching Validation
+      if (profile.contractSalary && new Decimal(profile.contractSalary).gt(0)) {
+        const expectedGross = new Decimal(profile.contractSalary).plus(bonus);
+        if (!gross.equals(expectedGross)) {
+          throw new BadRequestException(
+            `WPS Violation: Payroll gross for employee ${profile.id} (${gross.toString()}) does not match the registered Qiwa contract salary (${expectedGross.toString()}).`
+          );
+        }
+      }
+
       // Calculate GOSI (Simplistic 10% on basic + housing up to 45,000 max)
       const gosiApplicableSalary = Decimal.min(basicSalary.plus(housing), new Decimal(45000));
       const gosi = gosiApplicableSalary.mul(0.10);
@@ -153,7 +163,7 @@ export class PayrollService {
       }
     }
 
-    const jeLines = [];
+    const jeLines: any[] = [];
 
     // Debit Salary Expense
     jeLines.push({

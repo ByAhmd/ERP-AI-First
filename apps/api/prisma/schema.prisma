@@ -130,6 +130,59 @@ enum PayrollStatus {
   Paid
 }
 
+// ─── Phase 7 Enums (CRM, Procurement, HR) ────────────────────────────────────
+
+enum Gender {
+  Male
+  Female
+}
+
+enum Religion {
+  Muslim
+  NonMuslim
+}
+
+enum LeaveType {
+  Annual
+  Sick
+  Hajj
+  Iddah
+  Examination
+  Unpaid
+}
+
+enum LeaveStatus {
+  Pending
+  Approved
+  Rejected
+}
+
+enum PurchaseOrderStatus {
+  Draft
+  Sent
+  PartiallyReceived
+  Received
+  Billed
+  Cancelled
+}
+
+enum OpportunityStage {
+  Prospecting
+  Qualification
+  Proposal
+  Negotiation
+  Won
+  Lost
+}
+
+enum QuoteStatus {
+  Draft
+  Sent
+  Accepted
+  Rejected
+  Expired
+}
+
 // ─── Core Identity ───────────────────────────────────────────────────────────
 
 model Tenant {
@@ -173,6 +226,10 @@ model Tenant {
   tenantChildren    TenantHierarchy[]      @relation("ParentTenant")
   tenantParents     TenantHierarchy[]      @relation("ChildTenant")
   periodExRates     PeriodExchangeRate[]
+  leaveRequests     LeaveRequest[]
+  purchaseOrders    PurchaseOrder[]
+  opportunities     Opportunity[]
+  quotes            Quote[]
 
   @@index([status])
 }
@@ -485,6 +542,9 @@ model Contact {
   invoices            Invoice[]
   payments            Payment[]
   employeeProfile     EmployeeProfile?
+  purchaseOrders      PurchaseOrder[]
+  opportunities       Opportunity[]
+  quotes              Quote[]
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -650,17 +710,27 @@ model WhtRate {
 }
 
 model EmployeeProfile {
-  id                 String   @id @default(uuid())
+  id                 String  @id @default(uuid())
   tenantId           String
-  contactId          String   @unique
+  contactId          String  @unique
   gosiNumber         String?
-  basicSalary        Decimal  @default(0) @db.Decimal(18, 2)
-  housingAllowance   Decimal  @default(0) @db.Decimal(18, 2)
-  transportAllowance Decimal  @default(0) @db.Decimal(18, 2)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  tenant             Tenant   @relation(fields: [tenantId], references: [id])
-  contact            Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  basicSalary        Decimal @default(0) @db.Decimal(18, 2)
+  housingAllowance   Decimal @default(0) @db.Decimal(18, 2)
+  transportAllowance Decimal @default(0) @db.Decimal(18, 2)
+
+  // KSA HR fields
+  hireDate       DateTime?
+  gender         Gender?
+  religion       Religion?
+  contractSalary Decimal   @default(0) @db.Decimal(18, 2)
+  qiwaContractId String?
+  hajjLeaveUsed  Boolean   @default(false)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  contact       Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  leaveRequests LeaveRequest[]
 
   @@index([tenantId])
 }
@@ -916,4 +986,102 @@ model Payslip {
 
   @@unique([payrollRunId, employeeProfileId])
   @@index([payrollRunId])
+}
+
+// ─── Phase 7 Models (HR, Procurement, CRM) ───────────────────────────────────
+
+model LeaveRequest {
+  id                String          @id @default(uuid())
+  tenantId          String
+  employeeProfileId String
+  type              LeaveType
+  startDate         DateTime
+  endDate           DateTime
+  status            LeaveStatus     @default(Pending)
+  reason            String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  tenant            Tenant          @relation(fields: [tenantId], references: [id])
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeProfileId])
+}
+
+model PurchaseOrder {
+  id           String              @id @default(uuid())
+  tenantId     String
+  poNumber     String
+  contactId    String // Supplier
+  status       PurchaseOrderStatus @default(Draft)
+  issueDate    DateTime
+  deliveryDate DateTime?
+  totalAmount  Decimal             @default(0) @db.Decimal(18, 2)
+  notes        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  tenant       Tenant              @relation(fields: [tenantId], references: [id])
+  contact      Contact             @relation(fields: [contactId], references: [id])
+  lines        PurchaseOrderLine[]
+
+  @@unique([tenantId, poNumber])
+  @@index([tenantId])
+  @@index([contactId])
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  description     String
+  quantity        Decimal       @default(1) @db.Decimal(18, 2)
+  unitPrice       Decimal       @db.Decimal(18, 2)
+  total           Decimal       @db.Decimal(18, 2)
+  itemId          String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+}
+
+model Opportunity {
+  id            String           @id @default(uuid())
+  tenantId      String
+  contactId     String // Client/Lead
+  title         String
+  stage         OpportunityStage @default(Prospecting)
+  value         Decimal          @default(0) @db.Decimal(18, 2)
+  expectedClose DateTime?
+  probability   Int              @default(0) // 0-100
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  tenant        Tenant           @relation(fields: [tenantId], references: [id])
+  contact       Contact          @relation(fields: [contactId], references: [id])
+  quotes        Quote[]
+
+  @@index([tenantId])
+  @@index([contactId])
+}
+
+model Quote {
+  id            String       @id @default(uuid())
+  tenantId      String
+  opportunityId String?
+  contactId     String
+  quoteNumber   String
+  status        QuoteStatus  @default(Draft)
+  issueDate     DateTime
+  expiryDate    DateTime?
+  totalAmount   Decimal      @default(0) @db.Decimal(18, 2)
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
+  contact       Contact      @relation(fields: [contactId], references: [id])
+
+  @@unique([tenantId, quoteNumber])
+  @@index([tenantId])
+  @@index([contactId])
 }

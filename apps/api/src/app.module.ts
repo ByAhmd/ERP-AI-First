@@ -46,6 +46,8 @@ import { ConsolidationModule } from './modules/accounting/consolidation/consolid
 
 import { PayrollModule } from './modules/business/payroll/payroll.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ProcurementModule } from './modules/business/procurement/procurement.module';
+import { CrmModule } from './modules/business/crm/crm.module';
 
 @Module({
   imports: [
@@ -83,6 +85,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     EmployeeProfilesModule,
     PayrollModule,
     ReportsModule,
+    ProcurementModule,
+    CrmModule,
     VatModule,
     ZakatModule,
     DateModule,

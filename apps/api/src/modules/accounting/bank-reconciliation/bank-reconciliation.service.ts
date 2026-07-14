@@ -11,7 +11,6 @@ export class BankReconciliationService {
     return this.prisma.reconciliation.findMany({
       where: { tenantId },
       include: {
-        account: true,
         bankStatement: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -22,7 +21,6 @@ export class BankReconciliationService {
     const recon = await this.prisma.reconciliation.findUnique({
       where: { id, tenantId },
       include: {
-        account: true,
         bankStatement: {
           include: { transactions: true },
         },
