@@ -26,7 +26,10 @@ export default function LoginPage() {
     try {
       const res = await fetch("/api/v1/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "bypass-tunnel-reminder": "true"
+        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -39,6 +42,11 @@ export default function LoginPage() {
 
       if (!res.ok) {
         throw new Error(data?.message || "Login failed");
+      }
+
+      if (data?.accessToken) {
+        ApiClient.setAccessToken(data.accessToken);
+        ApiClient.setRefreshToken(data.refreshToken);
       }
 
       const tenants = await ApiClient.get<Tenant[]>("/tenants");

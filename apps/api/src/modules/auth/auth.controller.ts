@@ -115,7 +115,7 @@ export class AuthController {
     res.cookie('accessToken', response.accessToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: isProduction ? 'strict' : 'lax',
       maxAge: response.expiresIn * 1000, // typically 15 minutes
     });
 
@@ -123,7 +123,7 @@ export class AuthController {
     res.cookie('refreshToken', response.refreshToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: isProduction ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }

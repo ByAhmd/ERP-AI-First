@@ -65,7 +65,10 @@ export default function DashboardLayout({
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/v1/auth/logout", { method: "POST" });
+      await fetch("/api/v1/auth/logout", { 
+        method: "POST",
+        headers: { "bypass-tunnel-reminder": "true" }
+      });
     } catch {
       // ignore
     }
