@@ -1,4 +1,5 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
+RUN apt-get update -y && apt-get install -y openssl
 
 WORKDIR /app
 
@@ -25,7 +26,8 @@ RUN npm run build --workspace=@erp-ai/shared
 RUN npm run build --workspace=@erp-ai/api
 
 # Create the final production image
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
+RUN apt-get update -y && apt-get install -y openssl
 
 WORKDIR /app
 
@@ -36,6 +38,7 @@ COPY apps/api/package*.json ./apps/api/
 
 # Install only production dependencies
 RUN npm install --omit=dev
+RUN npm install -g prisma
 
 # Copy the built shared library
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
@@ -44,6 +47,7 @@ COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Expose the port
 EXPOSE 4000
@@ -52,4 +56,4 @@ EXPOSE 4000
 ENV NODE_ENV=production
 
 # Start script: Run migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./apps/api/prisma/schema.prisma && node apps/api/dist/apps/api/src/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./apps/api/prisma/schema.prisma && node apps/api/dist/apps/api/src/scripts/seed-admin.js || true && node apps/api/dist/apps/api/src/main.js"]
