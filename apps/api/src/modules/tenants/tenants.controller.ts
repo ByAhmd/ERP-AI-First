@@ -27,7 +27,7 @@ export class TenantsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a tenant (company)' })
-  updateTenant(@Param('id') id: string, @Body() dto: UpdateTenantDto) {
-    return this.tenantsService.updateTenant(id, dto);
+  updateTenant(@Param('id') id: string, @CurrentUser() user: RequestUser, @Body() dto: UpdateTenantDto) {
+    return this.tenantsService.updateTenant(id, user.id, dto);
   }
 }

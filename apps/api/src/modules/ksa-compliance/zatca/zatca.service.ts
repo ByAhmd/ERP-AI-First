@@ -146,8 +146,8 @@ export class ZatcaService {
       .ele('cbc:PayableAmount', { currencyID: 'SAR' }).txt(invoice.total.toString()).up()
     .up();
 
-    // Generate XML string without signature
-    let xml = doc.end({ prettyPrint: true });
+    // Generate Canonical XML string without signature
+    let xml = doc.end({ prettyPrint: false });
 
     // 3. Hash the XML (SHA256 Base64)
     const xmlHash = createHash('sha256').update(xml).digest('base64');
@@ -185,6 +185,8 @@ export class ZatcaService {
     const invoiceTotal = invoice.total.toString();
     const vatTotal = invoice.taxTotal.toString();
 
+    const certSignature = sign('sha256', Buffer.from(pubKeyBase64, 'utf8'), this.ecdsaPrivateKey).toString('base64');
+
     const tags = [
       this.toTlv(1, sellerName),
       this.toTlv(2, vatNumber),
@@ -193,7 +195,8 @@ export class ZatcaService {
       this.toTlv(5, vatTotal),
       this.toTlv(6, xmlHash),
       this.toTlv(7, signatureBase64),
-      this.toTlv(8, pubKeyBase64)
+      this.toTlv(8, pubKeyBase64),
+      this.toTlv(9, certSignature)
     ];
     
     const qrCodeBuffer = Buffer.concat(tags);

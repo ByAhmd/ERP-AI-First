@@ -77,7 +77,7 @@ export class InventoryService {
     });
 
     // Update Balance
-    await this.upsertBalance(tx, itemId, warehouseId, qtyDec);
+    await this.upsertBalance(tx, tenantId, itemId, warehouseId, qtyDec);
 
     // Record Transaction
     await tx.inventoryTransaction.create({
@@ -96,6 +96,7 @@ export class InventoryService {
     // We also support future FIFO by logging the lot:
     await tx.inventoryLot.create({
       data: {
+        tenantId,
         itemId,
         warehouseId,
         lotNumber: `LOT-${Date.now()}`,
@@ -128,7 +129,7 @@ export class InventoryService {
     const unitCost = new Decimal(item.weightedAverageCost);
 
     // Update Balance (Decrease)
-    await this.upsertBalance(tx, itemId, warehouseId, qtyDec.negated());
+    await this.upsertBalance(tx, tenantId, itemId, warehouseId, qtyDec.negated());
 
     // Record Transaction
     await tx.inventoryTransaction.create({
@@ -163,7 +164,7 @@ export class InventoryService {
       const item = await tx.item.findUnique({ where: { id: dto.itemId } });
 
       // Outward from Source
-      await this.upsertBalance(tx, dto.itemId, dto.fromWarehouseId, qtyDec.negated());
+      await this.upsertBalance(tx, tenantId, dto.itemId, dto.fromWarehouseId, qtyDec.negated());
       await tx.inventoryTransaction.create({
         data: {
           tenantId,
@@ -178,7 +179,7 @@ export class InventoryService {
       });
 
       // Inward to Destination
-      await this.upsertBalance(tx, dto.itemId, dto.toWarehouseId, qtyDec);
+      await this.upsertBalance(tx, tenantId, dto.itemId, dto.toWarehouseId, qtyDec);
       await tx.inventoryTransaction.create({
         data: {
           tenantId,
@@ -196,24 +197,16 @@ export class InventoryService {
     });
   }
 
-  private async upsertBalance(tx: any, itemId: string, warehouseId: string, quantityChange: Decimal) {
-    const existing = await tx.inventoryBalance.findUnique({
+  private async upsertBalance(tx: any, tenantId: string, itemId: string, warehouseId: string, quantityChange: Decimal) {
+    await tx.inventoryBalance.upsert({
       where: { itemId_warehouseId: { itemId, warehouseId } },
+      update: { quantity: { increment: quantityChange } },
+      create: {
+        tenantId,
+        itemId,
+        warehouseId,
+        quantity: quantityChange,
+      },
     });
-
-    if (existing) {
-      await tx.inventoryBalance.update({
-        where: { id: existing.id },
-        data: { quantity: new Decimal(existing.quantity).plus(quantityChange) },
-      });
-    } else {
-      await tx.inventoryBalance.create({
-        data: {
-          itemId,
-          warehouseId,
-          quantity: quantityChange,
-        },
-      });
-    }
   }
 }

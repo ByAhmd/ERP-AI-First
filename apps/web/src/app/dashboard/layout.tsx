@@ -73,6 +73,7 @@ export default function DashboardLayout({
       // ignore
     }
     ApiClient.clearActiveTenantId();
+    ApiClient.clearTokens();
     router.push("/login");
   };
 
@@ -87,6 +88,14 @@ export default function DashboardLayout({
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   };
+
+  if (!user) {
+    return (
+      <div className="layout-container flex items-center justify-center h-screen w-screen bg-black">
+        <div className="text-secondary">{t("common.loading") ?? "Loading..."}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="layout-container">
@@ -137,10 +146,16 @@ export default function DashboardLayout({
             <span>🏦</span> {t("nav.bankRecon")}
           </Link>
           <Link
-            href="/dashboard/ledger"
-            className={`nav-item ${isActive("/dashboard/ledger") ? "active" : ""}`}
+            href="/dashboard/accounting/general-ledger"
+            className={`nav-item ${isActive("/dashboard/accounting/general-ledger") ? "active" : ""}`}
           >
             <span>📒</span> {t("nav.generalLedger")}
+          </Link>
+          <Link
+            href="/dashboard/accounting/trial-balance"
+            className={`nav-item ${isActive("/dashboard/accounting/trial-balance") ? "active" : ""}`}
+          >
+            <span>⚖️</span> {t("nav.trialBalance")}
           </Link>
 
           <div className="nav-section-label">{t("nav.business")}</div>
@@ -238,6 +253,12 @@ export default function DashboardLayout({
             <span>👤</span> {t("nav.users")}
           </Link>
           <Link
+            href="/dashboard/roles"
+            className={`nav-item ${isActive("/dashboard/roles") ? "active" : ""}`}
+          >
+            <span>🔐</span> {t("roles.title")}
+          </Link>
+          <Link
             href="/dashboard/settings"
             className={`nav-item ${isActive("/dashboard/settings") ? "active" : ""}`}
           >
@@ -314,7 +335,7 @@ export default function DashboardLayout({
                     </button>
                   ))}
                   <Link
-                    href="/setup"
+                    href="/workspaces"
                     onClick={() => setShowCompanySwitcher(false)}
                     style={{
                       display: "block",
@@ -324,9 +345,10 @@ export default function DashboardLayout({
                       fontSize: "0.875rem",
                       textDecoration: "none",
                       textAlign: isRTL ? "right" : "left",
+                      fontWeight: 600,
                     }}
                   >
-                    {t("common.addNewCompany")}
+                    ⊞ View All Workspaces
                   </Link>
                 </div>
               )}
@@ -377,14 +399,23 @@ export default function DashboardLayout({
             <h2 className="company-name">{activeTenant?.name ?? t("common.loading")}</h2>
             <span className="tenant-badge">{t("header.activeTenant")}</span>
           </div>
-          {/* Language Toggle */}
-          <button
-            className="lang-toggle"
-            onClick={toggleLanguage}
-            title={locale === "en" ? "Switch to Arabic" : "التبديل إلى الإنجليزية"}
-          >
-            🌐 {locale === "en" ? "العربية" : "English"}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <Link
+              href="/workspaces"
+              className="btn-secondary"
+              style={{ textDecoration: 'none', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              ⊞ {t("workspaces.title") || "Switch Workspace"}
+            </Link>
+            {/* Language Toggle */}
+            <button
+              className="lang-toggle"
+              onClick={toggleLanguage}
+              title={locale === "en" ? "Switch to Arabic" : "التبديل إلى الإنجليزية"}
+            >
+              🌐 {locale === "en" ? "العربية" : "English"}
+            </button>
+          </div>
         </header>
 
         {/* Page Content */}

@@ -41,7 +41,17 @@ export default function LoginPage() {
       }
 
       if (!res.ok) {
-        throw new Error(data?.message || "Login failed");
+        let errorMsg = "Login failed";
+        if (data?.message) {
+           if (Array.isArray(data.message)) {
+             errorMsg = data.message.join(', ');
+           } else if (typeof data.message === 'object') {
+             errorMsg = data.message.message || JSON.stringify(data.message);
+           } else {
+             errorMsg = String(data.message);
+           }
+        }
+        throw new Error(errorMsg);
       }
 
       if (data?.accessToken) {
@@ -52,12 +62,12 @@ export default function LoginPage() {
       const tenants = await ApiClient.get<Tenant[]>("/tenants");
 
       if (!tenants || tenants.length === 0) {
-        router.push("/setup");
+        // No workspaces exist
+        router.push("/workspaces");
         return;
       }
 
-      ApiClient.setActiveTenantId(tenants[0].id);
-      router.push("/dashboard");
+      router.push("/workspaces");
     } catch (err: any) {
       setError(err.message);
     } finally {

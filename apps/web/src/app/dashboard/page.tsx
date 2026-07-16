@@ -250,7 +250,7 @@ export default function DashboardOverview() {
                 }}
               >
                 {card.format === "currency"
-                  ? `${t("common.currency")} ${Math.abs(card.value).toLocaleString(dateLocale, { minimumFractionDigits: 2 })}`
+                  ? `${card.value < 0 ? '-' : ''}${t("common.currency")} ${Math.abs(card.value).toLocaleString(dateLocale, { minimumFractionDigits: 2 })}`
                   : card.value.toLocaleString(dateLocale)}
               </div>
             </div>

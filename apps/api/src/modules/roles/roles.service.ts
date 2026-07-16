@@ -43,6 +43,88 @@ export class RolesService {
     return role;
   }
 
+  async createRole(tenantId: string, dto: import('./dto/role.dto').CreateRoleDto) {
+    const existing = await this.prisma.role.findUnique({
+      where: { tenantId_name: { tenantId, name: dto.name } },
+    });
+    if (existing) {
+      throw new ConflictException('A role with this name already exists in this tenant');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const role = await tx.role.create({
+        data: {
+          tenantId,
+          name: dto.name,
+          description: dto.description,
+          isSystemRole: false,
+        },
+      });
+
+      if (dto.permissionIds && dto.permissionIds.length > 0) {
+        await tx.rolePermission.createMany({
+          data: dto.permissionIds.map((permId) => ({
+            tenantId,
+            roleId: role.id,
+            permissionId: permId,
+          })),
+        });
+      }
+
+      return role;
+    });
+  }
+
+  async updateRole(tenantId: string, roleId: string, dto: import('./dto/role.dto').UpdateRoleDto) {
+    const role = await this.prisma.role.findUnique({ where: { id: roleId } });
+    if (!role || role.tenantId !== tenantId) {
+      throw new NotFoundException('Role not found');
+    }
+
+    if (role.isSystemRole) {
+      throw new ConflictException('Cannot edit a system role');
+    }
+
+    if (dto.name && dto.name !== role.name) {
+      const existing = await this.prisma.role.findUnique({
+        where: { tenantId_name: { tenantId, name: dto.name } },
+      });
+      if (existing) {
+        throw new ConflictException('A role with this name already exists in this tenant');
+      }
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedRole = await tx.role.update({
+        where: { id: roleId },
+        data: {
+          name: dto.name ?? role.name,
+          description: dto.description ?? role.description,
+        },
+      });
+
+      if (dto.permissionIds) {
+        // Delete all old permissions
+        await tx.rolePermission.deleteMany({
+          where: { roleId },
+        });
+
+        // Create new permissions
+        if (dto.permissionIds.length > 0) {
+          await tx.rolePermission.createMany({
+            data: dto.permissionIds.map((permId) => ({
+              tenantId,
+              roleId,
+              permissionId: permId,
+            })),
+          });
+        }
+      }
+
+      return updatedRole;
+    });
+  }
+
   /**
    * Seeds the default system roles (Owner, Admin, Accountant, Viewer) for a new tenant.
    * Requires permissions to be seeded first.
@@ -83,6 +165,7 @@ export class RolesService {
              throw new Error(`Critical: Permission ${permKey} not found during role seeding`);
           }
           return {
+            tenantId,
             roleId: role.id,
             permissionId,
           };

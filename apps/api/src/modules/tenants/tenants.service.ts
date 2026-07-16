@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { ALL_PERMISSION_KEYS, DEFAULT_ROLES, PERMISSION_DESCRIPTIONS, SAUDI_ARABIA } from '@erp-ai/shared';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -56,6 +56,7 @@ export class TenantsService {
       // 5. Assign all permissions to the Owner role
       await tx.rolePermission.createMany({
         data: permissions.map((p) => ({
+          tenantId: tenant.id,
           roleId: ownerRole.id,
           permissionId: p.id,
         })),
@@ -80,6 +81,7 @@ export class TenantsService {
         if (rolePerms.length > 0) {
           await tx.rolePermission.createMany({
             data: rolePerms.map((p) => ({
+              tenantId: tenant.id,
               roleId: role.id,
               permissionId: p.id,
             })),
@@ -122,7 +124,15 @@ export class TenantsService {
     return userTenants.map((ut) => ut.tenant);
   }
 
-  async updateTenant(tenantId: string, data: any) {
+  async updateTenant(tenantId: string, userId: string, data: any) {
+    const membership = await this.prisma.tenantUser.findFirst({
+      where: { tenantId, userId },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You do not have permission to modify this tenant.');
+    }
+
     return this.prisma.tenant.update({
       where: { id: tenantId },
       data,

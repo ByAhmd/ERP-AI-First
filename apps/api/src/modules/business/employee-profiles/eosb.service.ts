@@ -10,6 +10,17 @@ export class EosbService {
     private readonly journalEntriesService: JournalEntriesService
   ) {}
 
+  private computeEosb(wage: Decimal, hireDate: Date, evaluationDate: Date): Decimal {
+    const years = Math.max(0, (evaluationDate.getTime() - hireDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+    if (years <= 5) {
+      return wage.div(2).mul(years);
+    } else {
+      const firstFive = wage.div(2).mul(5);
+      const rest = wage.mul(years - 5);
+      return firstFive.plus(rest);
+    }
+  }
+
   /**
    * Under Saudi Labor Law, employees receive a severance payout.
    * First 5 years: Half-month salary per year.
@@ -29,16 +40,7 @@ export class EosbService {
     // EOSB uses the *last* basic wage + fixed allowances. We will use basicSalary as the base.
     const monthlyWage = new Decimal(profile.basicSalary).plus(profile.housingAllowance).plus(profile.transportAllowance);
     
-    let eosbTotal = new Decimal(0);
-    
-    // Calculate total accrued liability assuming Termination (Full Entitlement)
-    if (yearsOfService <= 5) {
-      eosbTotal = monthlyWage.div(2).mul(yearsOfService);
-    } else {
-      const firstFiveYears = monthlyWage.div(2).mul(5);
-      const remainingYears = monthlyWage.mul(yearsOfService - 5);
-      eosbTotal = firstFiveYears.plus(remainingYears);
-    }
+    let eosbTotal = this.computeEosb(monthlyWage, hireDate, now);
 
     // Apply Resignation rules which pro-rate the payout
     if (departureReason === 'Resignation') {
@@ -68,22 +70,19 @@ export class EosbService {
     let totalAccrualForMonth = new Decimal(0);
     
     for (const profile of profiles) {
-       // Monthly accrual is roughly the liability of (years + 1 month) minus (years).
-       // A simpler approach for the GL is: 
-       // If < 5 yrs: accrue (MonthlyWage/2) / 12 per month.
-       // If > 5 yrs: accrue (MonthlyWage) / 12 per month.
+       // Correct approach: Calculate liability today vs liability 1 month ago using the *current* wage.
+       // This automatically catches up any underfunded liability due to recent salary increases.
        const now = new Date();
+       const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
        const hireDate = profile.hireDate || now;
-       const yearsOfService = (now.getTime() - hireDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
        
        const monthlyWage = new Decimal(profile.basicSalary).plus(profile.housingAllowance).plus(profile.transportAllowance);
        
-       let monthlyAccrual = new Decimal(0);
-       if (yearsOfService <= 5) {
-         monthlyAccrual = monthlyWage.div(2).div(12);
-       } else {
-         monthlyAccrual = monthlyWage.div(12);
-       }
+       const currentLiability = this.computeEosb(monthlyWage, hireDate, now);
+       const pastLiability = this.computeEosb(monthlyWage, hireDate, oneMonthAgo);
+       
+       let monthlyAccrual = currentLiability.minus(pastLiability);
+       if (monthlyAccrual.isNegative()) monthlyAccrual = new Decimal(0);
        
        totalAccrualForMonth = totalAccrualForMonth.plus(monthlyAccrual);
     }
@@ -91,18 +90,18 @@ export class EosbService {
     // Debit: EOSB Expense
     // Credit: Provision for EOSB Liability
     const expenseParent = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '5100' } } });
-    let eosbExpenseAccount = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '5120' } } });
+    let eosbExpenseAccount = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '5130' } } });
     if (!eosbExpenseAccount) {
       eosbExpenseAccount = await this.prisma.chartOfAccount.create({ 
-        data: { tenantId, code: '5120', name: 'EOSB Expense', type: 'Expense', parentId: expenseParent?.id } 
+        data: { tenantId, code: '5130', name: 'EOSB Expense', type: 'Expense', parentId: expenseParent?.id } 
       });
     }
 
     const liabilityParent = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '2100' } } });
-    let eosbLiabilityAccount = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '2150' } } });
+    let eosbLiabilityAccount = await this.prisma.chartOfAccount.findUnique({ where: { tenantId_code: { tenantId, code: '2160' } } });
     if (!eosbLiabilityAccount) {
       eosbLiabilityAccount = await this.prisma.chartOfAccount.create({ 
-        data: { tenantId, code: '2150', name: 'Provision for EOSB', type: 'Liability', parentId: liabilityParent?.id } 
+        data: { tenantId, code: '2160', name: 'Provision for EOSB', type: 'Liability', parentId: liabilityParent?.id } 
       });
     }
 

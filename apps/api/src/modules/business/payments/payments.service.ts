@@ -128,14 +128,28 @@ export class PaymentsService {
     let controlAccountId: string;
     if (isIncoming) {
       if (!contact.receivableAccountId) {
-        throw new BadRequestException('Contact does not have a default Accounts Receivable account set for Incoming Payment.');
+        const arAccount = await this.prisma.chartOfAccount.findFirst({
+          where: { tenantId, type: 'Asset', name: { contains: 'Receivable', mode: 'insensitive' } }
+        });
+        if (!arAccount) {
+          throw new BadRequestException('Contact does not have a default Accounts Receivable account set for Incoming Payment, and no default AR account could be found in the chart of accounts.');
+        }
+        controlAccountId = arAccount.id;
+      } else {
+        controlAccountId = contact.receivableAccountId;
       }
-      controlAccountId = contact.receivableAccountId;
     } else {
       if (!contact.payableAccountId) {
-        throw new BadRequestException('Contact does not have a default Accounts Payable account set for Outgoing Payment.');
+        const apAccount = await this.prisma.chartOfAccount.findFirst({
+          where: { tenantId, type: 'Liability', name: { contains: 'Payable', mode: 'insensitive' } }
+        });
+        if (!apAccount) {
+          throw new BadRequestException('Contact does not have a default Accounts Payable account set for Outgoing Payment, and no default AP account could be found in the chart of accounts.');
+        }
+        controlAccountId = apAccount.id;
+      } else {
+        controlAccountId = contact.payableAccountId;
       }
-      controlAccountId = contact.payableAccountId;
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -191,6 +205,10 @@ export class PaymentsService {
       });
 
       const whtAmountBase = payment.whtAmount ? new Decimal(payment.whtAmount).mul(exRate) : new Decimal(0);
+      
+      if (whtAmountBase.greaterThan(totalBase)) {
+        throw new BadRequestException('Withholding tax amount cannot exceed the total payment amount.');
+      }
       
       // If WHT is deducted on an outgoing payment, the bank credit is less, and the rest goes to WHT Payable (Credit)
       if (whtAmountBase.greaterThan(0) && payment.whtAccountId) {

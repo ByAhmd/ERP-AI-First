@@ -126,6 +126,7 @@ export const translations = {
     'nav.fixedAssets': 'Fixed Assets',
     'nav.bankRecon': 'Bank Recon',
     'nav.generalLedger': 'General Ledger',
+    'nav.trialBalance': 'Trial Balance',
     'nav.business': 'Business',
     'nav.approvals': 'Approvals',
     'nav.crm': 'CRM',
@@ -636,6 +637,27 @@ export const translations = {
     'reports.totalEquity': 'Total Equity',
     'reports.totalLiabilitiesEquity': 'Total Liabilities & Equity',
 
+    // ─── Workspaces ─────────────────────────────────────────────────────────────
+    'workspaces.title': 'Customer Workspaces',
+    'workspaces.subtitle': 'Select a customer workspace to manage their accounts and operations.',
+    'workspaces.createNew': 'Create New Customer',
+    'workspaces.enter': 'Enter Workspace',
+    'workspaces.createTitle': 'New Customer Workspace',
+    'workspaces.createDesc': 'This will create an isolated environment with a strictly mapped chart of accounts.',
+    'workspaces.customerName': 'Customer Name',
+
+    // ─── Roles & Permissions ──────────────────────────────────────────────────
+    'roles.title': 'Roles & Permissions',
+    'roles.subtitle': 'Manage user roles and access control policies.',
+    'roles.new': 'New Role',
+    'roles.name': 'Role Name',
+    'roles.description': 'Description',
+    'roles.type': 'Type',
+    'roles.permissions': 'Permissions',
+    'roles.system': 'System Role',
+    'roles.custom': 'Custom Role',
+    'roles.save': 'Save Role',
+
     // ─── Settings ─────────────────────────────────────────────────────────────
     'settings.title': 'Settings',
     'settings.subtitle': 'Manage company profile, defaults, and integrations',
@@ -835,6 +857,7 @@ export const translations = {
     'nav.fixedAssets': 'الأصول الثابتة',
     'nav.bankRecon': 'التسوية البنكية',
     'nav.generalLedger': 'الأستاذ العام',
+    'nav.trialBalance': 'ميزان المراجعة',
     'nav.business': 'الأعمال',
     'nav.approvals': 'الاعتمادات',
     'nav.crm': 'إدارة العملاء',
@@ -1344,6 +1367,27 @@ export const translations = {
     'reports.totalLiabilities': 'إجمالي الخصوم',
     'reports.totalEquity': 'إجمالي حقوق الملكية',
     'reports.totalLiabilitiesEquity': 'إجمالي الخصوم وحقوق الملكية',
+
+    // ─── Workspaces ─────────────────────────────────────────────────────────────
+    'workspaces.title': 'مساحات عمل العملاء',
+    'workspaces.subtitle': 'اختر مساحة عمل للعميل لإدارة حساباته وعملياته.',
+    'workspaces.createNew': 'إنشاء عميل جديد',
+    'workspaces.enter': 'دخول مساحة العمل',
+    'workspaces.createTitle': 'مساحة عمل عميل جديدة',
+    'workspaces.createDesc': 'سيؤدي هذا إلى إنشاء بيئة معزولة مع شجرة حسابات دقيقة الافتراضات.',
+    'workspaces.customerName': 'اسم العميل',
+
+    // ─── Roles & Permissions ──────────────────────────────────────────────────
+    'roles.title': 'الأدوار والصلاحيات',
+    'roles.subtitle': 'إدارة أدوار المستخدمين وسياسات التحكم في الوصول.',
+    'roles.new': 'دور جديد',
+    'roles.name': 'اسم الدور',
+    'roles.description': 'الوصف',
+    'roles.type': 'النوع',
+    'roles.permissions': 'الصلاحيات',
+    'roles.system': 'دور النظام',
+    'roles.custom': 'دور مخصص',
+    'roles.save': 'حفظ الدور',
 
     // ─── Settings ─────────────────────────────────────────────────────────────
     'settings.title': 'الإعدادات',

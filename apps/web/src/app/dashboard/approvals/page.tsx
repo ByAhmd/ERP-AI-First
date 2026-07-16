@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiClient } from "../../../lib/api-client";
 import { useLanguage } from '../../../components/LanguageProvider';
+import toast from "react-hot-toast";
 
 interface ApprovalRequest {
   id: string;
@@ -40,7 +41,11 @@ export default function ApprovalsInbox() {
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       setSelectedRequest(null);
       setComments("");
+      toast.success("Approved successfully!");
     },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to approve request");
+    }
   });
 
   const rejectMutation = useMutation({
@@ -49,7 +54,11 @@ export default function ApprovalsInbox() {
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       setSelectedRequest(null);
       setComments("");
+      toast.success("Rejected successfully!");
     },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to reject request");
+    }
   });
 
   const handleApprove = () => {

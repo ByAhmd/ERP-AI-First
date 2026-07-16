@@ -169,7 +169,7 @@ export default function JournalEntriesPage() {
                           style={{ backgroundColor: 'rgba(15,23,42,0.9)' }}
                         >
                           <option value="">{t('common.select')}</option>
-                          {(accounts as any[])?.filter(a => !a.children || a.children.length === 0).map(acc => (
+                          {(accounts ?? []).filter((a: any) => !a.children || a.children.length === 0).map((acc: any) => (
                             <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
                           ))}
                         </select>

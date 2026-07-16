@@ -3,6 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { ZatcaInvoicePrint } from "../../../../components/ZatcaInvoicePrint";
 import { ApiClient } from "../../../../lib/api-client";
 import toast from "react-hot-toast";
 import { useLanguage } from "../../../../components/LanguageProvider";
@@ -100,7 +102,12 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
-        <div className="glass-panel p-6 mb-6">
+        {/* ZATCA Printable Version (Hidden on screen, visible on print) */}
+      <div className="hidden print:block absolute top-0 left-0 w-full bg-white z-[9999]">
+        {invoice && <ZatcaInvoicePrint invoice={invoice as any} />}
+      </div>
+
+      <div className="flex justify-between items-center mb-8 print:hidden">
           <h2 className="heading-2 mb-4">{t("invoice.detail.lineItems")}</h2>
           <table className="data-table" style={{ width: '100%' }}>
             <thead>
@@ -199,8 +206,17 @@ export default function InvoiceDetailPage() {
           {isZatcaGenerated && (
             <div style={{ marginTop: '2rem' }}>
               <div style={{ background: '#fff', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-                {/* Fallback mock display if we don't have a real QR code library installed */}
-                <div style={{ width: '150px', height: '150px', background: 'repeating-linear-gradient(45deg, #000, #000 10px, #fff 10px, #fff 20px)' }}></div>
+                <div className="flex justify-center p-4 bg-white rounded-lg inline-block">
+                  <QRCodeSVG value={invoice.zatcaQrCode || ''} size={150} level="M" />
+                </div>
+              </div>
+              <div style={{ marginTop: '1rem' }}>
+                <button 
+                  onClick={() => window.print()} 
+                  className="btn-primary flex items-center gap-2 w-full justify-center"
+                >
+                  <span className="text-xl">🖨️</span> Print Compliant Tax Invoice
+                </button>
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem', wordBreak: 'break-all' }}>

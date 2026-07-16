@@ -83,9 +83,7 @@ export class ApiClient {
             'bypass-tunnel-reminder': 'true',
             'Content-Type': 'application/json'
           },
-          // We might need to send it manually if JwtRefreshGuard supports body.
-          // For now, if we use local storage, we also need to pass the cookie via proxy, or handle it via a new backend flow. 
-          // However, the user can just log in again for now if it expires.
+          body: refreshReqBody,
         });
         
         if (refreshRes.ok) {
@@ -138,7 +136,7 @@ export class ApiClient {
           if (Array.isArray(errorData.message)) {
             errorMsg = errorData.message.join(', ');
           } else if (typeof errorData.message === 'object') {
-            errorMsg = JSON.stringify(errorData.message);
+            errorMsg = errorData.message.message || JSON.stringify(errorData.message);
           } else {
             errorMsg = String(errorData.message);
           }

@@ -22,15 +22,15 @@ function AcceptInviteForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) {
-      setError(t("auth.acceptInvite.invalidToken"));
+      setError(t("auth.acceptInvite.invalidToken") || "Invalid token");
       return;
     }
     if (password !== confirmPassword) {
-      setError(t("auth.acceptInvite.mismatch"));
+      setError(t("auth.acceptInvite.mismatch") || "Passwords do not match");
       return;
     }
     if (password.length < 8) {
-      setError(t("auth.acceptInvite.minLength"));
+      setError(t("auth.acceptInvite.minLength") || "Password must be at least 8 characters");
       return;
     }
 
@@ -38,7 +38,7 @@ function AcceptInviteForm() {
     setError(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/auth/accept-invite", {
+      const res = await fetch("/api/v1/auth/accept-invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
@@ -46,12 +46,20 @@ function AcceptInviteForm() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || "Failed to accept invite");
+        let errorMessage = data.message || "Failed to accept invite";
+        if (Array.isArray(data.message)) {
+          errorMessage = data.message.join(", ");
+        } else if (typeof data.message === "object") {
+          errorMessage = JSON.stringify(data.message);
+        } else if (data.error && typeof data.message === "undefined") {
+          errorMessage = data.error;
+        }
+        throw new Error(errorMessage);
       }
 
       setSuccess(true);
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/workspaces");
       }, 2000);
     } catch (err: any) {
       setError(err.message);
@@ -62,13 +70,24 @@ function AcceptInviteForm() {
 
   if (!token) {
     return (
-      <div className="text-center">
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center justify-center gap-2 mb-6">
-          <AlertCircle className="w-5 h-5" />
-          <p>{t("auth.acceptInvite.invalidToken")}</p>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+          color: 'var(--error)', 
+          padding: '1rem', 
+          borderRadius: 'var(--radius-md)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: '0.5rem', 
+          marginBottom: '1.5rem',
+          border: '1px solid rgba(239, 68, 68, 0.2)'
+        }}>
+          <AlertCircle style={{ width: '1.25rem', height: '1.25rem' }} />
+          <p>{t("auth.acceptInvite.invalidToken") || "Invalid or missing invitation link."}</p>
         </div>
-        <Link href="/login" className="text-blue-600 hover:underline">
-          {t("auth.acceptInvite.returnLogin")}
+        <Link href="/login" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>
+          {t("auth.acceptInvite.returnLogin") || "Return to Login"}
         </Link>
       </div>
     );
@@ -76,64 +95,83 @@ function AcceptInviteForm() {
 
   if (success) {
     return (
-      <div className="text-center">
-        <div className="bg-green-50 text-green-700 p-6 rounded-lg flex flex-col items-center justify-center gap-3">
-          <CheckCircle className="w-12 h-12 text-green-500" />
-          <h2 className="text-xl font-semibold">{t("auth.acceptInvite.success.title")}</h2>
-          <p>{t("auth.acceptInvite.success.message")}</p>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          backgroundColor: 'rgba(34, 197, 94, 0.1)', 
+          color: 'var(--success)', 
+          padding: '1.5rem', 
+          borderRadius: 'var(--radius-md)', 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: '0.75rem',
+          border: '1px solid rgba(34, 197, 94, 0.2)'
+        }}>
+          <CheckCircle style={{ width: '3rem', height: '3rem' }} />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{t("auth.acceptInvite.success.title") || "Success!"}</h2>
+          <p>{t("auth.acceptInvite.success.message") || "Your account is activated."}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {error && (
-        <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded text-sm flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+        <div style={{ 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+          color: 'var(--error)', 
+          border: '1px solid rgba(239, 68, 68, 0.2)', 
+          borderRadius: 'var(--radius-sm)', 
+          fontSize: '0.875rem', 
+          display: 'flex', 
+          alignItems: 'flex-start', 
+          gap: '0.5rem' 
+        }}>
+          <AlertCircle style={{ width: '1rem', height: '1rem', marginTop: '0.125rem', flexShrink: 0 }} />
           <span>{error}</span>
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("auth.acceptInvite.newPassword")}
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-            <Lock className="w-5 h-5" />
+      <div className="form-group">
+        <label>{t("auth.acceptInvite.newPassword") || "New Password"}</label>
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', insetBlock: 0, left: 0, paddingLeft: '0.75rem', display: 'flex', alignItems: 'center', pointerEvents: 'none', color: 'var(--text-tertiary)' }}>
+            <Lock style={{ width: '1.25rem', height: '1.25rem' }} />
           </div>
           <input
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+            className="form-input"
+            style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
             placeholder="••••••••"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            style={{ position: 'absolute', insetBlock: 0, right: 0, paddingRight: '0.75rem', display: 'flex', alignItems: 'center', color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? <EyeOff style={{ width: '1.25rem', height: '1.25rem' }} /> : <Eye style={{ width: '1.25rem', height: '1.25rem' }} />}
           </button>
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("auth.acceptInvite.confirmPassword")}
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-            <Lock className="w-5 h-5" />
+      <div className="form-group">
+        <label>{t("auth.acceptInvite.confirmPassword") || "Confirm Password"}</label>
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', insetBlock: 0, left: 0, paddingLeft: '0.75rem', display: 'flex', alignItems: 'center', pointerEvents: 'none', color: 'var(--text-tertiary)' }}>
+            <Lock style={{ width: '1.25rem', height: '1.25rem' }} />
           </div>
           <input
             type={showPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+            className="form-input"
+            style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
             placeholder="••••••••"
             required
           />
@@ -143,9 +181,10 @@ function AcceptInviteForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="btn-primary"
+        style={{ width: '100%', marginTop: '0.5rem' }}
       >
-        {loading ? t("auth.acceptInvite.submitting") : t("auth.acceptInvite.submit")}
+        {loading ? (t("auth.acceptInvite.submitting") || "Setting up...") : (t("auth.acceptInvite.submit") || "Activate Account")}
       </button>
     </form>
   );
@@ -156,33 +195,50 @@ export default function AcceptInvitePage() {
 
   return (
     <div
-      className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8"
       dir={isRTL ? "rtl" : "ltr"}
-      style={{ position: "relative" }}
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "var(--bg-primary)",
+        color: "var(--text-primary)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "3rem 1rem",
+        position: "relative"
+      }}
     >
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="text-center">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl mx-auto flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-2xl">E</span>
+      <div style={{ width: "100%", maxWidth: "400px" }}>
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div style={{
+            width: "3rem",
+            height: "3rem",
+            backgroundColor: "var(--accent-primary)",
+            borderRadius: "var(--radius-md)",
+            margin: "0 auto 1.5rem auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
+          }}>
+            <span style={{ color: "white", fontWeight: "bold", fontSize: "1.5rem" }}>E</span>
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            {t("auth.acceptInvite.title")}
+          <h2 className="heading-1" style={{ marginBottom: "0.5rem" }}>
+            {t("auth.acceptInvite.title") || "Welcome to ERP AI"}
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            {t("auth.acceptInvite.subtitle")}
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+            {t("auth.acceptInvite.subtitle") || "Set your password to activate your account"}
           </p>
         </div>
 
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow-sm border border-gray-100 sm:rounded-xl sm:px-10">
-            <Suspense fallback={<div className="text-center text-gray-500">{t("common.loading")}</div>}>
-              <AcceptInviteForm />
-            </Suspense>
-          </div>
+        <div className="glass-panel" style={{ padding: "2rem" }}>
+          <Suspense fallback={<div style={{ textAlign: "center", color: "var(--text-tertiary)" }}>{t("common.loading") || "Loading..."}</div>}>
+            <AcceptInviteForm />
+          </Suspense>
         </div>
       </div>
       
-      {/* Language Toggle - top right / top left in RTL */}
+      {/* Language Toggle */}
       <button
         className="lang-toggle"
         onClick={toggleLanguage}

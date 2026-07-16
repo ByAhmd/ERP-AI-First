@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { Prisma } from '@prisma/client';
 import { ChartOfAccountsService } from '../chart-of-accounts/chart-of-accounts.service';
 import { AccountingPeriodsService } from '../accounting-periods/accounting-periods.service';
 import Decimal from 'decimal.js';
@@ -111,7 +112,9 @@ export class JournalEntriesService {
       return executeCreate(tx);
     } else {
       // Not in a transaction — wrap in one for atomicity
-      return this.prisma.$transaction(executeCreate);
+      return this.prisma.$transaction(executeCreate, { 
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable 
+      });
     }
   }
 
@@ -192,6 +195,8 @@ export class JournalEntriesService {
       });
 
       return reversal;
+    }, { 
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable 
     });
   }
 

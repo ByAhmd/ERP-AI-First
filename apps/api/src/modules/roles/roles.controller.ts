@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Post, Put, Body } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PERMISSIONS } from '@erp-ai/shared';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,5 +27,19 @@ export class RolesController {
   @RequirePermissions(PERMISSIONS.AUTH_ROLES_READ)
   findOne(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.rolesService.findOneByTenant(user.tenantId!, id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new custom role' })
+  @RequirePermissions(PERMISSIONS.AUTH_ROLES_MANAGE)
+  create(@Body() dto: import('./dto/role.dto').CreateRoleDto, @CurrentUser() user: RequestUser) {
+    return this.rolesService.createRole(user.tenantId!, dto);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update a custom role' })
+  @RequirePermissions(PERMISSIONS.AUTH_ROLES_MANAGE)
+  update(@Param('id') id: string, @Body() dto: import('./dto/role.dto').UpdateRoleDto, @CurrentUser() user: RequestUser) {
+    return this.rolesService.updateRole(user.tenantId!, id, dto);
   }
 }

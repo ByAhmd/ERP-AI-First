@@ -120,32 +120,26 @@ export class ChartOfAccountsService {
     const template = [
       // Assets (1000)
       { code: '1000', name: 'Assets', type: 'Asset' as const, parentCode: null },
-      { code: '1100', name: 'Current Assets', type: 'Asset' as const, parentCode: '1000' },
-      { code: '1110', name: 'Cash and Cash Equivalents', type: 'Asset' as const, parentCode: '1100' },
-      { code: '1111', name: 'Operating Bank Account', type: 'Asset' as const, parentCode: '1110' },
-      { code: '1120', name: 'Accounts Receivable', type: 'Asset' as const, parentCode: '1100' },
+      { code: '1100', name: 'Bank Account', type: 'Asset' as const, parentCode: '1000' },
+      { code: '1101', name: 'Cash on Hand', type: 'Asset' as const, parentCode: '1000' },
+      { code: '1200', name: 'Accounts Receivable', type: 'Asset' as const, parentCode: '1000' },
+      { code: '1300', name: 'Inventory Asset', type: 'Asset' as const, parentCode: '1000' },
       
       // Liabilities (2000)
       { code: '2000', name: 'Liabilities', type: 'Liability' as const, parentCode: null },
-      { code: '2100', name: 'Current Liabilities', type: 'Liability' as const, parentCode: '2000' },
-      { code: '2110', name: 'Accounts Payable', type: 'Liability' as const, parentCode: '2100' },
-      { code: '2120', name: 'VAT Payable', type: 'Liability' as const, parentCode: '2100' },
+      { code: '2100', name: 'Accounts Payable', type: 'Liability' as const, parentCode: '2000' },
       
       // Equity (3000)
       { code: '3000', name: 'Equity', type: 'Equity' as const, parentCode: null },
-      { code: '3100', name: 'Share Capital', type: 'Equity' as const, parentCode: '3000' },
-      { code: '3200', name: 'Retained Earnings', type: 'Equity' as const, parentCode: '3000' },
       
       // Revenue (4000)
       { code: '4000', name: 'Revenue', type: 'Revenue' as const, parentCode: null },
       { code: '4100', name: 'Sales Revenue', type: 'Revenue' as const, parentCode: '4000' },
-      { code: '4110', name: 'Services Revenue', type: 'Revenue' as const, parentCode: '4000' },
       
       // Expenses (5000)
       { code: '5000', name: 'Expenses', type: 'Expense' as const, parentCode: null },
-      { code: '5100', name: 'Operating Expenses', type: 'Expense' as const, parentCode: '5000' },
-      { code: '5110', name: 'Salaries and Wages', type: 'Expense' as const, parentCode: '5100' },
-      { code: '5120', name: 'Rent Expense', type: 'Expense' as const, parentCode: '5100' },
+      { code: '5100', name: 'Cost of Goods Sold', type: 'Expense' as const, parentCode: '5000' },
+      { code: '5200', name: 'Salary Expense', type: 'Expense' as const, parentCode: '5000' },
     ];
 
     const client = txClient || this.prisma;

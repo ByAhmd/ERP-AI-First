@@ -21,14 +21,19 @@ export class GeneralLedgerService {
       select: { id: true, code: true, name: true, type: true }
     });
 
-    // 2. Fetch aggregated journal lines for posted entries
-    const lines = await this.prisma.journalEntryLine.groupBy({
+    const bsDateFilter: any = {};
+    if (endDate) bsDateFilter.lte = endDate;
+
+    const bsLines = await this.prisma.journalEntryLine.groupBy({
       by: ['accountId'],
       where: {
         tenantId,
         journalEntry: {
           status: 'Posted',
-          ...(Object.keys(dateFilter).length > 0 ? { entryDate: dateFilter } : {})
+          ...(Object.keys(bsDateFilter).length > 0 ? { entryDate: bsDateFilter } : {})
+        },
+        account: {
+          type: { in: ['Asset', 'Liability', 'Equity'] }
         }
       },
       _sum: {
@@ -37,8 +42,26 @@ export class GeneralLedgerService {
       }
     });
 
-    // 3. Map aggregations to accounts
-    const linesMap = new Map(lines.map(l => [l.accountId, l._sum]));
+    const plLines = await this.prisma.journalEntryLine.groupBy({
+      by: ['accountId'],
+      where: {
+        tenantId,
+        journalEntry: {
+          status: 'Posted',
+          ...(Object.keys(dateFilter).length > 0 ? { entryDate: dateFilter } : {})
+        },
+        account: {
+          type: { in: ['Revenue', 'Expense'] }
+        }
+      },
+      _sum: {
+        debit: true,
+        credit: true
+      }
+    });
+
+    const allLines = [...bsLines, ...plLines];
+    const linesMap = new Map(allLines.map(l => [l.accountId, l._sum]));
 
     const trialBalance = accounts.map(acc => {
       const sums = linesMap.get(acc.id) || { debit: new Decimal(0), credit: new Decimal(0) };

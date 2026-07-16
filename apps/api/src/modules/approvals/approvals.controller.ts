@@ -2,9 +2,10 @@ import { Controller, Get, Post, Param, Body, UseGuards, Request } from '@nestjs/
 import { ApprovalsService } from './approvals.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
 
 @Controller('business/approvals')
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
 

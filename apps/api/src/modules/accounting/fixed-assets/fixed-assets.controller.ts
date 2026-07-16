@@ -1,10 +1,12 @@
 import { Controller, Post, Get, Body, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { FixedAssetsService } from './fixed-assets.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { CreateFixedAssetDto } from './dto/fixed-assets.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
 @Controller('accounting/fixed-assets')
 export class FixedAssetsController {
   constructor(private readonly fixedAssetsService: FixedAssetsService) {}

@@ -26,6 +26,8 @@ interface InvoiceLine {
   unitPrice: number;
   taxRate: number;
   accountId: string;
+  itemId?: string;
+  warehouseId?: string;
 }
 
 interface Invoice {
@@ -62,7 +64,7 @@ export default function InvoicesPage() {
   });
 
   const [lines, setLines] = useState<InvoiceLine[]>([
-    { description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "" },
+    { description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "", itemId: "", warehouseId: "" },
   ]);
 
   const { data: invoices, isLoading } = useQuery({
@@ -80,6 +82,16 @@ export default function InvoicesPage() {
     queryFn: () => ApiClient.get<Account[]>("/accounting/chart-of-accounts"),
   });
 
+  const { data: items } = useQuery({
+    queryKey: ["items"],
+    queryFn: () => ApiClient.get<any[]>("/accounting/inventory/items"),
+  });
+
+  const { data: warehouses } = useQuery({
+    queryKey: ["warehouses"],
+    queryFn: () => ApiClient.get<any[]>("/accounting/inventory/warehouses"),
+  });
+
   const createMutation = useMutation({
     mutationFn: (data: any) => ApiClient.post("/business/invoices", data),
     onSuccess: () => {
@@ -92,7 +104,7 @@ export default function InvoicesPage() {
         contactId: "",
         notes: "",
       });
-      setLines([{ description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "" }]);
+      setLines([{ description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "", itemId: "", warehouseId: "" }]);
       toast.success(t("invoices.form.success"));
     },
     onError: (err: any) => {
@@ -118,7 +130,7 @@ export default function InvoicesPage() {
   };
 
   const addLine = () => {
-    setLines([...lines, { description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "" }]);
+    setLines([...lines, { description: "", quantity: 1, unitPrice: 0, taxRate: 0, accountId: "", itemId: "", warehouseId: "" }]);
   };
 
   const removeLine = (index: number) => {
@@ -141,6 +153,8 @@ export default function InvoicesPage() {
         unitPrice: Number(line.unitPrice),
         taxRate: Number(line.taxRate),
         accountId: line.accountId,
+        itemId: line.itemId || undefined,
+        warehouseId: line.warehouseId || undefined,
       }))
     });
   };
@@ -275,6 +289,34 @@ export default function InvoicesPage() {
                             {a.code} - {a.name}
                           </option>
                         ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="block text-xs text-secondary mb-1">Item (Optional)</label>
+                    <select
+                      value={line.itemId || ""}
+                      onChange={(e) => handleLineChange(index, "itemId", e.target.value)}
+                      className="form-input"
+                      style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
+                    >
+                      <option value="">None</option>
+                      {(items ?? []).map((i) => (
+                        <option key={i.id} value={i.id}>{i.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label className="block text-xs text-secondary mb-1">Warehouse (Optional)</label>
+                    <select
+                      value={line.warehouseId || ""}
+                      onChange={(e) => handleLineChange(index, "warehouseId", e.target.value)}
+                      className="form-input"
+                      style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
+                    >
+                      <option value="">None</option>
+                      {(warehouses ?? []).map((w) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div style={{ width: "80px" }}>

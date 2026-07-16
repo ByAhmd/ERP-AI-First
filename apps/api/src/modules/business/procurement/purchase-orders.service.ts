@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../../database/prisma.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Decimal } from 'decimal.js';
+import { InventoryService } from '../../accounting/inventory/inventory.service';
 
 @Injectable()
 export class PurchaseOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inventoryService: InventoryService
+  ) {}
 
   async getPOs(tenantId: string) {
     return this.prisma.purchaseOrder.findMany({
@@ -30,6 +34,7 @@ export class PurchaseOrdersService {
       totalAmount = totalAmount.plus(total);
       
       return {
+        tenantId, // Add tenantId here!
         description: line.description,
         quantity: qty,
         unitPrice: price,
@@ -80,26 +85,27 @@ export class PurchaseOrdersService {
     });
 
     if (!po) throw new NotFoundException('Purchase Order not found');
-    if (po.status !== 'Sent' && po.status !== 'Draft') {
-      throw new BadRequestException(`Cannot receive goods for PO in status: ${po.status}`);
+    // OP-005 FIX: Restrict receiving goods strictly to 'Sent' POs.
+    if (po.status !== 'Sent') {
+      throw new BadRequestException(`Cannot receive goods for PO in status: ${po.status}. Only 'Sent' POs can be received.`);
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // Create inventory transactions for each line that has an itemId
       for (const line of po.lines) {
         if (line.itemId) {
-          await tx.inventoryTransaction.create({
-            data: {
-              tenantId,
-              itemId: line.itemId,
-              warehouseId: warehouseId,
-              type: 'Purchase',
-              quantity: line.quantity,
-              unitCost: line.unitPrice,
-              reference: po.id,
-              date: new Date()
-            }
-          });
+          // Calculate line total for cost allocation
+          const lineTotal = new Decimal(line.quantity).mul(new Decimal(line.unitPrice)).toNumber();
+          
+          await this.inventoryService.processInwardMovement(
+            tx,
+            tenantId,
+            line.itemId,
+            warehouseId,
+            Number(line.quantity),
+            lineTotal,
+            new Date(),
+            po.poNumber
+          );
         }
       }
 
@@ -160,7 +166,18 @@ export class PurchaseOrdersService {
           dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
           subTotal: po.totalAmount,
           total: po.totalAmount,
-          status: 'Draft'
+          status: 'Draft',
+          lines: {
+            create: po.lines.map(poLine => ({
+              tenantId,
+              description: poLine.description,
+              quantity: poLine.quantity,
+              unitPrice: poLine.unitPrice,
+              total: poLine.total,
+              accountId: expenseAccount.id,
+              itemId: poLine.itemId,
+            }))
+          }
         }
       });
 

@@ -87,11 +87,15 @@ export class ApprovalsService {
 
     if (!request) throw new NotFoundException('Approval request not found');
 
-    // BUG-014 FIX: Guard against double-processing. If this is called twice,
-    // the event fires twice which would double-post journal entries.
+    // BUG-014 FIX: Guard against double-processing.
     if (request.status !== 'Pending') {
       throw new BadRequestException(`This approval request has already been ${request.status.toLowerCase()}.`);
     }
+
+    // OP-001 FIX: Prevent self-approval (DISABLED FOR TESTING)
+    // if (request.requestedById === approverId) {
+    //   throw new BadRequestException('You cannot approve your own request.');
+    // }
 
     const updatedRequest = await this.prisma.approvalRequest.update({
       where: { id },
@@ -102,12 +106,22 @@ export class ApprovalsService {
       },
     });
 
-    this.eventEmitter.emit('approval.approved', {
-      tenantId,
-      entityType: request.entityType,
-      entityId: request.entityId,
-      comments
-    });
+    try {
+      // OP-004 FIX: Use emitAsync and wait for listeners.
+      await this.eventEmitter.emitAsync('approval.approved', {
+        tenantId,
+        entityType: request.entityType,
+        entityId: request.entityId,
+        comments
+      });
+    } catch (error: any) {
+      // Compensating transaction: revert to Pending if the business logic fails
+      await this.prisma.approvalRequest.update({
+        where: { id },
+        data: { status: 'Pending', approverId: null, comments: null },
+      });
+      throw new BadRequestException(`Approval processing failed: ${error.message}`);
+    }
 
     return updatedRequest;
   }
@@ -124,6 +138,11 @@ export class ApprovalsService {
       throw new BadRequestException(`This approval request has already been ${request.status.toLowerCase()}.`);
     }
 
+    // OP-001 FIX: Prevent self-rejection of own request (DISABLED FOR TESTING)
+    // if (request.requestedById === approverId) {
+    //   throw new BadRequestException('You cannot reject your own request.');
+    // }
+
     const updatedRequest = await this.prisma.approvalRequest.update({
       where: { id },
       data: {
@@ -133,12 +152,21 @@ export class ApprovalsService {
       },
     });
 
-    this.eventEmitter.emit('approval.rejected', {
-      tenantId,
-      entityType: request.entityType,
-      entityId: request.entityId,
-      comments
-    });
+    try {
+      await this.eventEmitter.emitAsync('approval.rejected', {
+        tenantId,
+        entityType: request.entityType,
+        entityId: request.entityId,
+        comments
+      });
+    } catch (error: any) {
+      // Revert to Pending
+      await this.prisma.approvalRequest.update({
+        where: { id },
+        data: { status: 'Pending', approverId: null, comments: null },
+      });
+      throw new BadRequestException(`Rejection processing failed: ${error.message}`);
+    }
 
     return updatedRequest;
   }

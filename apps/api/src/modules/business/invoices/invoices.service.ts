@@ -99,7 +99,7 @@ export class InvoicesService {
   async findOne(tenantId: string, id: string) {
     const invoice = await this.prisma.invoice.findFirst({
       where: { tenantId, id },
-      include: { lines: true, contact: true },
+      include: { lines: true, contact: true, tenant: true },
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;
@@ -123,14 +123,28 @@ export class InvoicesService {
     let controlAccountId: string;
     if (isSales) {
       if (!contact.receivableAccountId) {
-        throw new BadRequestException('Contact does not have a default Accounts Receivable account set.');
+        const arAccount = await this.prisma.chartOfAccount.findUnique({
+          where: { tenantId_code: { tenantId, code: '1200' } }
+        });
+        if (!arAccount || arAccount.status !== 'Active') {
+          throw new BadRequestException('System error: The default "Accounts Receivable" account (code 1200) is missing or inactive. Please configure a default receivable account.');
+        }
+        controlAccountId = arAccount.id;
+      } else {
+        controlAccountId = contact.receivableAccountId;
       }
-      controlAccountId = contact.receivableAccountId;
     } else {
       if (!contact.payableAccountId) {
-        throw new BadRequestException('Contact does not have a default Accounts Payable account set.');
+        const apAccount = await this.prisma.chartOfAccount.findUnique({
+          where: { tenantId_code: { tenantId, code: '2100' } }
+        });
+        if (!apAccount || apAccount.status !== 'Active') {
+          throw new BadRequestException('System error: The default "Accounts Payable" account (code 2100) is missing or inactive. Please configure a default payable account.');
+        }
+        controlAccountId = apAccount.id;
+      } else {
+        controlAccountId = contact.payableAccountId;
       }
-      controlAccountId = contact.payableAccountId;
     }
 
     // Execute atomic transaction
@@ -182,16 +196,39 @@ export class InvoicesService {
               `INV-${invoice.invoiceNumber}`
             );
 
-            if (cogsAccountId && inventoryAccountId) {
+            let finalCogsId = cogsAccountId;
+            let finalInvId = inventoryAccountId;
+
+            if (!finalCogsId) {
+              const defaultCogs = await tx.chartOfAccount.findUnique({
+                where: { tenantId_code: { tenantId, code: '5100' } }
+              });
+              if (!defaultCogs || defaultCogs.status !== 'Active') {
+                throw new BadRequestException('System error: The default "Cost of Goods Sold" account (code 5100) is missing or inactive.');
+              }
+              finalCogsId = defaultCogs.id;
+            }
+
+            if (!finalInvId) {
+              const defaultInv = await tx.chartOfAccount.findUnique({
+                where: { tenantId_code: { tenantId, code: '1300' } }
+              });
+              if (!defaultInv || defaultInv.status !== 'Active') {
+                throw new BadRequestException('System error: The default "Inventory Asset" account (code 1300) is missing or inactive.');
+              }
+              finalInvId = defaultInv.id;
+            }
+
+            if (finalCogsId && finalInvId) {
               jeLines.push({
-                accountId: cogsAccountId,
+                accountId: finalCogsId,
                 contactId: invoice.contactId,
                 description: `COGS for ${line.description}`,
                 debit: cogsAmount.toString(),
                 credit: 0,
               });
               jeLines.push({
-                accountId: inventoryAccountId,
+                accountId: finalInvId,
                 contactId: invoice.contactId,
                 description: `Inventory reduction for ${line.description}`,
                 debit: 0,
