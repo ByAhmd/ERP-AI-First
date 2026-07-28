@@ -13,7 +13,10 @@ return [
     |
     */
 
-    'implementation' => OwenIt\Auditing\Models\Audit::class,
+    // Extended to add the company relationship; audit rows carry a
+    // denormalised company_id so a company's history is readable without
+    // joining every audited table.
+    'implementation' => App\Models\Audit::class,
 
     /*
     |--------------------------------------------------------------------------

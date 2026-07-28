@@ -9,6 +9,7 @@ use App\Support\Tenancy\CompanyContext;
 use Closure;
 use Filament\Facades\Filament;
 use Illuminate\Http\Request;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -22,6 +23,7 @@ final class BindCompanyContext
 {
     public function __construct(
         private readonly CompanyContext $context,
+        private readonly PermissionRegistrar $permissions,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -30,6 +32,14 @@ final class BindCompanyContext
 
         if ($tenant instanceof Company) {
             $this->context->set($tenant);
+
+            // Roles and permissions are company-scoped through
+            // spatie/laravel-permission's teams feature. Nothing else tells the
+            // registrar which company applies, and until it is told it resolves
+            // against a null team — so every permission check fails and the
+            // panel renders with no navigation. Binding it here, alongside the
+            // company context, keeps the two from diverging.
+            $this->permissions->setPermissionsTeamId($tenant->getKey());
         }
 
         return $next($request);

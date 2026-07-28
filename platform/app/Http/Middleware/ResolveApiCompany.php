@@ -10,6 +10,7 @@ use App\Support\Tenancy\CompanyContext;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -26,6 +27,7 @@ final class ResolveApiCompany
 {
     public function __construct(
         private readonly CompanyContext $context,
+        private readonly PermissionRegistrar $permissions,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -51,7 +53,7 @@ final class ResolveApiCompany
                 );
             }
 
-            $this->context->set($companies->first());
+            $this->bind($companies->first());
 
             return $next($request);
         }
@@ -69,9 +71,21 @@ final class ResolveApiCompany
             return $this->deny('This company is not active.', Response::HTTP_FORBIDDEN);
         }
 
-        $this->context->set($company);
+        $this->bind($company);
 
         return $next($request);
+    }
+
+    /**
+     * Bind both the company context and the permission team.
+     *
+     * Roles are company-scoped, so an unbound registrar resolves permissions
+     * against a null team and every authorisation check fails.
+     */
+    private function bind(Company $company): void
+    {
+        $this->context->set($company);
+        $this->permissions->setPermissionsTeamId($company->getKey());
     }
 
     private function deny(string $message, int $status): JsonResponse
