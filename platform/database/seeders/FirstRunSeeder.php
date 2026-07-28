@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Enums\CompanyMembershipStatus;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\Identity\RoleProvisioner;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -144,15 +145,13 @@ class FirstRunSeeder extends Seeder
      */
     private function grantSuperAdminRole(Company $company, User $admin): void
     {
+        // Provisioning also syncs the permission set onto the role. Creating the
+        // role alone would leave an administrator who can sign in but reach
+        // nothing, because Shield's super admin holds permissions explicitly
+        // rather than bypassing the gate.
+        $role = app(RoleProvisioner::class)->provisionAdministrator($company);
+
         app(PermissionRegistrar::class)->setPermissionsTeamId($company->getKey());
-
-        $roleName = config('filament-shield.super_admin.name', 'super_admin');
-
-        $role = Role::firstOrCreate([
-            'name' => $roleName,
-            'guard_name' => 'web',
-            'company_id' => $company->getKey(),
-        ]);
 
         if (! $admin->hasRole($role)) {
             $admin->assignRole($role);

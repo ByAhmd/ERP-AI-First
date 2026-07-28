@@ -47,6 +47,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Invitations
+    |--------------------------------------------------------------------------
+    |
+    | An invitation grants access to a company's complete financial history, so
+    | it is time-limited. Tokens are stored hashed and are single-use.
+    |
+    */
+
+    'invitations' => [
+        'expires_after_days' => (int) env('ERP_INVITATION_EXPIRY_DAYS', 7),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | First-Run Seed
     |--------------------------------------------------------------------------
     |

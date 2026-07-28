@@ -8,6 +8,7 @@ use App\Enums\CompanyStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -67,8 +68,22 @@ class Company extends Model implements AuditableContract
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'company_user')
-            ->withPivot(['status'])
+            ->using(CompanyUser::class)
+            ->withPivot(['id', 'status', 'invited_at', 'joined_at', 'invited_by_id'])
             ->withTimestamps();
+    }
+
+    /**
+     * Memberships as records, for lifecycle work.
+     *
+     * `users()` answers "who belongs here"; this answers "what is the state of
+     * each membership", which is what invitation and suspension operate on.
+     *
+     * @return HasMany<CompanyUser, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(CompanyUser::class);
     }
 
     /**

@@ -45,7 +45,6 @@ final class CompanyResolutionTest extends TestCase
 
         // A member of Acme only. Globex is a company they must never reach.
         $this->member->companies()->attach($this->acme, [
-            'id' => (string) \Illuminate\Support\Str::ulid(),
             'status' => CompanyMembershipStatus::Active->value,
         ]);
     }
@@ -111,7 +110,6 @@ final class CompanyResolutionTest extends TestCase
     public function it_refuses_a_company_the_caller_was_only_invited_to(): void
     {
         $this->member->companies()->attach($this->globex, [
-            'id' => (string) \Illuminate\Support\Str::ulid(),
             'status' => CompanyMembershipStatus::Invited->value,
         ]);
 
@@ -137,7 +135,6 @@ final class CompanyResolutionTest extends TestCase
     public function it_requires_an_explicit_company_when_the_caller_has_several(): void
     {
         $this->member->companies()->attach($this->globex, [
-            'id' => (string) \Illuminate\Support\Str::ulid(),
             'status' => CompanyMembershipStatus::Active->value,
         ]);
 
@@ -151,7 +148,6 @@ final class CompanyResolutionTest extends TestCase
     public function me_lists_only_active_memberships(): void
     {
         $this->member->companies()->attach($this->globex, [
-            'id' => (string) \Illuminate\Support\Str::ulid(),
             'status' => CompanyMembershipStatus::Invited->value,
         ]);
 
