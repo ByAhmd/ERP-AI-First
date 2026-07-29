@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Account;
+use App\Models\JournalEntry;
+use App\Observers\AccountObserver;
+use App\Observers\JournalEntryObserver;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
@@ -23,6 +27,20 @@ class AppServiceProvider extends ServiceProvider
         $this->configureSchemaMacros();
         $this->configureDates();
         $this->configureAuthorization();
+        $this->registerObservers();
+    }
+
+    /**
+     * Ledger and chart-of-accounts invariants.
+     *
+     * Registered as observers rather than enforced in services so they hold on
+     * every path that reaches the model — imports, jobs, console commands and
+     * code not yet written.
+     */
+    private function registerObservers(): void
+    {
+        Account::observe(AccountObserver::class);
+        JournalEntry::observe(JournalEntryObserver::class);
     }
 
     /**
