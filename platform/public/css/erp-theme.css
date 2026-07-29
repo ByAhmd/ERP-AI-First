@@ -54,6 +54,12 @@
     letter-spacing: -0.01em;
 }
 
+/* Filament's default breadcrumb grey lands at 4.4:1 on this surface, just
+   under the 4.5:1 needed for normal-size text. */
+.fi-breadcrumbs-item-label {
+    color: #52685f;
+}
+
 /* ---------------------------------------------------------------------------
    Sidebar
    --------------------------------------------------------------------------- */
@@ -70,24 +76,35 @@
     border-inline-end: 0;
 }
 
-/* Brand wordmark. */
+/*
+ * Brand wordmark.
+ *
+ * It renders in the topbar, not the sidebar, so it sits on white. Colouring it
+ * white unconditionally made it disappear entirely.
+ */
 .fi-logo {
-    color: #ffffff;
+    color: var(--erp-heading);
     font-weight: 700;
+}
+
+.fi-sidebar .fi-logo {
+    color: #ffffff;
 }
 
 /* Group headings — present but recessive, so they organise without competing
    with the items beneath them. */
-.fi-sidebar-group-label {
+.fi-sidebar .fi-sidebar-group-label {
     color: var(--erp-sidebar-group-label);
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.06em;
-    text-transform: uppercase;
+    /* Arabic has no letter case, and uppercase transforms do nothing for it
+       while adding tracking that hurts legibility. */
+    text-transform: none;
 }
 
-.fi-sidebar-group-collapse-btn,
-.fi-sidebar-group-btn {
+.fi-sidebar .fi-sidebar-group-collapse-btn,
+.fi-sidebar .fi-sidebar-group-btn {
     color: var(--erp-sidebar-group-label);
 }
 
@@ -120,16 +137,39 @@
     color: var(--erp-sidebar-text-active);
 }
 
-/* Company switcher, which sits at the top of the sidebar. */
-.fi-tenant-menu-trigger,
-.fi-dropdown-trigger > button.fi-btn-color-gray {
+/*
+ * Label text.
+ *
+ * Filament sets a colour on the label span itself, so it does not inherit from
+ * the anchor around it. Left alone, every navigation item renders dark slate on
+ * dark green, and the active item renders mid-green on the green pill — both
+ * effectively invisible. These rules are scoped under .fi-sidebar so the same
+ * classes keep their dark text inside dropdown panels, which sit on white.
+ */
+
+.fi-sidebar .fi-sidebar-item-label {
     color: var(--erp-sidebar-text);
 }
 
-.fi-sidebar .fi-dropdown-trigger .fi-btn-outlined {
+.fi-sidebar .fi-sidebar-item-btn:hover .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label {
+    color: var(--erp-sidebar-text-active);
+}
+
+/* Company switcher, which sits at the top of the sidebar. */
+.fi-sidebar .fi-tenant-menu-trigger,
+.fi-sidebar .fi-tenant-menu-trigger-tenant-name {
+    color: var(--erp-sidebar-text-active);
+}
+
+.fi-sidebar .fi-tenant-menu-trigger .fi-btn-label {
+    color: var(--erp-sidebar-text-active);
+}
+
+.fi-sidebar .fi-dropdown-trigger .fi-btn-outlined,
+.fi-sidebar .fi-tenant-menu-trigger {
     background-color: var(--erp-sidebar-bg-hover);
     border-color: var(--erp-sidebar-border);
-    color: var(--erp-sidebar-text-active);
 }
 
 /* ---------------------------------------------------------------------------
@@ -153,6 +193,14 @@
 
 .fi-ta-row:hover {
     background-color: #f7faf8;
+}
+
+/* Filament's placeholder grey sits at 2.6:1. Placeholders carry real
+   instruction in this application — "choose an account", "choose a branch" —
+   so they are lifted to the same threshold as body text. */
+.fi-select-input-placeholder,
+.fi-input::placeholder {
+    color: #5c7268;
 }
 
 /* Ledger figures line up only when digits share a width. */
