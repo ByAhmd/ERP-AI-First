@@ -4,6 +4,143 @@ declare(strict_types=1);
 
 return [
 
+    'navigation_group' => 'Accounting',
+    'reports_group' => 'Reports',
+
+    'accounts' => [
+        'label' => 'Account',
+        'plural_label' => 'Chart of Accounts',
+        'columns' => [
+            'code' => 'Code',
+            'name' => 'Name',
+            'name_en' => 'Name (English)',
+            'type' => 'Type',
+            'parent' => 'Parent account',
+            'postable' => 'Postable',
+            'system' => 'System',
+            'active' => 'Active',
+            'description' => 'Notes',
+        ],
+        'sections' => [
+            'identity' => 'Account',
+            'placement' => 'Placement',
+            'notes' => 'Notes',
+        ],
+        'hints' => [
+            'code' => 'Used for ordering and reporting. Must be unique.',
+            'parent' => 'Leave empty for a top-level account. A parent stops accepting postings once it has children.',
+            'postable' => 'Entries may be posted to this account.',
+            'group' => 'A group account. It totals its children and takes no postings of its own.',
+            'system' => 'Required by the platform. It may be renamed but not deleted.',
+            'active' => 'Inactive accounts keep their history but accept no new entries.',
+            'type_locked' => 'Locked: this account already carries ledger entries.',
+        ],
+        'actions' => [
+            'apply_template' => 'Restore template accounts',
+            'apply_template_hint' => 'Adds any account from the standard template that this company is missing. Existing accounts, including renamed ones, are left untouched.',
+        ],
+        'notifications' => [
+            'deleted' => 'Account deleted.',
+            'template_applied' => ':count account(s) added.',
+            'template_complete' => 'Nothing to add — the chart is already complete.',
+        ],
+    ],
+
+    'entries' => [
+        'label' => 'Journal entry',
+        'plural_label' => 'Journal Entries',
+        'columns' => [
+            'number' => 'Number',
+            'date' => 'Date',
+            'description' => 'Description',
+            'line_description' => 'Line note',
+            'reference' => 'Reference',
+            'status' => 'Status',
+            'amount' => 'Amount',
+            'account' => 'Account',
+            'branch' => 'Branch',
+            'cost_center' => 'Cost centre',
+            'total_debit' => 'Total debit',
+            'total_credit' => 'Total credit',
+            'posted_by' => 'Posted by',
+            'posted_at' => 'Posted at',
+            'reverses' => 'Reverses',
+            'reversed_by' => 'Reversed by',
+        ],
+        'sections' => [
+            'header' => 'Entry',
+            'lines' => 'Lines',
+            'totals' => 'Totals',
+        ],
+        'hints' => [
+            'reference' => 'Optional. A cheque number, contract reference, or similar.',
+        ],
+        'filters' => [
+            'from' => 'From',
+            'until' => 'Until',
+        ],
+        'balance' => [
+            'balanced' => 'Balanced — :total on each side.',
+            'unbalanced' => 'Not balanced. Debits :debit, credits :credit, out by :difference.',
+        ],
+        'actions' => [
+            'add_line' => 'Add line',
+            'post' => 'Post',
+            'post_hint' => 'Posting takes the next number in the series and makes the entry permanent. It can then only be corrected by a reversal.',
+            'save_and_post' => 'Save and post',
+            'reverse' => 'Reverse',
+            'reversal_date' => 'Reversal date',
+            'reversal_date_hint' => 'Must fall in an open period. Usually today, or the original date when correcting within the same month.',
+        ],
+        'notifications' => [
+            'posted' => 'Posted as :number.',
+            'reversed' => 'Reversed by :number.',
+        ],
+    ],
+
+    'fiscal_years' => [
+        'label' => 'Fiscal year',
+        'plural_label' => 'Fiscal Years',
+        'columns' => [
+            'name' => 'Year',
+            'start' => 'Starts',
+            'end' => 'Ends',
+            'periods' => 'Periods',
+            'status' => 'Status',
+        ],
+        'actions' => [
+            'generate' => 'Generate year',
+            'starting_year' => 'Starting year',
+            'starting_year_hint' => 'Twelve periods are created from the company fiscal start date.',
+            'close' => 'Close',
+            'close_hint' => 'Closing seals the year and all of its periods. Nothing further can be posted into it until it is reopened.',
+            'reopen' => 'Reopen',
+            'reopen_hint' => 'Reopens the year and its periods for posting.',
+        ],
+        'notifications' => [
+            'generated' => 'Fiscal year :name created with twelve periods.',
+            'generate_failed' => 'The fiscal year could not be created.',
+            'closed' => 'Fiscal year closed.',
+            'reopened' => 'Fiscal year reopened.',
+        ],
+    ],
+
+    'trial_balance' => [
+        'title' => 'Trial Balance',
+        'from' => 'From',
+        'to' => 'To',
+        'all_branches' => 'All branches',
+        'include_empty' => 'Show accounts with no activity',
+        'include_empty_hint' => 'Includes every account, not only those with a balance or movement.',
+        'opening' => 'Opening',
+        'closing_debit' => 'Closing debit',
+        'closing_credit' => 'Closing credit',
+        'totals' => 'Totals',
+        'balanced' => 'The ledger balances. Debits equal credits.',
+        'out_of_balance' => 'The ledger does not balance. Out by :difference.',
+        'empty' => 'No entries in this period.',
+    ],
+
     'account_type' => [
         'asset' => 'Asset',
         'liability' => 'Liability',

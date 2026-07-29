@@ -171,7 +171,11 @@ final class TrialBalance
         return new TrialBalanceRow(
             accountId: $id,
             code: $account->code,
-            name: $account->displayName(),
+            // Name only. displayName() prefixes the code, which this report
+            // already carries in its own column.
+            name: app()->getLocale() === 'en' && filled($account->name_en)
+                ? $account->name_en
+                : $account->name,
             type: $account->type,
             openingDebit: $this->netDebit($openingDebit, $openingCredit),
             openingCredit: $this->netCredit($openingDebit, $openingCredit),

@@ -8,6 +8,7 @@ use App\Enums\CompanyMembershipStatus;
 use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\User;
+use App\Services\Accounting\ChartOfAccountsTemplate;
 use App\Services\Identity\RoleProvisioner;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -136,6 +137,35 @@ final class PanelSmokeTest extends TestCase
             ->assertOk()
             // The other company's audit rows must not appear here.
             ->assertDontSee($other->getKey());
+    }
+
+    #[Test]
+    public function the_accounting_pages_render(): void
+    {
+        // Every page a signed-in administrator can reach from the navigation.
+        // Component tests do not render the panel shell, so only a real request
+        // exercises the topbar, navigation and global search alongside the page.
+        app(ChartOfAccountsTemplate::class)->applyTo($this->company);
+
+        $base = "/admin/{$this->company->getKey()}";
+
+        $this->actingAs($this->admin)->get("{$base}/accounts")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/journal-entries")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/journal-entries/create")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/fiscal-years")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/trial-balance-page")->assertOk();
+    }
+
+    #[Test]
+    public function the_chart_of_accounts_lists_in_tree_order(): void
+    {
+        app(ChartOfAccountsTemplate::class)->applyTo($this->company);
+
+        $this->actingAs($this->admin)
+            ->get("/admin/{$this->company->getKey()}/accounts")
+            ->assertOk()
+            ->assertSee('1110')
+            ->assertSee('2120');
     }
 
     #[Test]
