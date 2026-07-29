@@ -7,6 +7,8 @@ namespace Database\Seeders;
 use App\Enums\CompanyMembershipStatus;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\Accounting\ChartOfAccountsTemplate;
+use App\Services\Accounting\FiscalCalendar;
 use App\Services\Identity\RoleProvisioner;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Database\Seeder;
@@ -49,6 +51,7 @@ class FirstRunSeeder extends Seeder
 
             $this->grantMembership($company, $admin);
             $this->grantSuperAdminRole($company, $admin);
+            $this->seedAccounting($company);
         });
 
         $this->command?->info('First-run seed complete.');
@@ -85,6 +88,27 @@ class FirstRunSeeder extends Seeder
 
             $role->delete();
         }
+    }
+
+    /**
+     * Give the company a usable ledger: a chart of accounts and a fiscal year.
+     *
+     * Without both, nothing can be posted — the chart because postings need
+     * accounts, and the calendar because a posting date must fall inside an
+     * open period. A company that can sign in but cannot record a transaction
+     * is not usable.
+     */
+    private function seedAccounting(Company $company): void
+    {
+        app(ChartOfAccountsTemplate::class)->applyTo($company);
+
+        $calendar = app(FiscalCalendar::class);
+
+        app(CompanyContext::class)->forCompany($company, function () use ($calendar, $company): void {
+            if ($calendar->findYear(now()) === null) {
+                $calendar->createYear($company, (int) now()->year);
+            }
+        });
     }
 
     private function seedCompany(): Company

@@ -75,7 +75,7 @@ final class FiscalCalendar
                 $company->fiscal_year_start_day,
             )->startOfDay();
 
-            $end = $start->addYear()->subDay()->endOfDay();
+            $end = $start->addYearNoOverflow()->subDay()->endOfDay();
 
             $year = FiscalYear::create([
                 'company_id' => $company->getKey(),
@@ -94,14 +94,17 @@ final class FiscalCalendar
     /**
      * Twelve periods, each running to the day before the next begins.
      *
-     * Derived by month arithmetic rather than by adding fixed day counts, so
-     * month lengths and leap years take care of themselves.
+     * Month arithmetic must not overflow. Adding a month to the 31st of a month
+     * lands on the 1st of the month after next by default, which both misdates
+     * the period and produces two periods carrying the same month name — the
+     * unique index on (fiscal_year_id, name) then rejects the year outright.
+     * The no-overflow variants clamp to the last valid day instead.
      */
     private function createMonthlyPeriods(FiscalYear $year, CarbonImmutable $start): void
     {
         for ($index = 0; $index < 12; $index++) {
-            $periodStart = $start->addMonths($index);
-            $periodEnd = $start->addMonths($index + 1)->subDay()->endOfDay();
+            $periodStart = $start->addMonthsNoOverflow($index);
+            $periodEnd = $start->addMonthsNoOverflow($index + 1)->subDay()->endOfDay();
 
             AccountingPeriod::create([
                 'company_id' => $year->company_id,

@@ -43,6 +43,7 @@ class Account extends Model implements AuditableContract
         'is_postable',
         'is_active',
         'is_system',
+        'system_key',
         'currency_id',
     ];
 

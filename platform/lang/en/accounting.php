@@ -31,6 +31,24 @@ return [
 
     'reversal_of' => 'Reversal of :number',
 
+    'system_account' => [
+        'accounts_receivable' => 'Accounts Receivable',
+        'accounts_payable' => 'Accounts Payable',
+        'vat_output_payable' => 'VAT Output (Payable)',
+        'vat_input_recoverable' => 'VAT Input (Recoverable)',
+        'withholding_tax_payable' => 'Withholding Tax Payable',
+        'zakat_payable' => 'Zakat Payable',
+        'inventory' => 'Inventory',
+        'cost_of_goods_sold' => 'Cost of Goods Sold',
+        'inventory_adjustment' => 'Inventory Adjustments',
+        'retained_earnings' => 'Retained Earnings',
+        'current_year_result' => 'Current Year Result',
+        'opening_balance_suspense' => 'Opening Balance Suspense',
+        'exchange_gain' => 'Exchange Gain',
+        'exchange_loss' => 'Exchange Loss',
+        'rounding_difference' => 'Rounding Differences',
+    ],
+
     'errors' => [
         'unbalanced' => 'The entry does not balance. Debits :debits, credits :credits, a difference of :difference.',
         'too_few_lines' => 'A journal entry needs at least two lines.',
@@ -50,6 +68,7 @@ return [
         'account_has_history' => ':account carries ledger entries and cannot be deleted. Deactivate it instead.',
         'account_has_children' => ':account has sub-accounts. Remove or move them first.',
         'system_account_deletion' => ':account is required by the platform and cannot be deleted.',
+        'system_account_missing' => 'This company has no account set up as :role. Reapply the chart of accounts template to restore it.',
         'parent_has_history' => ':account already carries ledger entries, so it cannot become a group account. Move those entries first.',
     ],
 

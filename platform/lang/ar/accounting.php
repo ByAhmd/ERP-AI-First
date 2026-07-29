@@ -31,6 +31,24 @@ return [
 
     'reversal_of' => 'عكس القيد :number',
 
+    'system_account' => [
+        'accounts_receivable' => 'الذمم المدينة',
+        'accounts_payable' => 'الذمم الدائنة',
+        'vat_output_payable' => 'ضريبة القيمة المضافة على المبيعات',
+        'vat_input_recoverable' => 'ضريبة القيمة المضافة على المشتريات',
+        'withholding_tax_payable' => 'ضريبة الاستقطاع المستحقة',
+        'zakat_payable' => 'الزكاة المستحقة',
+        'inventory' => 'المخزون',
+        'cost_of_goods_sold' => 'تكلفة البضاعة المباعة',
+        'inventory_adjustment' => 'تسويات المخزون',
+        'retained_earnings' => 'الأرباح المبقاة',
+        'current_year_result' => 'نتيجة العام الحالي',
+        'opening_balance_suspense' => 'حساب تسوية الأرصدة الافتتاحية',
+        'exchange_gain' => 'أرباح فروق العملة',
+        'exchange_loss' => 'خسائر فروق العملة',
+        'rounding_difference' => 'فروقات التقريب',
+    ],
+
     'errors' => [
         'unbalanced' => 'القيد غير متوازن. المدين :debits والدائن :credits بفارق :difference.',
         'too_few_lines' => 'القيد يحتاج إلى سطرين على الأقل.',
@@ -50,6 +68,7 @@ return [
         'account_has_history' => 'الحساب :account عليه قيود ولا يمكن حذفه. عطّله بدلاً من ذلك.',
         'account_has_children' => 'الحساب :account له حسابات فرعية. انقلها أو احذفها أولاً.',
         'system_account_deletion' => 'الحساب :account مطلوب للنظام ولا يمكن حذفه.',
+        'system_account_missing' => 'لا يوجد حساب معرّف في هذه الشركة لدور :role. أعد تطبيق قالب شجرة الحسابات لاستعادته.',
         'parent_has_history' => 'الحساب :account عليه قيود بالفعل، لذا لا يمكن تحويله إلى حساب تجميعي. انقل القيود أولاً.',
     ],
 

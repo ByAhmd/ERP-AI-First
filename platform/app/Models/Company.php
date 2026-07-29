@@ -51,6 +51,26 @@ class Company extends Model implements AuditableContract
         'settings',
     ];
 
+    /**
+     * Mirrors the schema defaults.
+     *
+     * A freshly created model carries no value for columns the database
+     * defaults, and the fiscal fields are read immediately after creation to
+     * build the calendar. Left unset, date construction silently falls back to
+     * today's month and day and the fiscal year starts on the wrong date.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'base_currency' => 'SAR',
+        'country_code' => 'SA',
+        'timezone' => 'Asia/Riyadh',
+        'fiscal_year_start_month' => 1,
+        'fiscal_year_start_day' => 1,
+        'uses_hijri_fiscal_year' => false,
+        'status' => 'active',
+    ];
+
     protected function casts(): array
     {
         return [
