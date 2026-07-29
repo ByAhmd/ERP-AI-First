@@ -45,6 +45,28 @@ class JournalEntryLine extends Model
         'credit' => 0,
     ];
 
+    /**
+     * Assign the next line number when the caller has not supplied one.
+     *
+     * The posting service numbers lines as it writes them, but the panel's
+     * repeater creates them straight through the relationship and cannot know
+     * its own position. Filling the gap here rather than defaulting the column
+     * keeps line numbers contiguous from one within each entry, which is what
+     * makes a printed entry readable and a line referenceable.
+     */
+    protected static function booted(): void
+    {
+        static::creating(static function (self $line): void {
+            if (filled($line->line_number)) {
+                return;
+            }
+
+            $line->line_number = 1 + (int) static::query()
+                ->where('journal_entry_id', $line->journal_entry_id)
+                ->max('line_number');
+        });
+    }
+
     protected function casts(): array
     {
         return [

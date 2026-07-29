@@ -1,0 +1,186 @@
+/*
+ * ERP Platform theme.
+ *
+ * Follows the shape most Saudi accounting products use — and that Qoyod uses —
+ * a light working surface with a dark, high-contrast sidebar. Accountants read
+ * dense numeric tables for long stretches, and a light surface is easier on the
+ * eyes for that than a dark one.
+ *
+ * The sidebar is deep green rather than the navy Qoyod uses, per the brand
+ * direction for this platform.
+ *
+ * Written with logical properties (inline-start/end) throughout so the layout
+ * mirrors correctly in Arabic without a second stylesheet.
+ */
+
+:root {
+    /* Deep forest green. Dark enough to carry white text at AA contrast. */
+    --erp-sidebar-bg: #0e2a22;
+    --erp-sidebar-bg-hover: #16382d;
+    --erp-sidebar-bg-active: #1d6f52;
+    --erp-sidebar-text: #cfe0d8;
+    --erp-sidebar-text-muted: #8faa9c;
+    --erp-sidebar-text-active: #ffffff;
+    --erp-sidebar-border: #1b3d32;
+    --erp-sidebar-group-label: #7d998b;
+
+    --erp-surface: #f4f7f5;
+    --erp-card: #ffffff;
+    --erp-border: #e3eae6;
+    --erp-heading: #0f2620;
+}
+
+/* ---------------------------------------------------------------------------
+   Working surface
+   --------------------------------------------------------------------------- */
+
+.fi-body {
+    background-color: var(--erp-surface);
+}
+
+.fi-topbar {
+    background-color: var(--erp-card);
+    border-bottom: 1px solid var(--erp-border);
+    box-shadow: none;
+}
+
+.fi-main {
+    /* Numeric tables benefit from width; the default cap wastes it. */
+    max-width: 100rem;
+}
+
+.fi-header-heading {
+    color: var(--erp-heading);
+    letter-spacing: -0.01em;
+}
+
+/* ---------------------------------------------------------------------------
+   Sidebar
+   --------------------------------------------------------------------------- */
+
+.fi-sidebar,
+.fi-sidebar-header {
+    background-color: var(--erp-sidebar-bg);
+    border-inline-end: 1px solid var(--erp-sidebar-border);
+    box-shadow: none;
+}
+
+.fi-sidebar-header {
+    border-block-end: 1px solid var(--erp-sidebar-border);
+    border-inline-end: 0;
+}
+
+/* Brand wordmark. */
+.fi-logo {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Group headings — present but recessive, so they organise without competing
+   with the items beneath them. */
+.fi-sidebar-group-label {
+    color: var(--erp-sidebar-group-label);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.fi-sidebar-group-collapse-btn,
+.fi-sidebar-group-btn {
+    color: var(--erp-sidebar-group-label);
+}
+
+.fi-sidebar-item-btn {
+    color: var(--erp-sidebar-text);
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.fi-sidebar-item-btn:hover {
+    background-color: var(--erp-sidebar-bg-hover);
+    color: var(--erp-sidebar-text-active);
+}
+
+.fi-sidebar-item-icon {
+    color: var(--erp-sidebar-text-muted);
+}
+
+.fi-sidebar-item-btn:hover .fi-sidebar-item-icon {
+    color: var(--erp-sidebar-text-active);
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background-color: var(--erp-sidebar-bg-active);
+    color: var(--erp-sidebar-text-active);
+    font-weight: 600;
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-icon {
+    color: var(--erp-sidebar-text-active);
+}
+
+/* Company switcher, which sits at the top of the sidebar. */
+.fi-tenant-menu-trigger,
+.fi-dropdown-trigger > button.fi-btn-color-gray {
+    color: var(--erp-sidebar-text);
+}
+
+.fi-sidebar .fi-dropdown-trigger .fi-btn-outlined {
+    background-color: var(--erp-sidebar-bg-hover);
+    border-color: var(--erp-sidebar-border);
+    color: var(--erp-sidebar-text-active);
+}
+
+/* ---------------------------------------------------------------------------
+   Cards and tables
+   --------------------------------------------------------------------------- */
+
+.fi-section,
+.fi-ta-ctn,
+.fi-wi-stats-overview-stat {
+    background-color: var(--erp-card);
+    border: 1px solid var(--erp-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgb(15 38 32 / 0.04);
+}
+
+.fi-ta-header-cell {
+    background-color: #fafcfb;
+    font-weight: 600;
+    color: #40564d;
+}
+
+.fi-ta-row:hover {
+    background-color: #f7faf8;
+}
+
+/* Ledger figures line up only when digits share a width. */
+.fi-ta-text-item-label,
+.fi-ta-cell [class*='numeric'],
+td[style*='tabular-nums'] {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
+   Dark mode
+   ---------------------------------------------------------------------------
+   Retained rather than removed: the sidebar is already dark, so dark mode only
+   needs the working surface to follow it.
+   --------------------------------------------------------------------------- */
+
+.dark {
+    --erp-surface: #0b1714;
+    --erp-card: #12211c;
+    --erp-border: #1e332b;
+    --erp-heading: #e8f2ed;
+}
+
+.dark .fi-ta-header-cell {
+    background-color: #16261f;
+    color: var(--erp-sidebar-text);
+}
+
+.dark .fi-ta-row:hover {
+    background-color: #16261f;
+}
