@@ -6,7 +6,8 @@ namespace App\Filament\Resources\JournalEntries\Schemas;
 
 use App\Models\Account;
 use App\Models\Branch;
-use App\Models\CostCenter;
+use App\Models\Dimension;
+use App\Models\DimensionValue;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -96,16 +97,12 @@ class JournalEntryForm
                                     ->all())
                                 ->searchable(),
 
-                            Select::make('cost_center_id')
-                                ->label(__('accounting.entries.columns.cost_center'))
-                                ->options(fn (): array => CostCenter::query()
-                                    ->where('is_active', true)
-                                    ->orderBy('code')
-                                    ->pluck('name', 'id')
-                                    ->all())
-                                ->searchable(),
+                            // Dimensions are defined by the company, so the
+                            // fields cannot be declared here — they are built
+                            // from whatever the company has set up.
+                            ...self::dimensionFields(),
                         ])
-                        ->columns(6)
+                        ->columns(5)
                         // Double entry needs two sides; starting with two rows
                         // spares the first two clicks every time.
                         ->defaultItems(2)
@@ -119,6 +116,42 @@ class JournalEntryForm
                         ->helperText(fn (Get $get): string => self::balanceSummary($get('lines') ?? [])),
                 ]),
         ]);
+    }
+
+    /**
+     * One select per active dimension.
+     *
+     * Built at render time from the company's own dimensions, because the set is
+     * user-defined and unknowable when this class is written. General dimensions
+     * appear on every line; specific ones are offered too, since a manual
+     * journal is where an accountant would reach for them.
+     *
+     * State is keyed by dimension id under `dimensions`, which is the shape
+     * {@see \App\Services\Accounting\DimensionAssigner} expects.
+     *
+     * @return list<Select>
+     */
+    private static function dimensionFields(): array
+    {
+        return Dimension::query()
+            ->where('is_active', true)
+            ->with(['values' => fn ($query) => $query->where('is_active', true)])
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get()
+            ->map(fn (Dimension $dimension): Select => Select::make("dimensions.{$dimension->getKey()}")
+                ->label($dimension->displayName())
+                ->options($dimension->values
+                    ->mapWithKeys(fn (DimensionValue $value): array => [
+                        $value->getKey() => $value->displayName(),
+                    ])
+                    ->all())
+                ->searchable()
+                ->required($dimension->is_required)
+                // A dimension with no values yet would render an empty select
+                // that cannot be satisfied.
+                ->hidden($dimension->values->isEmpty()))
+            ->all();
     }
 
     /**

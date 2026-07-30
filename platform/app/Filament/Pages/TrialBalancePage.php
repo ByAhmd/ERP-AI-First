@@ -115,7 +115,10 @@ class TrialBalancePage extends Page
         return app(TrialBalance::class)->build(
             from: CarbonImmutable::parse($from),
             to: CarbonImmutable::parse($to),
-            filters: ['branch_id' => $this->filters['branch_id'] ?? null],
+            filters: [
+                'branch_id' => $this->filters['branch_id'] ?? null,
+                'dimension_value_id' => $this->filters['dimension_value_id'] ?? null,
+            ],
             includeEmpty: (bool) ($this->filters['include_empty'] ?? false),
         );
     }

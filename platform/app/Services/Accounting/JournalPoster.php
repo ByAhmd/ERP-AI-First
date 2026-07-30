@@ -39,6 +39,7 @@ final class JournalPoster
         private readonly CompanyContext $context,
         private readonly FiscalCalendar $calendar,
         private readonly DocumentNumberAllocator $numbers,
+        private readonly DimensionAssigner $dimensions,
     ) {}
 
     /**
@@ -97,7 +98,7 @@ final class JournalPoster
 
             $this->writeLines($entry, $lines);
 
-            return $entry->refresh();
+            return $this->hydrate($entry);
         });
     }
 
@@ -136,7 +137,7 @@ final class JournalPoster
                 'posted_by_id' => $userId,
             ])->save();
 
-            return $entry->refresh();
+            return $this->hydrate($entry);
         });
     }
 
@@ -164,7 +165,7 @@ final class JournalPoster
         $date = CarbonImmutable::instance($date ?? $original->entry_date)->startOfDay();
 
         return DB::transaction(function () use ($original, $date, $description, $userId): JournalEntry {
-            $lines = $original->lines()->get()
+            $lines = $original->lines()->with('dimensionAssignments')->get()
                 ->map(fn ($line): JournalLineData => (new JournalLineData(
                     accountId: $line->account_id,
                     debit: (string) $line->debit,
@@ -175,7 +176,9 @@ final class JournalPoster
                     foreignCredit: $line->foreign_credit === null ? null : (string) $line->foreign_credit,
                     exchangeRate: $line->exchange_rate === null ? null : (string) $line->exchange_rate,
                     branchId: $line->branch_id,
-                    costCenterId: $line->cost_center_id,
+                    dimensions: $line->dimensionAssignments
+                        ->mapWithKeys(fn ($a): array => [$a->dimension_id => $a->dimension_value_id])
+                        ->all(),
                 ))->inverted())
                 ->all();
 
@@ -212,7 +215,7 @@ final class JournalPoster
                 'posted_by_id' => $userId,
             ])->save();
 
-            return $reversal->refresh();
+            return $this->hydrate($reversal);
         });
     }
 
@@ -239,7 +242,7 @@ final class JournalPoster
                 throw PostingRejected::accountNotPostable($account);
             }
 
-            $entry->lines()->create([
+            $created = $entry->lines()->create([
                 'company_id' => $entry->company_id,
                 'account_id' => $account->getKey(),
                 'line_number' => $lineNumber,
@@ -251,8 +254,9 @@ final class JournalPoster
                 'foreign_credit' => $line->foreignCredit,
                 'exchange_rate' => $line->exchangeRate,
                 'branch_id' => $line->branchId,
-                'cost_center_id' => $line->costCenterId,
             ]);
+
+            $this->dimensions->assign($created, $line->dimensions, $lineNumber);
         }
 
         $totals = $this->totals($lines);
@@ -342,6 +346,18 @@ final class JournalPoster
      * nullable — a nullable column would let MySQL accept unlimited nulls and
      * quietly lose the constraint that matters once posted.
      */
+/**
+     * Reload an entry with everything the caller is likely to read.
+     *
+     * The dimension tags are part of what was just written, so returning the
+     * entry without them would make any caller that reads them trigger a query
+     * per line — an N+1 on the hottest path in the system.
+     */
+    private function hydrate(JournalEntry $entry): JournalEntry
+    {
+        return $entry->fresh(['lines', 'lines.dimensionAssignments']) ?? $entry;
+    }
+
     private function draftPlaceholder(): string
     {
         return 'DRAFT-'.strtoupper(\Illuminate\Support\Str::ulid()->toBase32());

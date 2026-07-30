@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\Account;
+use App\Models\Dimension;
 use App\Models\JournalEntry;
 use App\Observers\AccountObserver;
+use App\Observers\DimensionObserver;
 use App\Observers\JournalEntryObserver;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Illuminate\Database\Eloquent\Model;
@@ -40,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
     private function registerObservers(): void
     {
         Account::observe(AccountObserver::class);
+        Dimension::observe(DimensionObserver::class);
         JournalEntry::observe(JournalEntryObserver::class);
     }
 

@@ -14,19 +14,27 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 /**
- * A cost centre.
+ * One value a dimension can take: a specific project, department or cost centre.
  *
- * Lets the same chart of accounts be sliced by who incurred an amount, without
- * multiplying account codes. Nests, so departments roll up into divisions.
+ * Values nest, so a sub-project rolls up into its programme and a report can be
+ * run at either level.
  */
-class CostCenter extends Model implements AuditableContract
+class DimensionValue extends Model implements AuditableContract
 {
     use AuditsCompany;
     use BelongsToCompany;
     use HasUlids;
     use SoftDeletes;
 
-    protected $fillable = ['company_id', 'parent_id', 'code', 'name', 'name_en', 'is_active'];
+    protected $fillable = [
+        'company_id',
+        'dimension_id',
+        'parent_id',
+        'code',
+        'name',
+        'name_en',
+        'is_active',
+    ];
 
     /**
      * @var array<string, mixed>
@@ -36,6 +44,14 @@ class CostCenter extends Model implements AuditableContract
     protected function casts(): array
     {
         return ['is_active' => 'boolean'];
+    }
+
+    /**
+     * @return BelongsTo<Dimension, $this>
+     */
+    public function dimension(): BelongsTo
+    {
+        return $this->belongsTo(Dimension::class);
     }
 
     /**
@@ -56,8 +72,10 @@ class CostCenter extends Model implements AuditableContract
 
     public function displayName(): string
     {
-        return app()->getLocale() === 'en' && filled($this->name_en)
+        $name = app()->getLocale() === 'en' && filled($this->name_en)
             ? $this->name_en
             : $this->name;
+
+        return "{$this->code} — {$name}";
     }
 }

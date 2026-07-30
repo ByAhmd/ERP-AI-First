@@ -29,7 +29,7 @@ final class TrialBalance
     /**
      * Build the report.
      *
-     * @param  array{branch_id?: string|null, cost_center_id?: string|null}  $filters
+     * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
      * @return Collection<int, TrialBalanceRow>
      */
     public function build(
@@ -97,7 +97,7 @@ final class TrialBalance
      * hundred accounts would otherwise mean a few hundred round trips for a
      * report that is opened constantly.
      *
-     * @param  array{branch_id?: string|null, cost_center_id?: string|null}  $filters
+     * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
      * @return array<string, array{debit: string, credit: string}>
      */
     private function aggregate(
@@ -131,8 +131,15 @@ final class TrialBalance
             $query->where('l.branch_id', $filters['branch_id']);
         }
 
-        if (filled($filters['cost_center_id'] ?? null)) {
-            $query->where('l.cost_center_id', $filters['cost_center_id']);
+        if (filled($filters['dimension_value_id'] ?? null)) {
+            // Dimension tags live in their own table, so the filter is an
+            // existence check rather than a column comparison.
+            $query->whereExists(function ($sub) use ($filters): void {
+                $sub->selectRaw('1')
+                    ->from('journal_entry_line_dimensions as d')
+                    ->whereColumn('d.journal_entry_line_id', 'l.id')
+                    ->where('d.dimension_value_id', $filters['dimension_value_id']);
+            });
         }
 
         $results = [];

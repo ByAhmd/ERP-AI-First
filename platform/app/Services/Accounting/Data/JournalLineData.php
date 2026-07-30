@@ -23,7 +23,15 @@ final readonly class JournalLineData
         public ?string $foreignCredit = null,
         public ?string $exchangeRate = null,
         public ?string $branchId = null,
-        public ?string $costCenterId = null,
+        /**
+         * Dimension value assignments, keyed by dimension id.
+         *
+         * An array rather than named fields because the set of dimensions is
+         * defined by the company and unknowable at compile time.
+         *
+         * @var array<string, string>
+         */
+        public array $dimensions = [],
     ) {}
 
     public static function debit(string $accountId, string $amount, ?string $description = null): self
@@ -51,7 +59,7 @@ final readonly class JournalLineData
             foreignCredit: isset($data['foreign_credit']) ? (string) $data['foreign_credit'] : null,
             exchangeRate: isset($data['exchange_rate']) ? (string) $data['exchange_rate'] : null,
             branchId: $data['branch_id'] ?? null,
-            costCenterId: $data['cost_center_id'] ?? null,
+            dimensions: $data['dimensions'] ?? [],
         );
     }
 
@@ -70,7 +78,7 @@ final readonly class JournalLineData
             foreignCredit: $this->foreignDebit,
             exchangeRate: $this->exchangeRate,
             branchId: $this->branchId,
-            costCenterId: $this->costCenterId,
+            dimensions: $this->dimensions,
         );
     }
 }

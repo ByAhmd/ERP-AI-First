@@ -8,6 +8,8 @@ use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One side of one movement within a journal entry.
@@ -34,7 +36,6 @@ class JournalEntryLine extends Model
         'foreign_credit',
         'exchange_rate',
         'branch_id',
-        'cost_center_id',
     ];
 
     /**
@@ -112,11 +113,29 @@ class JournalEntryLine extends Model
     }
 
     /**
-     * @return BelongsTo<CostCenter, $this>
+     * Dimension tags on this line.
+     *
+     * A relation rather than columns, because the set of dimensions is defined
+     * by the company and unknowable at migration time.
+     *
+     * @return HasMany<JournalEntryLineDimension, $this>
      */
-    public function costCenter(): BelongsTo
+    public function dimensionAssignments(): HasMany
     {
-        return $this->belongsTo(CostCenter::class);
+        return $this->hasMany(JournalEntryLineDimension::class, 'journal_entry_line_id');
+    }
+
+    /**
+     * @return BelongsToMany<DimensionValue, $this>
+     */
+    public function dimensionValues(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            DimensionValue::class,
+            'journal_entry_line_dimensions',
+            'journal_entry_line_id',
+            'dimension_value_id',
+        );
     }
 
     public function isDebit(): bool

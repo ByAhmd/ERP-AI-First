@@ -4,6 +4,58 @@ declare(strict_types=1);
 
 return [
 
+    'dimensions' => [
+        'label' => 'Dimension',
+        'plural_label' => 'Dimensions',
+        'columns' => [
+            'code' => 'Code',
+            'name' => 'Name',
+            'name_en' => 'Name (English)',
+            'scope' => 'Scope',
+            'values' => 'Values',
+            'parent' => 'Parent value',
+            'required' => 'Required',
+            'active' => 'Active',
+        ],
+        'sections' => [
+            'identity' => 'Dimension',
+            'behaviour' => 'Behaviour',
+        ],
+        'hints' => [
+            'code' => 'A short code used in reports. Must be unique.',
+            'scope' => 'A general dimension applies to every document; at most :limit are allowed.',
+            'scope_locked' => 'Locked: this dimension is already recorded against ledger entries.',
+            'required' => 'Every line this dimension applies to must carry a value.',
+            'active' => 'Inactive dimensions keep their history but are not offered on new entries.',
+            'parent' => 'Optional. Nest a value so it rolls up into a broader one.',
+        ],
+        'values' => [
+            'title' => 'Values',
+            'add' => 'Add value',
+        ],
+        'notifications' => [
+            'deleted' => 'Dimension deleted.',
+        ],
+    ],
+
+    'branches' => [
+        'label' => 'Branch',
+        'plural_label' => 'Branches',
+        'columns' => [
+            'code' => 'Code',
+            'name' => 'Name',
+            'name_en' => 'Name (English)',
+            'active' => 'Active',
+        ],
+    ],
+
+    'dimension_scope' => [
+        'general' => 'General',
+        'general_description' => 'Applies to every document across the system and feeds the consolidated reports. At most two are allowed.',
+        'specific' => 'Specific',
+        'specific_description' => 'Applies only where it is chosen.',
+    ],
+
     'navigation_group' => 'Accounting',
     'reports_group' => 'Reports',
 
@@ -187,6 +239,12 @@ return [
     ],
 
     'errors' => [
+        'dimension_general_limit' => 'A company may have at most :limit general dimensions. Change an existing one to specific first, or create this one as specific.',
+        'dimension_scope_locked' => 'The scope of :dimension cannot change: it is already recorded against ledger entries, and changing it would restate every report sliced by it.',
+        'dimension_in_use' => ':dimension is recorded against ledger entries and cannot be deleted. Deactivate it instead.',
+        'dimension_value_mismatch' => ':value does not belong to :dimension.',
+        'dimension_required' => ':dimension is required, and line :line does not have one.',
+        'dimension_value_inactive' => ':value is inactive and cannot be used on new entries.',
         'unbalanced' => 'The entry does not balance. Debits :debits, credits :credits, a difference of :difference.',
         'too_few_lines' => 'A journal entry needs at least two lines.',
         'line_has_both_sides' => 'Line :line carries both a debit and a credit. Use one or the other.',

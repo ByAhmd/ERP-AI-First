@@ -7,9 +7,12 @@ namespace Tests\Feature\Panel;
 use App\Enums\CompanyMembershipStatus;
 use App\Models\Company;
 use App\Models\CompanyUser;
+use App\Models\Dimension;
+use App\Models\DimensionValue;
 use App\Models\User;
 use App\Services\Accounting\ChartOfAccountsTemplate;
 use App\Services\Identity\RoleProvisioner;
+use App\Support\Tenancy\CompanyContext;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -154,6 +157,31 @@ final class PanelSmokeTest extends TestCase
         $this->actingAs($this->admin)->get("{$base}/journal-entries/create")->assertOk();
         $this->actingAs($this->admin)->get("{$base}/fiscal-years")->assertOk();
         $this->actingAs($this->admin)->get("{$base}/trial-balance-page")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/dimensions")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/dimensions/create")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/branches")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/branches/create")->assertOk();
+    }
+
+    #[Test]
+    public function the_entry_form_renders_a_select_for_each_user_defined_dimension(): void
+    {
+        app(ChartOfAccountsTemplate::class)->applyTo($this->company);
+        app(CompanyContext::class)->set($this->company);
+
+        $project = Dimension::create(['code' => 'PROJ', 'name' => 'المشروع']);
+        DimensionValue::create([
+            'dimension_id' => $project->getKey(),
+            'code' => 'RIYADH',
+            'name' => 'برج الرياض',
+        ]);
+
+        // The form builds its dimension fields from the data, so a dimension
+        // created after this class was written still appears on the entry screen.
+        $this->actingAs($this->admin)
+            ->get("/admin/{$this->company->getKey()}/journal-entries/create")
+            ->assertOk()
+            ->assertSee('المشروع', escape: false);
     }
 
     #[Test]
