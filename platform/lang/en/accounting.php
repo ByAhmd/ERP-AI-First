@@ -4,6 +4,19 @@ declare(strict_types=1);
 
 return [
 
+    'general_ledger' => [
+        'title' => 'General Ledger',
+        'account' => 'Account',
+        'from' => 'From',
+        'to' => 'To',
+        'all_dimensions' => 'All dimensions',
+        'opening' => 'Opening balance',
+        'closing' => 'Closing balance',
+        'balance' => 'Balance',
+        'choose_account' => 'Choose an account to see its ledger.',
+        'empty' => 'No movements on this account in this period.',
+    ],
+
     'dimensions' => [
         'label' => 'Dimension',
         'plural_label' => 'Dimensions',

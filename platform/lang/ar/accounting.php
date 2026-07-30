@@ -4,6 +4,19 @@ declare(strict_types=1);
 
 return [
 
+    'general_ledger' => [
+        'title' => 'دفتر الأستاذ العام',
+        'account' => 'الحساب',
+        'from' => 'من',
+        'to' => 'إلى',
+        'all_dimensions' => 'كل الأبعاد',
+        'opening' => 'الرصيد الافتتاحي',
+        'closing' => 'الرصيد الختامي',
+        'balance' => 'الرصيد',
+        'choose_account' => 'اختر حساباً لعرض دفتر أستاذه.',
+        'empty' => 'لا توجد حركات على هذا الحساب في هذه الفترة.',
+    ],
+
     'dimensions' => [
         'label' => 'بعد',
         'plural_label' => 'الأبعاد',
