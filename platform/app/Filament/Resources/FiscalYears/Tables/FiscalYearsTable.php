@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Resources\FiscalYears\Tables;
 
 use App\Enums\PeriodStatus;
-use App\Models\AccountingPeriod;
 use App\Models\FiscalYear;
+use App\Services\Accounting\Exceptions\PeriodTransitionRejected;
+use App\Services\Accounting\FiscalYearCloser;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
@@ -50,19 +51,14 @@ class FiscalYearsTable
                     ->visible(fn (FiscalYear $record): bool => $record->status === PeriodStatus::Open)
                     ->requiresConfirmation()
                     ->modalDescription(__('accounting.fiscal_years.actions.close_hint'))
-                    ->action(function (FiscalYear $record): void {
-                        $record->update([
-                            'status' => PeriodStatus::Closed,
-                            'closed_at' => now(),
-                            'closed_by_id' => Filament::auth()->id(),
-                        ]);
+                    ->action(function (FiscalYear $record, FiscalYearCloser $closer): void {
+                        try {
+                            $closer->close($record, Filament::auth()->id());
+                        } catch (PeriodTransitionRejected $e) {
+                            Notification::make()->title($e->getMessage())->danger()->persistent()->send();
 
-                        // Closing a year seals its periods. An open period
-                        // beneath a closed year would be contradictory, and the
-                        // posting gate checks both.
-                        AccountingPeriod::query()
-                            ->where('fiscal_year_id', $record->getKey())
-                            ->update(['status' => PeriodStatus::Closed->value]);
+                            return;
+                        }
 
                         Notification::make()
                             ->title(__('accounting.fiscal_years.notifications.closed'))
@@ -76,16 +72,14 @@ class FiscalYearsTable
                     ->visible(fn (FiscalYear $record): bool => $record->status->canReopen())
                     ->requiresConfirmation()
                     ->modalDescription(__('accounting.fiscal_years.actions.reopen_hint'))
-                    ->action(function (FiscalYear $record): void {
-                        $record->update([
-                            'status' => PeriodStatus::Open,
-                            'closed_at' => null,
-                            'closed_by_id' => null,
-                        ]);
+                    ->action(function (FiscalYear $record, FiscalYearCloser $closer): void {
+                        try {
+                            $closer->reopen($record, Filament::auth()->id());
+                        } catch (PeriodTransitionRejected $e) {
+                            Notification::make()->title($e->getMessage())->danger()->persistent()->send();
 
-                        AccountingPeriod::query()
-                            ->where('fiscal_year_id', $record->getKey())
-                            ->update(['status' => PeriodStatus::Open->value]);
+                            return;
+                        }
 
                         Notification::make()
                             ->title(__('accounting.fiscal_years.notifications.reopened'))

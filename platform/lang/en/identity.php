@@ -39,6 +39,12 @@ return [
             'reinstate' => 'Reinstate',
         ],
 
+        'errors' => [
+            'not_active' => 'Only an active member can be suspended. This membership is :status.',
+            'not_suspended' => 'Only a suspended member can be reinstated. This membership is :status.',
+            'cannot_suspend_self' => 'You cannot suspend your own membership. Ask another administrator to do it.',
+            'last_active_member' => 'This is the only active member of the company. Suspending them would leave no one able to sign in or invite anyone.',
+        ],
         'notifications' => [
             'invitation_sent' => 'Invitation sent.',
             'invitation_resent' => 'A new invitation has been sent. Any earlier link no longer works.',

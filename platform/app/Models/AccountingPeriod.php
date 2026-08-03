@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\PeriodStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,14 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  *
  * Postings are accepted only when both the period and its year are open, so
  * closing a year seals every period inside it without touching each one.
+ *
+ * @property PeriodStatus $status
+ * @property CarbonImmutable $start_date
+ * @property CarbonImmutable $end_date
+ * @property ?CarbonImmutable $closed_at
+ * @property int $sequence
+ * @property ?string $company_id
+ * @property string $fiscal_year_id
  */
 class AccountingPeriod extends Model implements AuditableContract
 {

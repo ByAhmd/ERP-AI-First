@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\PeriodStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,13 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 /**
  * A financial year and the window in which its figures may still change.
+ *
+ * @property PeriodStatus $status
+ * @property CarbonImmutable $start_date
+ * @property CarbonImmutable $end_date
+ * @property ?CarbonImmutable $closed_at
+ * @property ?string $closed_by_id
+ * @property ?string $company_id
  */
 class FiscalYear extends Model implements AuditableContract
 {

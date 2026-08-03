@@ -7,7 +7,9 @@ namespace App\Filament\Resources\Members\Tables;
 use App\Enums\CompanyMembershipStatus;
 use App\Models\CompanyUser;
 use App\Services\Identity\Exceptions\InvitationFailed;
+use App\Services\Identity\Exceptions\MembershipChangeRejected;
 use App\Services\Identity\InvitationService;
+use App\Services\Identity\MembershipService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
@@ -115,8 +117,14 @@ class MembersTable
                     ->visible(fn (CompanyUser $record): bool => $record->status === CompanyMembershipStatus::Active
                         && ! self::isSelf($record))
                     ->requiresConfirmation()
-                    ->action(function (CompanyUser $record): void {
-                        $record->update(['status' => CompanyMembershipStatus::Suspended]);
+                    ->action(function (CompanyUser $record, MembershipService $memberships): void {
+                        try {
+                            $memberships->suspend($record, Filament::auth()->id());
+                        } catch (MembershipChangeRejected $e) {
+                            Notification::make()->title($e->getMessage())->danger()->persistent()->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->title(__('identity.members.notifications.suspended'))
@@ -129,8 +137,14 @@ class MembersTable
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->visible(fn (CompanyUser $record): bool => $record->status === CompanyMembershipStatus::Suspended)
                     ->requiresConfirmation()
-                    ->action(function (CompanyUser $record): void {
-                        $record->update(['status' => CompanyMembershipStatus::Active]);
+                    ->action(function (CompanyUser $record, MembershipService $memberships): void {
+                        try {
+                            $memberships->reinstate($record);
+                        } catch (MembershipChangeRejected $e) {
+                            Notification::make()->title($e->getMessage())->danger()->persistent()->send();
+
+                            return;
+                        }
 
                         Notification::make()
                             ->title(__('identity.members.notifications.reinstated'))

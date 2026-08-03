@@ -252,6 +252,8 @@ return [
     ],
 
     'errors' => [
+        'year_not_closeable' => 'Fiscal year :year cannot be closed from its current state (:status).',
+        'year_not_reopenable' => 'Fiscal year :year cannot be reopened from its current state (:status). A locked year is corrected by an adjusting entry in the following year.',
         'dimension_general_limit' => 'A company may have at most :limit general dimensions. Change an existing one to specific first, or create this one as specific.',
         'dimension_scope_locked' => 'The scope of :dimension cannot change: it is already recorded against ledger entries, and changing it would restate every report sliced by it.',
         'dimension_in_use' => ':dimension is recorded against ledger entries and cannot be deleted. Deactivate it instead.',
