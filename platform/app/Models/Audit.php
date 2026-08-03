@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Models\Audit as BaseAudit;
 
@@ -15,7 +16,7 @@ use OwenIt\Auditing\Models\Audit as BaseAudit;
  * company's history can be read, retained and purged without joining every
  * audited table.
  *
- * Deliberately not using {@see \App\Models\Concerns\BelongsToCompany}: audit
+ * Deliberately not using {@see BelongsToCompany}: audit
  * rows are written by an observer that may run in any context, and the scope's
  * create-time assignment would conflict with the value the auditing package
  * supplies. Scoping for reads is applied by the Filament resource instead.

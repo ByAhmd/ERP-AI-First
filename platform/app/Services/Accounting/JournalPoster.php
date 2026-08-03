@@ -7,6 +7,7 @@ namespace App\Services\Accounting;
 use App\Enums\JournalEntryStatus;
 use App\Models\Account;
 use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\Exceptions\PostingRejected;
 use App\Support\Tenancy\CompanyContext;
@@ -14,6 +15,7 @@ use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Writes entries into the general ledger.
@@ -306,7 +308,7 @@ final class JournalPoster
     }
 
     /**
-     * @param  iterable<JournalLineData|\App\Models\JournalEntryLine>  $lines
+     * @param  iterable<JournalLineData|JournalEntryLine>  $lines
      */
     private function assertBalanced(iterable $lines): void
     {
@@ -318,7 +320,7 @@ final class JournalPoster
     }
 
     /**
-     * @param  iterable<JournalLineData|\App\Models\JournalEntryLine>  $lines
+     * @param  iterable<JournalLineData|JournalEntryLine>  $lines
      * @return array{debit: string, credit: string}
      */
     private function totals(iterable $lines): array
@@ -346,7 +348,7 @@ final class JournalPoster
      * nullable — a nullable column would let MySQL accept unlimited nulls and
      * quietly lose the constraint that matters once posted.
      */
-/**
+    /**
      * Reload an entry with everything the caller is likely to read.
      *
      * The dimension tags are part of what was just written, so returning the
@@ -360,6 +362,6 @@ final class JournalPoster
 
     private function draftPlaceholder(): string
     {
-        return 'DRAFT-'.strtoupper(\Illuminate\Support\Str::ulid()->toBase32());
+        return 'DRAFT-'.strtoupper(Str::ulid()->toBase32());
     }
 }

@@ -6,6 +6,7 @@ namespace App\Services\Accounting\Reports;
 
 use App\Enums\JournalEntryStatus;
 use App\Models\Account;
+use App\Support\Tenancy\CompanyContext;
 use DateTimeInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -214,6 +215,6 @@ final class TrialBalance
 
     private function companyId(): string
     {
-        return app(\App\Support\Tenancy\CompanyContext::class)->idOrFail();
+        return app(CompanyContext::class)->idOrFail();
     }
 }

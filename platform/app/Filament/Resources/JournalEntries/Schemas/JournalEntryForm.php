@@ -8,6 +8,7 @@ use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Dimension;
 use App\Models\DimensionValue;
+use App\Services\Accounting\DimensionAssigner;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -127,7 +128,7 @@ class JournalEntryForm
      * journal is where an accountant would reach for them.
      *
      * State is keyed by dimension id under `dimensions`, which is the shape
-     * {@see \App\Services\Accounting\DimensionAssigner} expects.
+     * {@see DimensionAssigner} expects.
      *
      * @return list<Select>
      */

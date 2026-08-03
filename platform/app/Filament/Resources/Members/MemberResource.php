@@ -9,6 +9,7 @@ use App\Filament\Resources\Members\Pages\ListMembers;
 use App\Filament\Resources\Members\Schemas\MemberForm;
 use App\Filament\Resources\Members\Tables\MembersTable;
 use App\Models\CompanyUser;
+use App\Models\Scopes\CompanyScope;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -34,7 +35,7 @@ class MemberResource extends Resource
     /**
      * Filament's tenant scoping, declared as a second layer.
      *
-     * The authoritative guard is the application's own {@see \App\Models\Scopes\CompanyScope},
+     * The authoritative guard is the application's own {@see CompanyScope},
      * which CompanyUser carries like every other tenant-owned table. Filament's
      * documentation is explicit that its scoping applies only after tenant
      * identification in panel middleware and that multi-tenant security remains

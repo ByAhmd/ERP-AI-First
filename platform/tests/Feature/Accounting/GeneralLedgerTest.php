@@ -13,10 +13,12 @@ use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\Reports\GeneralLedger;
+use App\Services\Accounting\Reports\LedgerMovement;
 use App\Services\Accounting\Reports\TrialBalance;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -242,7 +244,7 @@ final class GeneralLedgerTest extends TestCase
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, \App\Services\Accounting\Reports\LedgerMovement>
+     * @return Collection<int, LedgerMovement>
      */
     private function ledgerFor(string $code)
     {

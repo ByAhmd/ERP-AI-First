@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Support\Tenancy;
 
 use App\Models\Company;
+use App\Models\Scopes\CompanyScope;
 use App\Support\Tenancy\Exceptions\CompanyContextMissing;
 use Closure;
 
 /**
  * Holds the company whose data the current execution context may access.
  *
- * Every tenant-owned query is filtered by this value through {@see \App\Models\Scopes\CompanyScope}.
+ * Every tenant-owned query is filtered by this value through {@see CompanyScope}.
  * It is resolved from the Filament panel tenant for panel requests, from the
  * authenticated token for API requests, and set explicitly by queued jobs and
  * console commands, which have no session to infer it from.

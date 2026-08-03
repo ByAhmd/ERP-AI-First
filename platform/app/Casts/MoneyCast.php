@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Casts;
 
+use App\Models\Company;
 use Brick\Money\Context\CustomContext;
 use Brick\Money\Money;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
@@ -110,6 +111,10 @@ final class MoneyCast implements CastsAttributes
         // company's base currency.
         $company = $model->getAttribute('company');
 
-        return $company?->base_currency ?? config('erp.base_currency');
+        if ($company instanceof Company && filled($company->base_currency)) {
+            return $company->base_currency;
+        }
+
+        return (string) config('erp.base_currency');
     }
 }

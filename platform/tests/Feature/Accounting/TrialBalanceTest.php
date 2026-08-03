@@ -10,6 +10,7 @@ use App\Models\Company;
 use App\Services\Accounting\AccountRegistry;
 use App\Services\Accounting\ChartOfAccountsTemplate;
 use App\Services\Accounting\Data\JournalLineData;
+use App\Services\Accounting\Exceptions\AccountStructureViolation;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\Reports\TrialBalance;
@@ -17,6 +18,7 @@ use App\Services\Accounting\Reports\TrialBalanceRow;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -124,7 +126,7 @@ final class TrialBalanceTest extends TestCase
     {
         $vat = $this->accounts->get(SystemAccount::VatOutputPayable);
 
-        $this->expectException(\App\Services\Accounting\Exceptions\AccountStructureViolation::class);
+        $this->expectException(AccountStructureViolation::class);
 
         $vat->delete();
     }
@@ -276,7 +278,7 @@ final class TrialBalanceTest extends TestCase
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, TrialBalanceRow>
+     * @return Collection<int, TrialBalanceRow>
      */
     private function buildReport(?CarbonImmutable $from = null, ?CarbonImmutable $to = null)
     {
@@ -287,7 +289,7 @@ final class TrialBalanceTest extends TestCase
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, TrialBalanceRow>  $rows
+     * @param  Collection<int, TrialBalanceRow>  $rows
      */
     private function rowFor($rows, string $code): TrialBalanceRow
     {

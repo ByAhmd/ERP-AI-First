@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use App\Services\Accounting\DocumentNumberAllocator;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * Counter backing a gapless document series.
  *
- * Never written directly. {@see \App\Services\Accounting\DocumentNumberAllocator}
+ * Never written directly. {@see DocumentNumberAllocator}
  * is the only thing that touches `next_number`, because correctness depends on
  * the row being locked inside the caller's transaction.
  */

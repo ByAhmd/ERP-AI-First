@@ -8,6 +8,7 @@ use App\Enums\JournalEntryStatus;
 use App\Models\JournalEntry;
 use App\Services\Accounting\Exceptions\PostingRejected;
 use App\Services\Accounting\JournalPoster;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -131,7 +132,7 @@ class JournalEntriesTable
                         try {
                             $reversal = $poster->reverse(
                                 original: $record,
-                                date: \Carbon\CarbonImmutable::parse($data['date']),
+                                date: CarbonImmutable::parse($data['date']),
                                 userId: Filament::auth()->id(),
                             );
                         } catch (PostingRejected $e) {

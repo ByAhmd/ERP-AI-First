@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Services\Identity\RoleProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\PermissionRegistrar;
@@ -16,7 +17,7 @@ use Spatie\Permission\PermissionRegistrar;
  * committing a static list means the set cannot drift from the resources it
  * describes: adding a resource and forgetting its permissions is not possible.
  *
- * Roles are provisioned separately, by {@see \App\Services\Identity\RoleProvisioner},
+ * Roles are provisioned separately, by {@see RoleProvisioner},
  * because roles are company-scoped and permissions are not.
  */
 class PermissionSeeder extends Seeder

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Services\Accounting\AccountRegistry;
+
 /**
  * Accounts the platform posts to by role rather than by code.
  *
  * Anything the application decides to debit or credit on the user's behalf —
  * VAT, cost of sales, the year-end transfer — is named here. Modules resolve
- * these through {@see \App\Services\Accounting\AccountRegistry} instead of
+ * these through {@see AccountRegistry} instead of
  * hard-coding account codes, which is what tied the predecessor's invoicing to
  * one particular numbering scheme.
  */

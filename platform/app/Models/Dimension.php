@@ -19,6 +19,12 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * Cost centre, project, department, campaign — whatever the company needs to
  * slice its figures by. Values live underneath, and ledger lines are tagged with
  * one value per dimension.
+ *
+ * @property DimensionScope $scope
+ * @property bool $is_required
+ * @property bool $is_active
+ * @property int $sort_order
+ * @property ?string $company_id
  */
 class Dimension extends Model implements AuditableContract
 {

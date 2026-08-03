@@ -8,6 +8,8 @@ use App\Enums\AccountType;
 use App\Enums\NormalBalance;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
+use App\Observers\AccountObserver;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,8 +22,17 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  *
  * Parent accounts group and total; only leaf accounts receive postings. The
  * distinction is held in `is_postable` and maintained by
- * {@see \App\Observers\AccountObserver}, because it is read on every journal
+ * {@see AccountObserver}, because it is read on every journal
  * line and cannot afford a recursive lookup each time.
+ *
+ * @property AccountType $type
+ * @property bool $is_postable
+ * @property bool $is_active
+ * @property bool $is_system
+ * @property int $depth
+ * @property ?string $path
+ * @property ?string $company_id
+ * @property ?string $system_key
  */
 class Account extends Model implements AuditableContract
 {
@@ -143,11 +154,11 @@ class Account extends Model implements AuditableContract
      * Uses the materialised path so a subtree total is a prefix scan rather than
      * a recursive walk.
      *
-     * @return \Illuminate\Database\Eloquent\Builder<self>
+     * @return Builder<self>
      */
-    public function scopeSubtreeOf(\Illuminate\Database\Eloquent\Builder $query, self $account): \Illuminate\Database\Eloquent\Builder
+    public function scopeSubtreeOf(Builder $query, self $account): Builder
     {
-        return $query->where(function (\Illuminate\Database\Eloquent\Builder $query) use ($account): void {
+        return $query->where(function (Builder $query) use ($account): void {
             $query->whereKey($account->getKey())
                 ->orWhere('path', 'like', $account->path.'.%');
         });

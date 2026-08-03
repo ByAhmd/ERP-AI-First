@@ -9,6 +9,8 @@ use App\Enums\NormalBalance;
 use App\Models\Account;
 use App\Support\Tenancy\CompanyContext;
 use DateTimeInterface;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -78,7 +80,7 @@ final class GeneralLedger
             return new LedgerMovement(
                 entryId: $row->entry_id,
                 number: $row->number,
-                date: \Illuminate\Support\Carbon::parse($row->entry_date),
+                date: Carbon::parse($row->entry_date),
                 // The line's own note is more specific than the entry's, so it
                 // wins when present.
                 description: $row->line_description ?: $row->entry_description,
@@ -155,7 +157,7 @@ final class GeneralLedger
     /**
      * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
      */
-    private function query(Account $account, array $filters): \Illuminate\Database\Query\Builder
+    private function query(Account $account, array $filters): Builder
     {
         $query = DB::table('journal_entry_lines as l')
             ->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')

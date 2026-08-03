@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Models\Branch;
 use App\Services\Accounting\Reports\TrialBalance;
 use App\Services\Accounting\Reports\TrialBalanceRow;
 use BackedEnum;
@@ -86,7 +87,7 @@ class TrialBalancePage extends Page
 
                         Select::make('branch_id')
                             ->label(__('accounting.entries.columns.branch'))
-                            ->options(fn (): array => \App\Models\Branch::query()
+                            ->options(fn (): array => Branch::query()
                                 ->orderBy('code')->pluck('name', 'id')->all())
                             ->placeholder(__('accounting.trial_balance.all_branches'))
                             ->live(),

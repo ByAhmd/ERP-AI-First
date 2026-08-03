@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Enums\CompanyMembershipStatus;
 use App\Models\Concerns\BelongsToCompany;
+use App\Support\Tenancy\CompanyContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -20,16 +22,23 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * transitions must be audited. Who was granted access to a company's books, by
  * whom, and when, is an audit question that arises in practice.
  *
- * Scoped by {@see \App\Models\Concerns\BelongsToCompany} like every other
+ * Scoped by {@see BelongsToCompany} like every other
  * tenant-owned table. Invitation acceptance, which necessarily runs before any
  * company context exists, escapes the scope explicitly through
- * {@see \App\Support\Tenancy\CompanyContext::withoutScoping()} — a narrow,
+ * {@see CompanyContext::withoutScoping()} — a narrow,
  * greppable exception rather than a permanently unscoped table.
  *
  * Filament's own tenant scoping is treated as secondary here. Its documentation
  * states plainly that scoping applies only after tenant identification in panel
  * middleware and that multi-tenant security remains the application's
  * responsibility, so this table carries the same guard as every other.
+ *
+ * @property CompanyMembershipStatus $status
+ * @property ?CarbonImmutable $invitation_expires_at
+ * @property ?CarbonImmutable $invited_at
+ * @property ?CarbonImmutable $joined_at
+ * @property ?string $company_id
+ * @property ?string $invitation_token_hash
  */
 class CompanyUser extends Pivot implements AuditableContract
 {

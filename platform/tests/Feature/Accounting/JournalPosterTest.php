@@ -277,7 +277,7 @@ final class JournalPosterTest extends TestCase
         // The pair nets to nothing, which is the point of a reversal.
         $this->assertSame(
             '0.0000',
-            bcadd($original->lines->sum(fn ($l) => (float) $l->signedAmount()) . '', (string) $reversal->lines->sum(fn ($l) => (float) $l->signedAmount()), 4),
+            bcadd($original->lines->sum(fn ($l) => (float) $l->signedAmount()).'', (string) $reversal->lines->sum(fn ($l) => (float) $l->signedAmount()), 4),
         );
     }
 

@@ -107,13 +107,13 @@ final class HijriDate
 
     private static function calendar(): IntlCalendar
     {
-        $calendar = IntlCalendar::createInstance(self::timezone(), self::localeTag('en'));
-
-        if (! $calendar instanceof IntlCalendar) {
-            throw new InvalidArgumentException('The Umm al-Qura calendar is unavailable; check the intl extension.');
-        }
-
-        return $calendar;
+        // createInstance() is typed as returning IntlCalendar, so an instanceof
+        // guard here is dead code. A null return is the real failure mode and is
+        // what gets checked.
+        return IntlCalendar::createInstance(self::timezone(), self::localeTag('en'))
+            ?? throw new InvalidArgumentException(
+                'The Umm al-Qura calendar is unavailable; check the intl extension.',
+            );
     }
 
     private static function localeTag(string $locale): string

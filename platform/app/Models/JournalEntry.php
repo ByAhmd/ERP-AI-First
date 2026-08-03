@@ -7,6 +7,9 @@ namespace App\Models;
 use App\Enums\JournalEntryStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
+use App\Observers\JournalEntryObserver;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,28 +26,29 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * directly. That is what makes the trial balance authoritative rather than one
  * opinion among several.
  *
- * Posted entries are immutable — see {@see \App\Observers\JournalEntryObserver}.
+ * Posted entries are immutable — see {@see JournalEntryObserver}.
+ *
+ * Cast attributes are annotated because static analysis reads column types from
+ * the schema, where an enum-cast column is only ever a string. Without these the
+ * analyser reports every comparison against the enum as impossible.
+ *
+ * @property JournalEntryStatus $status
+ * @property CarbonImmutable $entry_date
+ * @property ?CarbonImmutable $posted_at
+ * @property string $total_debit
+ * @property string $total_credit
+ * @property ?string $company_id
  */
+#[Fillable([
+    'company_id', 'number', 'entry_date', 'description', 'reference', 'status',
+    'fiscal_year_id', 'accounting_period_id', 'source_type', 'source_id',
+    'reverses_id', 'created_by_id',
+])]
 class JournalEntry extends Model implements AuditableContract
 {
     use AuditsCompany;
     use BelongsToCompany;
     use HasUlids;
-
-    protected $fillable = [
-        'company_id',
-        'number',
-        'entry_date',
-        'description',
-        'reference',
-        'status',
-        'fiscal_year_id',
-        'accounting_period_id',
-        'source_type',
-        'source_id',
-        'reverses_id',
-        'created_by_id',
-    ];
 
     /**
      * @var array<string, mixed>

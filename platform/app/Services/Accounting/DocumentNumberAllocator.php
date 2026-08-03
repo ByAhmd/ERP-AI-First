@@ -7,6 +7,7 @@ namespace App\Services\Accounting;
 use App\Models\DocumentSequence;
 use App\Services\Accounting\Exceptions\SequenceAllocationFailed;
 use App\Support\Tenancy\CompanyContext;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -35,7 +36,7 @@ final class DocumentNumberAllocator
      * @param  string  $key  Document type, e.g. `journal_entry`.
      * @param  string|null  $scope  Reset scope, e.g. a year. Null runs continuously.
      * @param  array{prefix?: string, suffix?: string, padding?: int, next_number?: int}  $defaults
-     *         Applied only when the series is created.
+     *                                                                                               Applied only when the series is created.
      */
     public function next(string $key, ?string $scope = null, array $defaults = []): string
     {
@@ -107,7 +108,7 @@ final class DocumentNumberAllocator
                 'padding' => $defaults['padding'] ?? 4,
                 'next_number' => $defaults['next_number'] ?? 1,
             ]);
-        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException) {
             return DocumentSequence::query()
                 ->where('key', $key)
                 ->where('scope', $scope)

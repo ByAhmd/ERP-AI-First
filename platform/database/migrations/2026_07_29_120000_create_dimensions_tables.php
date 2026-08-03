@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DimensionScope;
+use App\Observers\DimensionObserver;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\Schema;
  * Each dimension is either *general* or *specific*. A general dimension applies
  * across every document in the system and feeds the consolidated reports;
  * Qoyod permits at most two, and that limit is enforced here — see
- * {@see \App\Observers\DimensionObserver}. A specific dimension is scoped to the
+ * {@see DimensionObserver}. A specific dimension is scoped to the
  * documents that opt into it.
  *
  * This replaces the fixed `cost_centers` table shipped earlier. Cost centre is a

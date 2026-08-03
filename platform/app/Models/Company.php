@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\CompanyStatus;
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -17,7 +18,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * A tenant. Owns every business record in the platform.
  *
  * Note that Company itself is deliberately *not* scoped by
- * {@see \App\Models\Concerns\BelongsToCompany} — it is the root of the ownership
+ * {@see BelongsToCompany} — it is the root of the ownership
  * graph, and access to it is governed by company membership instead.
  */
 class Company extends Model implements AuditableContract

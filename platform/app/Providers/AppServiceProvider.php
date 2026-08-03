@@ -13,6 +13,7 @@ use App\Observers\JournalEntryObserver;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\ServiceProvider;
 
@@ -110,6 +111,6 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureDates(): void
     {
-        Date::use(\Illuminate\Support\Carbon::class);
+        Date::use(Carbon::class);
     }
 }

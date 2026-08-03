@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\Company;
+use App\Models\User;
 use App\Support\Tenancy\CompanyContext;
 use Closure;
 use Filament\Facades\Filament;
@@ -15,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Binds the Filament panel's resolved tenant to the application's company context.
  *
- * Filament has already verified membership via {@see \App\Models\User::canAccessTenant()}
+ * Filament has already verified membership via {@see User::canAccessTenant()}
  * before this runs, so the company reaching the context is always one the
  * authenticated user belongs to. Nothing here reads request input.
  */

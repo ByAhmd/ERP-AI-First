@@ -24,7 +24,7 @@ final class SyncCompanyRoles extends Command
     {
         $count = $provisioner->provisionAllCompanies();
 
-        $this->info("Administrator role synced for {$count} " . str('company')->plural($count) . '.');
+        $this->info("Administrator role synced for {$count} ".str('company')->plural($count).'.');
 
         return self::SUCCESS;
     }

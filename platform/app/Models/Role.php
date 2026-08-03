@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
+use Database\Seeders\FirstRunSeeder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Permission\Models\Role as SpatieRole;
 
@@ -23,7 +25,7 @@ class Role extends SpatieRole
 {
     /**
      * Roles are scoped by spatie/laravel-permission's own team handling rather
-     * than {@see \App\Models\Concerns\BelongsToCompany}. Adding the global scope
+     * than {@see BelongsToCompany}. Adding the global scope
      * here would double-filter and break role resolution during authentication,
      * which runs before a company is selected.
      *
@@ -38,7 +40,7 @@ class Role extends SpatieRole
      * Whether this role applies across every company.
      *
      * Such roles are a privilege-escalation risk and are removed by
-     * {@see \Database\Seeders\FirstRunSeeder}; the accessor exists so the
+     * {@see FirstRunSeeder}; the accessor exists so the
      * condition can be asserted and surfaced rather than merely cleaned up.
      */
     public function isGlobal(): bool
