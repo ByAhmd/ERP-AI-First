@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Members\Pages;
 
 use App\Filament\Resources\Members\MemberResource;
+use App\Filament\Support\CurrentCompany;
 use App\Services\Identity\Exceptions\InvitationFailed;
 use App\Services\Identity\InvitationService;
 use Filament\Actions\Action;
@@ -61,7 +62,7 @@ class ListMembers extends ListRecords
             ->action(function (array $data, InvitationService $invitations): void {
                 try {
                     $invitations->invite(
-                        company: Filament::getTenant(),
+                        company: CurrentCompany::get(),
                         email: $data['email'],
                         name: $data['name'],
                         role: Role::find($data['role_id']),
@@ -90,7 +91,7 @@ class ListMembers extends ListRecords
      */
     private function availableRoles(): array
     {
-        $companyId = Filament::getTenant()?->getKey();
+        $companyId = CurrentCompany::key();
 
         app(PermissionRegistrar::class)->setPermissionsTeamId($companyId);
 

@@ -183,10 +183,6 @@ class JournalEntryForm
         $credit = '0';
 
         foreach ($lines as $line) {
-            if (! is_array($line)) {
-                continue;
-            }
-
             $debit = bcadd($debit, self::amount($line['debit'] ?? null), self::SCALE);
             $credit = bcadd($credit, self::amount($line['credit'] ?? null), self::SCALE);
         }

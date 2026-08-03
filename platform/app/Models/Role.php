@@ -20,6 +20,11 @@ use Spatie\Permission\Models\Role as SpatieRole;
  *
  * Registered through `config('permission.models.role')` so that Spatie, Shield
  * and this application all resolve the same class.
+ *
+ * The team key is declared here because spatie's own model does not know this
+ * application renamed it from `team_id`.
+ *
+ * @property ?string $company_id
  */
 class Role extends SpatieRole
 {

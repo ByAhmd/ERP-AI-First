@@ -20,6 +20,13 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * Note that Company itself is deliberately *not* scoped by
  * {@see BelongsToCompany} — it is the root of the ownership
  * graph, and access to it is governed by company membership instead.
+ *
+ * @property CompanyStatus $status
+ * @property bool $uses_hijri_fiscal_year
+ * @property int $fiscal_year_start_month
+ * @property int $fiscal_year_start_day
+ * @property ?array<string, mixed> $settings
+ * @property string $base_currency
  */
 class Company extends Model implements AuditableContract
 {

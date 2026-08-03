@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Members\Tables;
 
 use App\Enums\CompanyMembershipStatus;
+use App\Filament\Support\CurrentCompany;
 use App\Models\CompanyUser;
 use App\Services\Identity\Exceptions\InvitationFailed;
 use App\Services\Identity\Exceptions\MembershipChangeRejected;
@@ -77,7 +78,7 @@ class MembersTable
                         // Reissues a fresh token; the previous one stops working,
                         // so a forwarded old link cannot be redeemed later.
                         $invitations->invite(
-                            company: Filament::getTenant(),
+                            company: CurrentCompany::get(),
                             email: $record->user->email,
                             name: $record->user->name,
                             invitedBy: Filament::auth()->user(),

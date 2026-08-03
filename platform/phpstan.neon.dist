@@ -24,3 +24,32 @@ parameters:
     # catches a form, policy or report reading a column that does not exist —
     # the class of bug that otherwise only appears when a user opens the page.
     checkModelProperties: true
+
+    # Each entry below is a place where the analyser is wrong about this
+    # codebase, not a finding being swept aside. Nothing here is suppressed
+    # because it was inconvenient to fix.
+    ignoreErrors:
+        # Laravel types Seeder::$command as `protected $command` with no type
+        # and never initialises it, so it is null until setCommand() runs — a
+        # seeder invoked outside the console has none. Larastan's stub declares
+        # it non-nullable, which makes the nullsafe operator look redundant.
+        # Removing it would fatal exactly where the guard exists to help.
+        -
+            identifier: nullsafe.neverNull
+            path: database/seeders/*.php
+
+        # These exceptions are thrown by model observers, which the analyser
+        # does not trace through Eloquent's event dispatch. The catches are
+        # reached at runtime and are covered by tests — see
+        # AccountStructureViolation and DimensionRuleViolation in the accounting
+        # suite.
+        -
+            identifier: catch.neverThrown
+            path: app/Filament/Resources/*/Tables/*.php
+
+        # Laravel's stock ExampleTest asserts nothing about this application.
+        # Suppressed rather than deleted because removing a passing test is the
+        # owner's call, not a side effect of configuring static analysis.
+        -
+            identifier: method.alreadyNarrowedType
+            path: tests/Unit/ExampleTest.php
