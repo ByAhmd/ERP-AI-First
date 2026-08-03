@@ -76,7 +76,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return BelongsToMany<Company, $this>
+     * @return BelongsToMany<Company, $this, CompanyUser, 'pivot'>
      */
     public function companies(): BelongsToMany
     {

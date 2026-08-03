@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Filament\Support\CurrentCompany;
 use App\Models\Company;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -26,6 +27,8 @@ use Illuminate\Contracts\Support\Htmlable;
  *
  * The address fields are ZATCA's structured postal address. They are required
  * for e-invoicing and cannot be reconstructed from a free-text block later.
+ *
+ * @property-read Schema $form
  */
 class CompanySettings extends Page
 {
@@ -153,12 +156,13 @@ class CompanySettings extends Page
 
                         Select::make('fiscal_year_start_month')
                             ->label(__('company.fields.fiscal_year_start_month'))
-                            ->options(array_combine(range(1, 12), range(1, 12)))
+                            ->options(self::numericOptions(12))
                             ->required(),
 
                         Select::make('fiscal_year_start_day')
                             ->label(__('company.fields.fiscal_year_start_day'))
-                            ->options(array_combine(range(1, 28), range(1, 28)))
+                            // Capped at 28 so the date is valid in February.
+                            ->options(self::numericOptions(28))
                             ->required()
                             ->helperText(__('company.fields.fiscal_day_hint')),
 
@@ -189,6 +193,26 @@ class CompanySettings extends Page
 
     private function company(): Company
     {
-        return Filament::getTenant();
+        return CurrentCompany::get();
+    }
+
+    /**
+     * Sequential options from one to a maximum, keyed and labelled as strings.
+     *
+     * array_combine over two integer ranges produces array<int, int>, which is
+     * not the shape a select expects; the labels must be strings or the option
+     * renders as an integer and comparisons against the stored value drift.
+     *
+     * @return array<int, string>
+     */
+    private static function numericOptions(int $max): array
+    {
+        $options = [];
+
+        for ($value = 1; $value <= $max; $value++) {
+            $options[$value] = (string) $value;
+        }
+
+        return $options;
     }
 }

@@ -56,7 +56,7 @@ class DimensionForm
                         // Changing scope once entries carry the dimension would
                         // restate every report sliced by it, so the field locks.
                         ->disabled(fn (?Dimension $record): bool => $record?->hasLedgerUsage() ?? false)
-                        ->helperText(fn (?Dimension $record): ?string => ($record?->hasLedgerUsage() ?? false)
+                        ->helperText(fn (?Dimension $record): string => ($record?->hasLedgerUsage() ?? false)
                             ? __('accounting.dimensions.hints.scope_locked')
                             : __('accounting.dimensions.hints.scope', ['limit' => DimensionScope::GENERAL_LIMIT])),
 

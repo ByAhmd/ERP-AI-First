@@ -91,7 +91,7 @@ class Company extends Model implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<User, $this>
+     * @return BelongsToMany<User, $this, CompanyUser, 'pivot'>
      */
     public function users(): BelongsToMany
     {

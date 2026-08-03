@@ -172,8 +172,15 @@ final class CompanyIsolationTest extends TestCase
 }
 
 /**
- * Stand-in for a tenant-owned model. Phase 1 replaces it with the real ones;
- * the guarantees under test belong to the trait, not to any particular table.
+ * Stand-in for a tenant-owned model. The guarantees under test belong to the
+ * trait, not to any particular table, so a throwaway table keeps the test
+ * independent of whichever models happen to exist.
+ *
+ * Its columns are created in setUp() rather than by a migration, so the schema
+ * scanner cannot infer them.
+ *
+ * @property string $label
+ * @property string $company_id
  */
 final class LedgerProbe extends Model
 {

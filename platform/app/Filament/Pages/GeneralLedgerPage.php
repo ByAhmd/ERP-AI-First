@@ -26,6 +26,8 @@ use Illuminate\Support\Collection;
  * An account has to be chosen before anything is shown. A ledger across every
  * account at once is not a report anyone reads — it is the journal, which the
  * journal entries screen already provides.
+ *
+ * @property-read Schema $form
  */
 class GeneralLedgerPage extends Page
 {

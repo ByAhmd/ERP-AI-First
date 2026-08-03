@@ -26,6 +26,12 @@ use Illuminate\Support\Collection;
  * that plainly rather than leaving the reader to add up columns, because an
  * out-of-balance ledger is the single condition that invalidates every other
  * report.
+ *
+ * `$form` is resolved by Livewire's dynamic property handling, which static
+ * analysis cannot see. Declared here rather than replaced with getSchema(),
+ * because property access is Filament's documented API for pages.
+ *
+ * @property-read Schema $form
  */
 class TrialBalancePage extends Page
 {

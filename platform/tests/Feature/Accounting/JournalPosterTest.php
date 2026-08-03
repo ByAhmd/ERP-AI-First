@@ -41,8 +41,6 @@ final class JournalPosterTest extends TestCase
 
     private Account $revenue;
 
-    private Account $expense;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -62,7 +60,7 @@ final class JournalPosterTest extends TestCase
 
         $this->cash = $this->account('1100', 'Cash', AccountType::Asset);
         $this->revenue = $this->account('4000', 'Sales', AccountType::Revenue);
-        $this->expense = $this->account('5000', 'Rent', AccountType::Expense);
+        $this->account('5000', 'Rent', AccountType::Expense);
     }
 
     #[Test]
