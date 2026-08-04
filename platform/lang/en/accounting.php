@@ -4,6 +4,59 @@ declare(strict_types=1);
 
 return [
 
+    'statements' => [
+        'account' => 'Account',
+        'as_of' => 'As at',
+        'depth' => 'Detail level',
+        'depth_hint' => 'Levels shown beneath each section. Anything deeper is folded into the row above.',
+        'include_empty' => 'Show accounts with no balance',
+        'include_empty_hint' => 'Includes every account, not only those carrying a balance.',
+        'total' => 'Total :section',
+        'empty_section' => 'No balances in this section.',
+        'out_of_balance' => 'The statement does not balance. Out by :difference — assets do not equal liabilities plus equity.',
+        'filtered_notice' => 'Narrowed to a branch or dimension. An entry spanning more than one is split between them, so a filtered statement need not balance.',
+
+        'balance_sheet' => [
+            'title' => 'Balance Sheet',
+            'subheading' => 'Assets, liabilities and equity on a given date.',
+        ],
+
+        'income_statement' => [
+            'title' => 'Income Statement',
+            'subheading' => 'Revenue and expenses across the period, on an accrual basis.',
+        ],
+
+        'sections' => [
+            'assets' => 'Assets',
+            'liabilities' => 'Liabilities',
+            'equity' => 'Equity',
+            'liabilities_and_equity' => 'Total liabilities and equity',
+            'revenue' => 'Revenue',
+            'cost_of_sales' => 'Cost of sales',
+            'gross_profit' => 'Gross profit',
+            'operating_expenses' => 'Operating expenses',
+            'net_profit' => 'Net profit',
+        ],
+
+        'lines' => [
+            'brought_forward' => 'Retained earnings brought forward',
+            'current_result' => 'Result for the current year',
+        ],
+    ],
+
+    'comparison' => [
+        'compare_with' => 'Compare with',
+        'columns' => 'Comparison columns',
+
+        'interval' => [
+            'none' => 'No comparison',
+            'week' => 'Week',
+            'month' => 'Month',
+            'quarter' => 'Quarter',
+            'year' => 'Year',
+        ],
+    ],
+
     'general_ledger' => [
         'title' => 'General Ledger',
         'account' => 'Account',

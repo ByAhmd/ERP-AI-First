@@ -14,6 +14,7 @@ use App\Services\Accounting\FiscalCalendar;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\Reports\GeneralLedger;
 use App\Services\Accounting\Reports\LedgerMovement;
+use App\Services\Accounting\Reports\ReportFilters;
 use App\Services\Accounting\Reports\TrialBalance;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
@@ -215,7 +216,7 @@ final class GeneralLedgerTest extends TestCase
             $this->account('1110'),
             CarbonImmutable::parse('2026-01-01'),
             CarbonImmutable::parse('2026-12-31'),
-            ['dimension_value_id' => $riyadh->getKey()],
+            new ReportFilters(dimensionValueId: $riyadh->getKey()),
         );
 
         $this->assertCount(1, $movements);

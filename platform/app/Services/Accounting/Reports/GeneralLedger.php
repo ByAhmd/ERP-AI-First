@@ -37,15 +37,16 @@ final class GeneralLedger
     /**
      * Movements for an account across a period.
      *
-     * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
      * @return Collection<int, LedgerMovement>
      */
     public function movements(
         Account $account,
         DateTimeInterface $from,
         DateTimeInterface $to,
-        array $filters = [],
+        ?ReportFilters $filters = null,
     ): Collection {
+        $filters ??= ReportFilters::none();
+
         $balance = $this->openingBalance($account, $from, $filters);
 
         $rows = $this->query($account, $filters)
@@ -96,15 +97,13 @@ final class GeneralLedger
      * The account's balance immediately before the window opens.
      *
      * Signed, positive for a debit balance.
-     *
-     * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
      */
     public function openingBalance(
         Account $account,
         DateTimeInterface $from,
-        array $filters = [],
+        ?ReportFilters $filters = null,
     ): string {
-        $row = $this->query($account, $filters)
+        $row = $this->query($account, $filters ?? ReportFilters::none())
             ->whereDate('e.entry_date', '<', $from)
             ->selectRaw('COALESCE(SUM(l.debit), 0) as debit_total, COALESCE(SUM(l.credit), 0) as credit_total')
             ->first();
@@ -154,10 +153,7 @@ final class GeneralLedger
             : bcmul($signedBalance, '-1', self::SCALE);
     }
 
-    /**
-     * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
-     */
-    private function query(Account $account, array $filters): Builder
+    private function query(Account $account, ReportFilters $filters): Builder
     {
         $query = DB::table('journal_entry_lines as l')
             ->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
@@ -166,20 +162,7 @@ final class GeneralLedger
             // Drafts are working material and never appear in a ledger.
             ->where('e.status', JournalEntryStatus::Posted->value);
 
-        if (filled($filters['branch_id'] ?? null)) {
-            $query->where('l.branch_id', $filters['branch_id']);
-        }
-
-        if (filled($filters['dimension_value_id'] ?? null)) {
-            $query->whereExists(function ($sub) use ($filters): void {
-                $sub->selectRaw('1')
-                    ->from('journal_entry_line_dimensions as d')
-                    ->whereColumn('d.journal_entry_line_id', 'l.id')
-                    ->where('d.dimension_value_id', $filters['dimension_value_id']);
-            });
-        }
-
-        return $query;
+        return $filters->applyTo($query);
     }
 
     private function scale(string $amount): string

@@ -14,6 +14,7 @@ use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\Exceptions\DimensionRuleViolation;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Accounting\JournalPoster;
+use App\Services\Accounting\Reports\ReportFilters;
 use App\Services\Accounting\Reports\TrialBalance;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
@@ -249,7 +250,7 @@ final class DimensionTest extends TestCase
         $riyadhRows = $report->build(
             CarbonImmutable::parse('2026-01-01'),
             CarbonImmutable::parse('2026-12-31'),
-            ['dimension_value_id' => $riyadh->getKey()],
+            new ReportFilters(dimensionValueId: $riyadh->getKey()),
         );
 
         $rentRow = $riyadhRows->firstWhere('code', '5300');

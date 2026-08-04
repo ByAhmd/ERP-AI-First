@@ -8,6 +8,7 @@ use App\Enums\PeriodStatus;
 use App\Models\AccountingPeriod;
 use App\Models\FiscalYear;
 use App\Services\Accounting\Exceptions\PeriodTransitionRejected;
+use App\Services\Accounting\Reports\BalanceSheet;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -56,10 +57,17 @@ final class FiscalYearCloser
     /**
      * Reopen a closed year and its periods.
      *
-     * A locked year cannot be reopened: locking follows the year-end transfer of
-     * the result to retained earnings, and reopening would double-count that
-     * transfer. Correction after locking is by adjusting entry in the year that
-     * follows.
+     * A locked year cannot be reopened. Locking is the point at which the
+     * year's figures have been reported outward — to ZATCA, to an auditor, to
+     * an owner — and reopening would let a filed period be restated behind
+     * those reports. Correction after locking is by adjusting entry in the year
+     * that follows.
+     *
+     * Note that closing moves no balances. Revenue and expense accounts keep
+     * their figures and nothing posts to retained earnings, so the result for
+     * a period is derived where it is needed rather than stored; see
+     * {@see BalanceSheet} for why that holds
+     * whether or not closing entries are introduced later.
      */
     public function reopen(FiscalYear $year, ?string $userId = null): FiscalYear
     {

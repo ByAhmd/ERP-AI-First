@@ -349,3 +349,118 @@
 .erp-report__summary-value--strong {
     font-weight: 700;
 }
+
+/* ---------------------------------------------------------------------------
+   Financial statements
+   ---------------------------------------------------------------------------
+   The balance sheet and the income statement share one view, so they share
+   these rules. A statement is a tree of accounts with a column per period, and
+   almost everything below exists to keep those two dimensions readable at once:
+   the hierarchy legible down the first column, the figures comparable across
+   the rest.
+   --------------------------------------------------------------------------- */
+
+.erp-statement {
+    /* Comparison columns are narrow and repetitive; a fixed label column stops
+       them stealing width from the account names. */
+    min-width: 32rem;
+}
+
+.erp-statement__label {
+    text-align: start;
+    font-weight: 400;
+}
+
+/*
+ * Depth.
+ *
+ * Stepped as classes rather than an inline style: the level is one of seven
+ * known values, and a stylesheet that names them keeps the markup free of
+ * presentation. Padding is on the inline start, so Arabic indents from the
+ * right without a second set of rules.
+ *
+ * Qualified by `th` for the same reason the numeric columns above are: the
+ * blanket `.erp-report__table th, td { padding }` rule is a class plus a type
+ * and outweighs a bare class, so the shorthand was overriding every one of
+ * these and the hierarchy rendered perfectly flat.
+ */
+.erp-report__table th.erp-statement__label--level-0 { padding-inline-start: 0.5rem; }
+.erp-report__table th.erp-statement__label--level-1 { padding-inline-start: 1.75rem; }
+.erp-report__table th.erp-statement__label--level-2 { padding-inline-start: 3rem; }
+.erp-report__table th.erp-statement__label--level-3 { padding-inline-start: 4.25rem; }
+.erp-report__table th.erp-statement__label--level-4 { padding-inline-start: 5.5rem; }
+.erp-report__table th.erp-statement__label--level-5 { padding-inline-start: 6.75rem; }
+.erp-report__table th.erp-statement__label--level-6 { padding-inline-start: 8rem; }
+
+/* The account code is orientation for the accountant who thinks in numbers,
+   but it is not what anyone reads first. */
+.erp-statement__code {
+    color: var(--erp-muted);
+    font-variant-numeric: tabular-nums;
+    margin-inline-end: 0.5rem;
+}
+
+.erp-statement__row:hover {
+    background-color: #f7faf8;
+}
+
+/* Section headings — الأصول, الإيرادات — carry no figures of their own. */
+.erp-statement__heading > .erp-statement__label {
+    padding-block: 0.75rem;
+    font-weight: 700;
+    color: var(--erp-heading);
+    letter-spacing: -0.01em;
+}
+
+.erp-statement__section + .erp-statement__section .erp-statement__heading > .erp-statement__label {
+    border-top: 1px solid var(--erp-border);
+}
+
+.erp-statement__total > * {
+    border-top: 1px solid var(--erp-strong-border);
+    font-weight: 600;
+}
+
+/* Gross profit, net profit, liabilities-and-equity: arithmetic over the
+   sections above rather than anything the ledger holds. */
+.erp-statement__summary > * {
+    border-top: 2px solid var(--erp-strong-border);
+    border-bottom: 1px solid var(--erp-border);
+    font-weight: 700;
+    padding-block: 0.75rem;
+}
+
+.erp-statement__summary--emphasised > * {
+    background-color: #eef4f1;
+    font-size: 1.0625rem;
+}
+
+.dark .erp-statement__summary--emphasised > * {
+    background-color: #16261f;
+}
+
+.dark .erp-statement__row:hover {
+    background-color: #16261f;
+}
+
+/*
+ * Negative figures.
+ *
+ * Parenthesised in the markup, coloured here. Both are needed: colour alone
+ * would carry the meaning only for readers who can see it, and a statement is
+ * a legal document before it is a screen.
+ */
+.erp-statement__amount--negative {
+    color: #a13d33;
+}
+
+.dark .erp-statement__amount--negative {
+    color: #e08c81;
+}
+
+/* An advisory rather than a failure — a statement narrowed to one branch is
+   not required to balance. */
+.erp-report__verdict--muted {
+    color: var(--erp-muted);
+    font-weight: 500;
+}

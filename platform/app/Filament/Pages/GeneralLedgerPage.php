@@ -9,6 +9,7 @@ use App\Models\Branch;
 use App\Models\DimensionValue;
 use App\Services\Accounting\Reports\GeneralLedger;
 use App\Services\Accounting\Reports\LedgerMovement;
+use App\Services\Accounting\Reports\ReportFilters;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
@@ -175,14 +176,8 @@ class GeneralLedgerPage extends Page
         );
     }
 
-    /**
-     * @return array{branch_id: string|null, dimension_value_id: string|null}
-     */
-    private function activeFilters(): array
+    private function activeFilters(): ReportFilters
     {
-        return [
-            'branch_id' => $this->filters['branch_id'] ?? null,
-            'dimension_value_id' => $this->filters['dimension_value_id'] ?? null,
-        ];
+        return ReportFilters::fromArray($this->filters);
     }
 }

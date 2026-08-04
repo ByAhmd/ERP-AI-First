@@ -142,6 +142,8 @@ final class PanelSmokeTest extends TestCase
         $this->actingAs($this->admin)->get("{$base}/branches")->assertOk();
         $this->actingAs($this->admin)->get("{$base}/branches/create")->assertOk();
         $this->actingAs($this->admin)->get("{$base}/general-ledger-page")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/balance-sheet-page")->assertOk();
+        $this->actingAs($this->admin)->get("{$base}/income-statement-page")->assertOk();
     }
 
     #[Test]

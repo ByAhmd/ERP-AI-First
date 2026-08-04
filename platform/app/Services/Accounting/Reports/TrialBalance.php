@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Accounting\Reports;
 
-use App\Enums\JournalEntryStatus;
 use App\Models\Account;
-use App\Support\Tenancy\CompanyContext;
 use DateTimeInterface;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * The trial balance.
@@ -18,29 +15,33 @@ use Illuminate\Support\Facades\DB;
  * closing balance. Its purpose is singular: if total debits do not equal total
  * credits, the ledger is broken, and every statement derived from it is wrong.
  *
- * Computed directly from `journal_entry_lines` — no stored balances, so the
- * report cannot drift from the entries it summarises. Only posted entries are
- * included; drafts are working material and a trial balance containing them
- * would not be one.
+ * Computed directly from the ledger through {@see LedgerBalances} — no stored
+ * balances, so the report cannot drift from the entries it summarises, and no
+ * private opinion about which entries count.
  */
 final class TrialBalance
 {
     private const SCALE = 4;
 
+    public function __construct(
+        private readonly LedgerBalances $balances,
+    ) {}
+
     /**
      * Build the report.
      *
-     * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
      * @return Collection<int, TrialBalanceRow>
      */
     public function build(
         DateTimeInterface $from,
         DateTimeInterface $to,
-        array $filters = [],
+        ?ReportFilters $filters = null,
         bool $includeEmpty = false,
     ): Collection {
-        $opening = $this->aggregate(null, $from, $filters, exclusiveEnd: true);
-        $period = $this->aggregate($from, $to, $filters);
+        $filters ??= ReportFilters::none();
+
+        $opening = $this->balances->perAccount(DateRange::endingBefore($from), $filters);
+        $period = $this->balances->perAccount(DateRange::between($from, $to), $filters);
 
         $accountIds = array_unique([...array_keys($opening), ...array_keys($period)]);
 
@@ -89,70 +90,6 @@ final class TrialBalance
             // The assertion the whole report exists to make.
             'balanced' => bccomp($closingDebit, $closingCredit, self::SCALE) === 0,
         ];
-    }
-
-    /**
-     * Debit and credit sums per account over a date window.
-     *
-     * One grouped query rather than a query per account: a chart of a few
-     * hundred accounts would otherwise mean a few hundred round trips for a
-     * report that is opened constantly.
-     *
-     * @param  array{branch_id?: string|null, dimension_value_id?: string|null}  $filters
-     * @return array<string, array{debit: string, credit: string}>
-     */
-    private function aggregate(
-        ?DateTimeInterface $from,
-        DateTimeInterface $to,
-        array $filters,
-        bool $exclusiveEnd = false,
-    ): array {
-        $query = DB::table('journal_entry_lines as l')
-            ->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
-            ->where('l.company_id', $this->companyId())
-            // Drafts never contribute to a ledger figure.
-            ->where('e.status', JournalEntryStatus::Posted->value)
-            ->groupBy('l.account_id')
-            ->select([
-                'l.account_id',
-                DB::raw('SUM(l.debit) as debit_total'),
-                DB::raw('SUM(l.credit) as credit_total'),
-            ]);
-
-        if ($from !== null) {
-            $query->whereDate('e.entry_date', '>=', $from);
-        }
-
-        // Opening balances are everything strictly before the window opens.
-        $exclusiveEnd
-            ? $query->whereDate('e.entry_date', '<', $to)
-            : $query->whereDate('e.entry_date', '<=', $to);
-
-        if (filled($filters['branch_id'] ?? null)) {
-            $query->where('l.branch_id', $filters['branch_id']);
-        }
-
-        if (filled($filters['dimension_value_id'] ?? null)) {
-            // Dimension tags live in their own table, so the filter is an
-            // existence check rather than a column comparison.
-            $query->whereExists(function ($sub) use ($filters): void {
-                $sub->selectRaw('1')
-                    ->from('journal_entry_line_dimensions as d')
-                    ->whereColumn('d.journal_entry_line_id', 'l.id')
-                    ->where('d.dimension_value_id', $filters['dimension_value_id']);
-            });
-        }
-
-        $results = [];
-
-        foreach ($query->get() as $row) {
-            $results[$row->account_id] = [
-                'debit' => $this->scale((string) $row->debit_total),
-                'credit' => $this->scale((string) $row->credit_total),
-            ];
-        }
-
-        return $results;
     }
 
     /**
@@ -206,15 +143,5 @@ final class TrialBalance
         $net = bcsub($debit, $credit, self::SCALE);
 
         return bccomp($net, '0', self::SCALE) < 0 ? bcmul($net, '-1', self::SCALE) : '0.0000';
-    }
-
-    private function scale(string $amount): string
-    {
-        return bcadd($amount === '' ? '0' : $amount, '0', self::SCALE);
-    }
-
-    private function companyId(): string
-    {
-        return app(CompanyContext::class)->idOrFail();
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Models\Branch;
+use App\Services\Accounting\Reports\ReportFilters;
 use App\Services\Accounting\Reports\TrialBalance;
 use App\Services\Accounting\Reports\TrialBalanceRow;
 use BackedEnum;
@@ -122,10 +123,7 @@ class TrialBalancePage extends Page
         return app(TrialBalance::class)->build(
             from: CarbonImmutable::parse($from),
             to: CarbonImmutable::parse($to),
-            filters: [
-                'branch_id' => $this->filters['branch_id'] ?? null,
-                'dimension_value_id' => $this->filters['dimension_value_id'] ?? null,
-            ],
+            filters: ReportFilters::fromArray($this->filters),
             includeEmpty: (bool) ($this->filters['include_empty'] ?? false),
         );
     }
