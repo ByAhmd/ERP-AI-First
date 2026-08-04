@@ -11,12 +11,10 @@ use App\Models\Dimension;
 use App\Models\DimensionValue;
 use App\Models\User;
 use App\Services\Accounting\ChartOfAccountsTemplate;
-use App\Services\Identity\RoleProvisioner;
 use App\Support\Tenancy\CompanyContext;
-use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
-use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\CreatesDomainFixtures;
 use Tests\TestCase;
 
 /**
@@ -30,6 +28,7 @@ use Tests\TestCase;
  */
 final class PanelSmokeTest extends TestCase
 {
+    use CreatesDomainFixtures;
     use RefreshDatabase;
 
     private Company $company;
@@ -40,32 +39,13 @@ final class PanelSmokeTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(PermissionSeeder::class);
+        $this->company = $this->makeCompany('Acme Trading');
+        $this->admin = $this->makeAdministrator($this->company, 'admin@acme.test');
 
-        $this->company = Company::create(['name' => 'Acme Trading']);
-
-        $this->admin = User::create([
-            'name' => 'Acme Admin',
-            'email' => 'admin@acme.test',
-            'password' => 'password',
-        ]);
-
-        CompanyUser::create([
-            'company_id' => $this->company->getKey(),
-            'user_id' => $this->admin->getKey(),
-            'status' => CompanyMembershipStatus::Active,
-            'joined_at' => now(),
-        ]);
-
-        $role = app(RoleProvisioner::class)->provisionAdministrator($this->company);
-        app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
-        $this->admin->assignRole($role);
-
-        // Deliberately cleared. Binding the permission team is the middleware's
-        // job; leaving it set here would mask a panel that renders with no
-        // navigation because no company was ever bound — which is exactly the
-        // defect these tests missed the first time.
-        app(PermissionRegistrar::class)->setPermissionsTeamId(null);
+        // Binding the permission team is the middleware's job. Leaving it set
+        // here would mask a panel rendering with no navigation because no
+        // company was ever bound — the defect these tests missed the first time.
+        $this->forgetPermissionTeam();
     }
 
     #[Test]
@@ -122,7 +102,7 @@ final class PanelSmokeTest extends TestCase
     public function the_audit_trail_renders_and_shows_only_this_company(): void
     {
         // Membership creation in setUp is itself audited, so there is a record.
-        $other = Company::create(['name' => 'Globex Industrial']);
+        $other = $this->makeOtherCompany('Globex Industrial');
         $otherUser = User::create([
             'name' => 'Globex Person',
             'email' => 'rival@globex.test',
@@ -206,7 +186,7 @@ final class PanelSmokeTest extends TestCase
             'password' => 'password',
         ]);
 
-        $other = Company::create(['name' => 'Globex Industrial']);
+        $other = $this->makeOtherCompany('Globex Industrial');
         CompanyUser::create([
             'company_id' => $other->getKey(),
             'user_id' => $outsider->getKey(),

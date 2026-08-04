@@ -4,25 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Accounting;
 
-use App\Enums\CompanyMembershipStatus;
 use App\Enums\JournalEntryStatus;
 use App\Filament\Resources\JournalEntries\Pages\CreateJournalEntry;
 use App\Models\Account;
 use App\Models\Company;
-use App\Models\CompanyUser;
 use App\Models\JournalEntry;
 use App\Models\User;
-use App\Services\Accounting\ChartOfAccountsTemplate;
-use App\Services\Accounting\FiscalCalendar;
 use App\Services\Accounting\JournalPoster;
-use App\Services\Identity\RoleProvisioner;
-use App\Support\Tenancy\CompanyContext;
-use Database\Seeders\PermissionSeeder;
-use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
-use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\CreatesDomainFixtures;
 use Tests\TestCase;
 
 /**
@@ -36,6 +28,7 @@ use Tests\TestCase;
  */
 final class JournalEntryPanelTest extends TestCase
 {
+    use CreatesDomainFixtures;
     use RefreshDatabase;
 
     private Company $company;
@@ -46,33 +39,13 @@ final class JournalEntryPanelTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(PermissionSeeder::class);
+        $this->company = $this->makeCompany('Acme Trading');
+        $this->admin = $this->makeAdministrator($this->company, 'admin@acme.test');
 
-        $this->company = Company::create(['name' => 'Acme Trading']);
+        $this->actingInPanel($this->admin, $this->company);
 
-        $this->admin = User::create([
-            'name' => 'Acme Admin',
-            'email' => 'admin@acme.test',
-            'password' => 'password',
-        ]);
-
-        CompanyUser::create([
-            'company_id' => $this->company->getKey(),
-            'user_id' => $this->admin->getKey(),
-            'status' => CompanyMembershipStatus::Active,
-            'joined_at' => now(),
-        ]);
-
-        $this->actingAs($this->admin);
-        Filament::setTenant($this->company);
-        app(CompanyContext::class)->set($this->company);
-
-        $role = app(RoleProvisioner::class)->provisionAdministrator($this->company);
-        app(PermissionRegistrar::class)->setPermissionsTeamId($this->company->getKey());
-        $this->admin->assignRole($role);
-
-        app(ChartOfAccountsTemplate::class)->applyTo($this->company);
-        app(FiscalCalendar::class)->createYear($this->company, (int) now()->year);
+        $this->makeChartOfAccounts($this->company);
+        $this->makeFiscalYear($this->company, (int) now()->year);
     }
 
     #[Test]

@@ -9,15 +9,12 @@ use App\Filament\Resources\Members\Pages\ListMembers;
 use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\User;
-use App\Services\Identity\RoleProvisioner;
-use App\Support\Tenancy\CompanyContext;
 use App\Support\Tenancy\Exceptions\CompanyMismatch;
-use Database\Seeders\PermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
-use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\CreatesDomainFixtures;
 use Tests\TestCase;
 
 /**
@@ -31,6 +28,7 @@ use Tests\TestCase;
  */
 final class MemberResourceTest extends TestCase
 {
+    use CreatesDomainFixtures;
     use RefreshDatabase;
 
     private Company $acme;
@@ -43,38 +41,14 @@ final class MemberResourceTest extends TestCase
     {
         parent::setUp();
 
-        // Permissions are generated data rather than schema, so a refreshed
-        // database has none and every policy would deny.
-        $this->seed(PermissionSeeder::class);
+        $this->acme = $this->makeCompany('Acme Trading');
+        $this->globex = $this->makeOtherCompany('Globex Industrial');
 
-        $this->acme = Company::create(['name' => 'Acme Trading']);
-        $this->globex = Company::create(['name' => 'Globex Industrial']);
+        $this->admin = $this->makeAdministrator($this->acme, 'admin@acme.test');
+        $this->makeMember($this->acme, 'clerk@acme.test', 'Acme Clerk');
+        $this->makeMember($this->globex, 'rival@globex.test', 'Globex Person');
 
-        $this->admin = $this->member($this->acme, 'admin@acme.test', 'Acme Admin');
-        $this->member($this->acme, 'clerk@acme.test', 'Acme Clerk');
-        $this->member($this->globex, 'rival@globex.test', 'Globex Person');
-
-        // Filament resolves the tenant against the authenticated user, so
-        // authentication has to come first.
-        $this->actingAs($this->admin);
-
-        Filament::setTenant($this->acme);
-        app(CompanyContext::class)->set($this->acme);
-
-        $this->grantAdministratorRole($this->admin, $this->acme);
-    }
-
-    /**
-     * Roles are company-scoped, so the registrar must be pointed at the company
-     * before the role is created or assigned.
-     */
-    private function grantAdministratorRole(User $user, Company $company): void
-    {
-        $role = app(RoleProvisioner::class)->provisionAdministrator($company);
-
-        app(PermissionRegistrar::class)->setPermissionsTeamId($company->getKey());
-
-        $user->assignRole($role);
+        $this->actingInPanel($this->admin, $this->acme);
     }
 
     #[Test]
@@ -160,23 +134,5 @@ final class MemberResourceTest extends TestCase
         $this->expectException(CompanyMismatch::class);
 
         $membership->save();
-    }
-
-    private function member(Company $company, string $email, string $name): User
-    {
-        $user = User::create([
-            'name' => $name,
-            'email' => $email,
-            'password' => 'irrelevant-for-this-test',
-        ]);
-
-        CompanyUser::create([
-            'company_id' => $company->getKey(),
-            'user_id' => $user->getKey(),
-            'status' => CompanyMembershipStatus::Active,
-            'joined_at' => now(),
-        ]);
-
-        return $user->refresh();
     }
 }
