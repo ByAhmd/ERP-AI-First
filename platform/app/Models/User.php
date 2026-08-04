@@ -8,6 +8,8 @@ use App\Enums\CompanyMembershipStatus;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -28,6 +30,12 @@ use Spatie\Permission\Traits\HasRoles;
  * clients, so membership is expressed through the `company_user` pivot and roles
  * are held per company via spatie/laravel-permission's teams feature.
  */
+#[Fillable([
+    'name', 'email', 'password', 'locale', 'is_platform_admin',
+])]
+#[Hidden([
+    'password', 'remember_token',
+])]
 class User extends Authenticatable implements AuditableContract, FilamentUser, HasTenants
 {
     use Auditable;
@@ -36,19 +44,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     use HasUlids;
     use Notifiable;
     use SoftDeletes;
-
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'locale',
-        'is_platform_admin',
-    ];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
 
     /**
      * Mirrors the schema defaults.

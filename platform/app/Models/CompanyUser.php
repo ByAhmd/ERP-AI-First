@@ -8,6 +8,8 @@ use App\Enums\CompanyMembershipStatus;
 use App\Models\Concerns\BelongsToCompany;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -40,6 +42,13 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $company_id
  * @property ?string $invitation_token_hash
  */
+#[Fillable([
+    'company_id', 'user_id', 'status', 'invitation_token_hash',
+    'invitation_expires_at', 'invited_by_id', 'invited_at', 'joined_at',
+])]
+#[Hidden([
+    'invitation_token_hash',
+])]
 class CompanyUser extends Pivot implements AuditableContract
 {
     use Auditable;
@@ -52,25 +61,10 @@ class CompanyUser extends Pivot implements AuditableContract
 
     protected $keyType = 'string';
 
-    protected $fillable = [
-        'company_id',
-        'user_id',
-        'status',
-        'invitation_token_hash',
-        'invitation_expires_at',
-        'invited_by_id',
-        'invited_at',
-        'joined_at',
-    ];
-
     /**
-     * The token hash must never reach a response, a log, or an audit record.
-     */
-    protected $hidden = [
-        'invitation_token_hash',
-    ];
-
-    /**
+     * The token hash must never reach a response, a log, or an audit record —
+     * hidden from serialisation above, and excluded from the audit trail here.
+     *
      * @var array<int, string>
      */
     protected array $auditExclude = [

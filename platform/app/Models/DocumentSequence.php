@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
 use App\Services\Accounting\DocumentNumberAllocator;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,20 +17,14 @@ use Illuminate\Database\Eloquent\Model;
  * is the only thing that touches `next_number`, because correctness depends on
  * the row being locked inside the caller's transaction.
  */
+#[Fillable([
+    'company_id', 'key', 'scope', 'prefix', 'suffix', 'next_number',
+    'padding',
+])]
 class DocumentSequence extends Model
 {
     use BelongsToCompany;
     use HasUlids;
-
-    protected $fillable = [
-        'company_id',
-        'key',
-        'scope',
-        'prefix',
-        'suffix',
-        'next_number',
-        'padding',
-    ];
 
     protected function casts(): array
     {

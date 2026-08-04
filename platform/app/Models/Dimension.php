@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\DimensionScope;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,23 +27,16 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property int $sort_order
  * @property ?string $company_id
  */
+#[Fillable([
+    'company_id', 'code', 'name', 'name_en', 'scope', 'is_required',
+    'is_active', 'sort_order',
+])]
 class Dimension extends Model implements AuditableContract
 {
     use AuditsCompany;
     use BelongsToCompany;
     use HasUlids;
     use SoftDeletes;
-
-    protected $fillable = [
-        'company_id',
-        'code',
-        'name',
-        'name_en',
-        'scope',
-        'is_required',
-        'is_active',
-        'sort_order',
-    ];
 
     /**
      * @var array<string, mixed>

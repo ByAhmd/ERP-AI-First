@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,19 +18,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * One row per dimension per line, enforced by a unique index — a second value
  * for the same dimension would make every total double-count that line.
  */
+#[Fillable([
+    'company_id', 'journal_entry_line_id', 'dimension_id',
+    'dimension_value_id',
+])]
 class JournalEntryLineDimension extends Model
 {
     use BelongsToCompany;
     use HasUlids;
 
     protected $table = 'journal_entry_line_dimensions';
-
-    protected $fillable = [
-        'company_id',
-        'journal_entry_line_id',
-        'dimension_id',
-        'dimension_value_id',
-    ];
 
     /**
      * @return BelongsTo<JournalEntryLine, $this>

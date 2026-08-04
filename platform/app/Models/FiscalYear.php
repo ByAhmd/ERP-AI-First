@@ -8,6 +8,7 @@ use App\Enums\PeriodStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,19 +25,14 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $closed_by_id
  * @property ?string $company_id
  */
+#[Fillable([
+    'company_id', 'name', 'start_date', 'end_date', 'status',
+])]
 class FiscalYear extends Model implements AuditableContract
 {
     use AuditsCompany;
     use BelongsToCompany;
     use HasUlids;
-
-    protected $fillable = [
-        'company_id',
-        'name',
-        'start_date',
-        'end_date',
-        'status',
-    ];
 
     /**
      * @var array<string, mixed>

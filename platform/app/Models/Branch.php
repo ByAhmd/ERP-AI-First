@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -16,15 +17,19 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  *
  * A reporting dimension on ledger movements, and the unit that POS terminals
  * and inventory balances are attached to in later phases.
+ *
+ * @property bool $is_active
+ * @property ?string $company_id
  */
+#[Fillable([
+    'company_id', 'code', 'name', 'name_en', 'is_active',
+])]
 class Branch extends Model implements AuditableContract
 {
     use AuditsCompany;
     use BelongsToCompany;
     use HasUlids;
     use SoftDeletes;
-
-    protected $fillable = ['company_id', 'code', 'name', 'name_en', 'is_active'];
 
     /**
      * @var array<string, mixed>

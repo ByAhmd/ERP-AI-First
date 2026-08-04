@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,17 +17,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * currency, so translating to base is always a multiplication. Fixing the
  * direction here avoids the inverted-rate class of bug entirely.
  */
+#[Fillable([
+    'company_id', 'currency_id', 'rate_date', 'rate',
+])]
 class ExchangeRate extends Model
 {
     use BelongsToCompany;
     use HasUlids;
-
-    protected $fillable = [
-        'company_id',
-        'currency_id',
-        'rate_date',
-        'rate',
-    ];
 
     protected function casts(): array
     {

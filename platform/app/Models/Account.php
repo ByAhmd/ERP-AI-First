@@ -9,6 +9,7 @@ use App\Enums\NormalBalance;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
 use App\Observers\AccountObserver;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +35,11 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $company_id
  * @property ?string $system_key
  */
+#[Fillable([
+    'company_id', 'parent_id', 'code', 'name', 'name_en', 'type',
+    'description', 'is_postable', 'is_active', 'is_system', 'system_key',
+    'currency_id',
+])]
 class Account extends Model implements AuditableContract
 {
     use AuditsCompany;
@@ -42,21 +48,6 @@ class Account extends Model implements AuditableContract
     use SoftDeletes;
 
     protected $table = 'chart_of_accounts';
-
-    protected $fillable = [
-        'company_id',
-        'parent_id',
-        'code',
-        'name',
-        'name_en',
-        'type',
-        'description',
-        'is_postable',
-        'is_active',
-        'is_system',
-        'system_key',
-        'currency_id',
-    ];
 
     /**
      * @var array<string, mixed>

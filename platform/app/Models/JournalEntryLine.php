@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,25 +19,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * amount. That is how a ledger is read, printed and audited, and it removes any
  * question about which direction a negative number was meant to represent.
  */
+#[Fillable([
+    'company_id', 'journal_entry_id', 'account_id', 'line_number',
+    'description', 'debit', 'credit', 'currency_id', 'foreign_debit',
+    'foreign_credit', 'exchange_rate', 'branch_id',
+])]
 class JournalEntryLine extends Model
 {
     use BelongsToCompany;
     use HasUlids;
-
-    protected $fillable = [
-        'company_id',
-        'journal_entry_id',
-        'account_id',
-        'line_number',
-        'description',
-        'debit',
-        'credit',
-        'currency_id',
-        'foreign_debit',
-        'foreign_credit',
-        'exchange_rate',
-        'branch_id',
-    ];
 
     /**
      * @var array<string, mixed>

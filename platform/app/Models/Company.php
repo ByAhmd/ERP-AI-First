@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\CompanyStatus;
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -28,36 +29,19 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?array<string, mixed> $settings
  * @property string $base_currency
  */
+#[Fillable([
+    'name', 'name_en', 'commercial_registration_no',
+    'vat_registration_number', 'group_vat_number', 'building_number',
+    'street_name', 'district', 'city', 'postal_code', 'additional_number',
+    'country_code', 'email', 'phone', 'logo_path', 'base_currency',
+    'timezone', 'fiscal_year_start_month', 'fiscal_year_start_day',
+    'uses_hijri_fiscal_year', 'status', 'settings',
+])]
 class Company extends Model implements AuditableContract
 {
     use Auditable;
     use HasUlids;
     use SoftDeletes;
-
-    protected $fillable = [
-        'name',
-        'name_en',
-        'commercial_registration_no',
-        'vat_registration_number',
-        'group_vat_number',
-        'building_number',
-        'street_name',
-        'district',
-        'city',
-        'postal_code',
-        'additional_number',
-        'country_code',
-        'email',
-        'phone',
-        'logo_path',
-        'base_currency',
-        'timezone',
-        'fiscal_year_start_month',
-        'fiscal_year_start_day',
-        'uses_hijri_fiscal_year',
-        'status',
-        'settings',
-    ];
 
     /**
      * Mirrors the schema defaults.

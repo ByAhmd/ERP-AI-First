@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,22 +20,16 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * Values nest, so a sub-project rolls up into its programme and a report can be
  * run at either level.
  */
+#[Fillable([
+    'company_id', 'dimension_id', 'parent_id', 'code', 'name', 'name_en',
+    'is_active',
+])]
 class DimensionValue extends Model implements AuditableContract
 {
     use AuditsCompany;
     use BelongsToCompany;
     use HasUlids;
     use SoftDeletes;
-
-    protected $fillable = [
-        'company_id',
-        'dimension_id',
-        'parent_id',
-        'code',
-        'name',
-        'name_en',
-        'is_active',
-    ];
 
     /**
      * @var array<string, mixed>

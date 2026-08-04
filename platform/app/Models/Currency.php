@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,19 +16,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Per company rather than global: a company enables the few it uses, and the
  * base currency named on the company record is one of them.
  */
+#[Fillable([
+    'company_id', 'code', 'name', 'symbol', 'decimal_places', 'is_active',
+])]
 class Currency extends Model
 {
     use BelongsToCompany;
     use HasUlids;
-
-    protected $fillable = [
-        'company_id',
-        'code',
-        'name',
-        'symbol',
-        'decimal_places',
-        'is_active',
-    ];
 
     /**
      * @var array<string, mixed>
