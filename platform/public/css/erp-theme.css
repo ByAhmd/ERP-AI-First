@@ -28,6 +28,8 @@
     --erp-card: #ffffff;
     --erp-border: #e3eae6;
     --erp-heading: #0f2620;
+    --erp-muted: #5c7268;
+    --erp-strong-border: #b8c9c1;
 }
 
 /* ---------------------------------------------------------------------------
@@ -205,8 +207,7 @@
 
 /* Ledger figures line up only when digits share a width. */
 .fi-ta-text-item-label,
-.fi-ta-cell [class*='numeric'],
-td[style*='tabular-nums'] {
+.fi-ta-cell [class*='numeric'] {
     font-variant-numeric: tabular-nums;
 }
 
@@ -222,6 +223,8 @@ td[style*='tabular-nums'] {
     --erp-card: #12211c;
     --erp-border: #1e332b;
     --erp-heading: #e8f2ed;
+    --erp-muted: #8faa9c;
+    --erp-strong-border: #2c4a3d;
 }
 
 .dark .fi-ta-header-cell {
@@ -231,4 +234,118 @@ td[style*='tabular-nums'] {
 
 .dark .fi-ta-row:hover {
     background-color: #16261f;
+}
+
+/* ---------------------------------------------------------------------------
+   Financial report tables
+   ---------------------------------------------------------------------------
+   The trial balance and general ledger render their own tables rather than
+   Filament ones, because both need an opening-balance row, a running balance
+   and a totals foot that a resource table does not model.
+
+   These classes exist because this application deliberately does not compile a
+   Filament custom theme: Tailwind is never run over our Blade views, so its
+   utility classes are not generated for them. Without somewhere to put it, that
+   pushes styling into inline style attributes — which is where these rules
+   started. Real classes are the alternative, not a Node toolchain.
+   --------------------------------------------------------------------------- */
+
+/* Wide numeric tables must scroll on their own rather than the page. */
+.erp-report__scroll {
+    overflow-x: auto;
+}
+
+.erp-report__table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.erp-report__table th,
+.erp-report__table td {
+    padding: 0.5rem;
+}
+
+.erp-report__table th {
+    text-align: start;
+}
+
+/*
+ * Figures line up only when digits share a width.
+ *
+ * Written against both th and td so it outweighs the `.erp-report__table th`
+ * rule above, which is more specific than a bare class and was silently
+ * left-aligning every numeric column heading.
+ */
+.erp-report__table th.erp-report__num,
+.erp-report__table td.erp-report__num {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+}
+
+.erp-report__date {
+    white-space: nowrap;
+}
+
+.erp-report__row {
+    border-top: 1px solid var(--erp-border);
+}
+
+/* The opening balance is a row of its own; without it the first movement's
+   running balance looks unexplained. Set apart so it does not read as a
+   transaction. */
+.erp-report__row--opening {
+    border-top: 1px solid var(--erp-border);
+    font-style: italic;
+    color: var(--erp-muted);
+}
+
+.erp-report__row--total {
+    border-top: 2px solid var(--erp-strong-border);
+    font-weight: 700;
+}
+
+.erp-report__empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--erp-muted);
+}
+
+.erp-report__note {
+    color: var(--erp-muted);
+    font-size: 0.8125rem;
+}
+
+/* The verdict line: whether the ledger balances, stated before the detail. */
+.erp-report__verdict {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.erp-report__verdict-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* Summary tiles above the general ledger. */
+.erp-report__summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1rem;
+}
+
+.erp-report__summary-label {
+    font-size: 0.75rem;
+    color: var(--erp-muted);
+}
+
+.erp-report__summary-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.erp-report__summary-value--strong {
+    font-weight: 700;
 }

@@ -2,6 +2,7 @@
     $rows = $this->getRows();
     $totals = $this->getTotals();
     $money = fn ($amount) => (float) $amount == 0.0 ? '—' : number_format((float) $amount, 2);
+    $difference = abs((float) $totals['closing_debit'] - (float) $totals['closing_credit']);
 @endphp
 
 <x-filament-panels::page>
@@ -11,50 +12,48 @@
          report exists to answer, so it is stated before the detail. --}}
     <x-filament::section>
         @if ($totals['balanced'])
-            <div class="fi-color-success" style="display:flex;align-items:center;gap:.5rem;font-weight:600;">
-                <x-filament::icon icon="heroicon-o-check-circle" style="width:1.25rem;height:1.25rem;" />
+            <div class="erp-report__verdict fi-color-success">
+                <x-filament::icon icon="heroicon-o-check-circle" class="erp-report__verdict-icon" />
                 {{ __('accounting.trial_balance.balanced') }}
             </div>
         @else
-            <div class="fi-color-danger" style="display:flex;align-items:center;gap:.5rem;font-weight:600;">
-                <x-filament::icon icon="heroicon-o-exclamation-triangle" style="width:1.25rem;height:1.25rem;" />
-                {{ __('accounting.trial_balance.out_of_balance', [
-                    'difference' => number_format(abs((float) $totals['closing_debit'] - (float) $totals['closing_credit']), 2),
-                ]) }}
+            <div class="erp-report__verdict fi-color-danger">
+                <x-filament::icon icon="heroicon-o-exclamation-triangle" class="erp-report__verdict-icon" />
+                {{ __('accounting.trial_balance.out_of_balance', ['difference' => number_format($difference, 2)]) }}
             </div>
         @endif
     </x-filament::section>
 
     <x-filament::section>
-        <div style="overflow-x:auto;">
-            <table class="fi-ta-table" style="width:100%;border-collapse:collapse;">
+        <div class="erp-report__scroll">
+            <table class="erp-report__table">
                 <thead>
                     <tr>
-                        <th style="text-align:start;padding:.5rem;">{{ __('accounting.accounts.columns.code') }}</th>
-                        <th style="text-align:start;padding:.5rem;">{{ __('accounting.accounts.columns.name') }}</th>
-                        <th style="text-align:end;padding:.5rem;">{{ __('accounting.trial_balance.opening') }}</th>
-                        <th style="text-align:end;padding:.5rem;">{{ __('accounting.normal_balance.debit') }}</th>
-                        <th style="text-align:end;padding:.5rem;">{{ __('accounting.normal_balance.credit') }}</th>
-                        <th style="text-align:end;padding:.5rem;">{{ __('accounting.trial_balance.closing_debit') }}</th>
-                        <th style="text-align:end;padding:.5rem;">{{ __('accounting.trial_balance.closing_credit') }}</th>
+                        <th>{{ __('accounting.accounts.columns.code') }}</th>
+                        <th>{{ __('accounting.accounts.columns.name') }}</th>
+                        <th class="erp-report__num">{{ __('accounting.trial_balance.opening') }}</th>
+                        <th class="erp-report__num">{{ __('accounting.normal_balance.debit') }}</th>
+                        <th class="erp-report__num">{{ __('accounting.normal_balance.credit') }}</th>
+                        <th class="erp-report__num">{{ __('accounting.trial_balance.closing_debit') }}</th>
+                        <th class="erp-report__num">{{ __('accounting.trial_balance.closing_credit') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($rows as $row)
-                        <tr style="border-top:1px solid var(--gray-200);">
-                            <td style="padding:.5rem;font-variant-numeric:tabular-nums;">{{ $row->code }}</td>
-                            <td style="padding:.5rem;">{{ $row->name }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">
+                        <tr class="erp-report__row">
+                            <td class="erp-report__num">{{ $row->code }}</td>
+                            <td>{{ $row->name }}</td>
+                            <td class="erp-report__num">
                                 {{ $money((float) $row->openingDebit - (float) $row->openingCredit) }}
                             </td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($row->periodDebit) }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($row->periodCredit) }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($row->closingDebit) }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($row->closingCredit) }}</td>
+                            <td class="erp-report__num">{{ $money($row->periodDebit) }}</td>
+                            <td class="erp-report__num">{{ $money($row->periodCredit) }}</td>
+                            <td class="erp-report__num">{{ $money($row->closingDebit) }}</td>
+                            <td class="erp-report__num">{{ $money($row->closingCredit) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" style="padding:2rem;text-align:center;color:var(--gray-500);">
+                            <td colspan="7" class="erp-report__empty">
                                 {{ __('accounting.trial_balance.empty') }}
                             </td>
                         </tr>
@@ -62,12 +61,12 @@
                 </tbody>
                 @if ($rows->isNotEmpty())
                     <tfoot>
-                        <tr style="border-top:2px solid var(--gray-400);font-weight:700;">
-                            <td colspan="3" style="padding:.5rem;">{{ __('accounting.trial_balance.totals') }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($totals['period_debit']) }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($totals['period_credit']) }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($totals['closing_debit']) }}</td>
-                            <td style="padding:.5rem;text-align:end;font-variant-numeric:tabular-nums;">{{ $money($totals['closing_credit']) }}</td>
+                        <tr class="erp-report__row--total">
+                            <td colspan="3">{{ __('accounting.trial_balance.totals') }}</td>
+                            <td class="erp-report__num">{{ $money($totals['period_debit']) }}</td>
+                            <td class="erp-report__num">{{ $money($totals['period_credit']) }}</td>
+                            <td class="erp-report__num">{{ $money($totals['closing_debit']) }}</td>
+                            <td class="erp-report__num">{{ $money($totals['closing_credit']) }}</td>
                         </tr>
                     </tfoot>
                 @endif
