@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\JournalEntryKind;
 use App\Enums\JournalEntryStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
@@ -33,6 +34,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * analyser reports every comparison against the enum as impossible.
  *
  * @property JournalEntryStatus $status
+ * @property JournalEntryKind $kind
  * @property CarbonImmutable $entry_date
  * @property ?CarbonImmutable $posted_at
  * @property string $total_debit
@@ -41,7 +43,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  */
 #[Fillable([
     'company_id', 'number', 'entry_date', 'description', 'reference', 'status',
-    'fiscal_year_id', 'accounting_period_id', 'source_type', 'source_id',
+    'kind', 'fiscal_year_id', 'accounting_period_id', 'source_type', 'source_id',
     'reverses_id', 'created_by_id',
 ])]
 class JournalEntry extends Model implements AuditableContract
@@ -55,6 +57,7 @@ class JournalEntry extends Model implements AuditableContract
      */
     protected $attributes = [
         'status' => 'draft',
+        'kind' => 'standard',
         'total_debit' => 0,
         'total_credit' => 0,
     ];
@@ -64,6 +67,7 @@ class JournalEntry extends Model implements AuditableContract
         return [
             'entry_date' => 'date',
             'status' => JournalEntryStatus::class,
+            'kind' => JournalEntryKind::class,
             'total_debit' => 'decimal:4',
             'total_credit' => 'decimal:4',
             'posted_at' => 'datetime',

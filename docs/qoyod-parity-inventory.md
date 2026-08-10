@@ -115,20 +115,46 @@ Three subtotals, in order:
 2. `صافي الدخل قبل الفوائد والضريبة والزكاة` — result before interest, tax and zakat
 3. `صافي الربح` — net profit
 
-**We currently have only the first and third.** The middle subtotal is a real
-Saudi requirement — zakat sits below the operating result — and adding it means
-separating interest, tax and zakat expense from operating expense. Our chart has
-`ZakatPayable` and `WithholdingTaxPayable` as liabilities but no corresponding
-expense accounts, so this needs both new accounts and a classification rule. The
-role-plus-subtree mechanism already used for cost of sales in
-`IncomeStatement::costOfSalesSubtree()` extends to it directly.
+**Closed.** Ours shipped with only the first and third. Expenses now fall into
+three bands — cost of sales, operating, then interest, tax and zakat — each
+taken from an account role and everything beneath it. The chart gained `5960
+الفوائد والضرائب والزكاة` carrying the `InterestTaxAndZakat` role, with
+financing charges, income tax and zakat beneath it.
+
+## Easy entries
+
+`قيود سهلة` is a two-step wizard — choose a type, then fill in the data —
+described as being for users without accounting experience. Six types:
+
+تحركات أموال · إضافة رأس مال · إهلاك أصل ثابت · سحب المالك · توزيع أرباح ·
+محاسبة الرواتب
+
+Each is a named transaction shape that writes a journal entry the user never
+sees in debit-and-credit terms. Worth copying closely when we reach it: this is
+the feature that lets a business owner use an accounting system without an
+accountant.
+
+## Opening balances
+
+Qoyod has **no screen for these at all.** They are absent from the accounting
+menu, absent from the easy-entry wizard, and absent from the chart of accounts,
+whose columns are اسم الحساب · النوع · طبيعة الحساب · الوصف · الرصيد ·
+يمكن الدفع والتحصيل بهذا الحساب · الخيارات — no opening balance field among
+them. A migrating company either writes a manual journal entry or buys
+`خدمة إدخال الأرصدة الافتتاحية`, which Qoyod sells as a professional service.
+
+Ours is a dedicated screen: every permanent account listed, a running
+difference, saved as a draft until committed, with anything that does not
+balance carried to the opening balance suspense account rather than refused or
+hidden. This is a place we are ahead rather than at parity — and it is the first
+thing a company leaving Qoyod has to do.
 
 ## Gaps this inspection opened
 
-Ordered by how much of the ledger they touch.
+Ordered by how much of the ledger they touch. Struck items have since been
+built.
 
-- **Income statement is missing the pre-interest/tax/zakat subtotal**, with the
-  chart and classification work behind it.
+- ~~Income statement is missing the pre-interest/tax/zakat subtotal.~~ Done.
 - **Cash flow statement** (`قائمة التدفقات النقدية`) — a fourth primary statement
   we have not scoped at all.
 - **Statement of changes in equity** (`قائمة التغيرات في حقوق الملكية`).

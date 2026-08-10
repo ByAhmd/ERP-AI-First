@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Accounting;
 
+use App\Enums\JournalEntryKind;
 use App\Enums\JournalEntryStatus;
 use App\Models\Account;
 use App\Models\JournalEntry;
@@ -56,9 +57,10 @@ final class JournalPoster
         ?string $reference = null,
         ?Model $source = null,
         ?string $userId = null,
+        JournalEntryKind $kind = JournalEntryKind::Standard,
     ): JournalEntry {
-        return DB::transaction(function () use ($date, $lines, $description, $reference, $source, $userId): JournalEntry {
-            $entry = $this->draft($date, $lines, $description, $reference, $source, $userId);
+        return DB::transaction(function () use ($date, $lines, $description, $reference, $source, $userId, $kind): JournalEntry {
+            $entry = $this->draft($date, $lines, $description, $reference, $source, $userId, $kind);
 
             return $this->postDraft($entry, $userId);
         });
@@ -80,10 +82,11 @@ final class JournalPoster
         ?string $reference = null,
         ?Model $source = null,
         ?string $userId = null,
+        JournalEntryKind $kind = JournalEntryKind::Standard,
     ): JournalEntry {
         $date = CarbonImmutable::instance($date)->startOfDay();
 
-        return DB::transaction(function () use ($date, $lines, $description, $reference, $source, $userId): JournalEntry {
+        return DB::transaction(function () use ($date, $lines, $description, $reference, $source, $userId, $kind): JournalEntry {
             $entry = JournalEntry::create([
                 'company_id' => $this->context->idOrFail(),
                 // Drafts are unnumbered. Allocating here would consume a number
@@ -93,6 +96,7 @@ final class JournalPoster
                 'description' => $description,
                 'reference' => $reference,
                 'status' => JournalEntryStatus::Draft,
+                'kind' => $kind,
                 'source_type' => $source?->getMorphClass(),
                 'source_id' => $source?->getKey(),
                 'created_by_id' => $userId,

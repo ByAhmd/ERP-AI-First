@@ -46,6 +46,43 @@ return [
         ],
     ],
 
+    'opening_balances' => [
+        'title' => 'Opening Balances',
+        'subheading' => 'The account balances the company brings across from its previous system.',
+        'description' => 'Opening balances for :year',
+        'fiscal_year' => 'Fiscal year',
+        'columns' => [
+            'code' => 'Code',
+            'account' => 'Account',
+            'type' => 'Type',
+            'debit' => 'Debit',
+            'credit' => 'Credit',
+        ],
+        'totals' => 'Totals',
+        'difference' => 'Difference',
+        'balanced' => 'The balances agree.',
+        'unbalanced' => 'Out by :difference. The difference will be carried to the opening balance suspense account.',
+        'save' => 'Save draft',
+        'saved' => 'Draft saved.',
+        'commit' => 'Post balances',
+        'commit_confirm' => 'Once posted these balances are part of the ledger and can only be changed by a reversing entry.',
+        'committed' => 'Opening balances posted.',
+        'posted_notice' => 'Opening balances for this year were posted as entry :number. Correction is by reversing entry.',
+        'no_fiscal_year' => 'Create a fiscal year first.',
+        'empty' => 'No permanent accounts are available to open a balance on.',
+        'errors' => [
+            'already_posted' => 'Opening balances for :year are already posted. Correction is by reversing entry.',
+            'nothing_to_record' => 'No balances were entered for :year.',
+            'ineligible_account' => 'Account :account cannot carry an opening balance.',
+            'two_sided' => 'Account :account carries both a debit and a credit. Enter one side only.',
+        ],
+    ],
+
+    'entry_kind' => [
+        'standard' => 'Standard entry',
+        'opening' => 'Opening balance',
+    ],
+
     'comparison' => [
         'compare_with' => 'Compare with',
         'columns' => 'Comparison columns',
