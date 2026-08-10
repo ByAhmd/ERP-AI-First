@@ -35,6 +35,8 @@ return [
             'cost_of_sales' => 'تكلفة الإيرادات',
             'gross_profit' => 'مجمل الربح',
             'operating_expenses' => 'المصروفات التشغيلية',
+            'operating_result' => 'صافي الدخل قبل الفوائد والضريبة والزكاة',
+            'interest_tax_and_zakat' => 'الفوائد والضرائب والزكاة',
             'net_profit' => 'صافي الربح',
         ],
 
@@ -293,6 +295,7 @@ return [
         'vat_input_recoverable' => 'ضريبة القيمة المضافة على المشتريات',
         'withholding_tax_payable' => 'ضريبة الاستقطاع المستحقة',
         'zakat_payable' => 'الزكاة المستحقة',
+        'interest_tax_and_zakat' => 'الفوائد والضرائب والزكاة',
         'inventory' => 'المخزون',
         'cost_of_goods_sold' => 'تكلفة البضاعة المباعة',
         'inventory_adjustment' => 'تسويات المخزون',

@@ -31,6 +31,13 @@ enum SystemAccount: string
     case WithholdingTaxPayable = 'withholding_tax_payable';
     case ZakatPayable = 'zakat_payable';
 
+    // The charges a Saudi income statement reports below the operating result:
+    // financing cost, income tax and zakat. Grouped under one account because
+    // the statement needs a subtotal above them — "صافي الدخل قبل الفوائد
+    // والضريبة والزكاة" — and anything the company files beneath this account
+    // is classified with them automatically.
+    case InterestTaxAndZakat = 'interest_tax_and_zakat';
+
     // Inventory and cost of sales, posted when stock moves.
     case Inventory = 'inventory';
     case CostOfGoodsSold = 'cost_of_goods_sold';

@@ -167,6 +167,15 @@ final class ChartOfAccountsTemplate
                 $this->node('5850', 'خسائر فروق العملة', 'Exchange Loss', $expense, SystemAccount::ExchangeLoss),
                 $this->node('5900', 'فروقات التقريب', 'Rounding Differences', $expense, SystemAccount::RoundingDifference),
                 $this->node('5950', 'مصروفات أخرى', 'Other Expenses', $expense),
+                // Reported below the operating result, so the income statement
+                // can state what the company earned before financing and
+                // statutory charges. Grouped rather than scattered among the
+                // operating expenses, because the subtotal is drawn above them.
+                $this->node('5960', 'الفوائد والضرائب والزكاة', 'Interest, Tax and Zakat', $expense, SystemAccount::InterestTaxAndZakat, children: [
+                    $this->node('5961', 'أعباء تمويلية', 'Interest and Financing Charges', $expense),
+                    $this->node('5962', 'مصروف ضريبة الدخل', 'Income Tax Expense', $expense),
+                    $this->node('5963', 'مصروف الزكاة', 'Zakat Expense', $expense),
+                ]),
             ]),
         ];
     }

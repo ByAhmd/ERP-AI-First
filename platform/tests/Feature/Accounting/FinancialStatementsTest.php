@@ -199,6 +199,81 @@ final class FinancialStatementsTest extends TestCase
     }
 
     #[Test]
+    public function zakat_and_interest_fall_below_the_operating_result(): void
+    {
+        // The subtotal a Saudi statement is expected to carry. Zakat is
+        // assessed on the company rather than incurred in earning revenue, so
+        // an operating result stated after it would misreport the business.
+        $this->postSale('10000', '0', CarbonImmutable::parse('2026-03-15'));
+        $this->postCostOfSales('4000', CarbonImmutable::parse('2026-03-15'));
+        $this->postExpense('5300', '1000', CarbonImmutable::parse('2026-04-01'));
+        $this->postExpense('5961', '300', CarbonImmutable::parse('2026-05-01'));
+        $this->postExpense('5963', '700', CarbonImmutable::parse('2026-06-01'));
+
+        $statement = $this->incomeStatement('2026-01-01', '2026-12-31');
+
+        $this->assertSame('6000.0000', $this->total($statement, 'gross_profit'));
+        $this->assertSame('1000.0000', $this->total($statement, 'operating_expenses'));
+
+        // Interest and zakat are excluded here and charged below.
+        $this->assertSame('5000.0000', $this->total($statement, 'operating_result'));
+        $this->assertSame('1000.0000', $this->total($statement, 'interest_tax_and_zakat'));
+        $this->assertSame('4000.0000', $this->total($statement, 'net_profit'));
+    }
+
+    #[Test]
+    public function the_statement_reads_top_to_bottom_in_the_order_qoyod_uses(): void
+    {
+        $keys = array_map(
+            static fn (StatementSection $section): string => $section->key,
+            $this->incomeStatement('2026-01-01', '2026-12-31')->sections,
+        );
+
+        $this->assertSame([
+            'revenue',
+            'cost_of_sales',
+            'gross_profit',
+            'operating_expenses',
+            'operating_result',
+            'interest_tax_and_zakat',
+            'net_profit',
+        ], $keys);
+    }
+
+    #[Test]
+    public function net_profit_still_ties_when_nothing_sits_below_the_line(): void
+    {
+        // A company with no financing or statutory charges must not be made to
+        // look different: the two lower subtotals simply agree.
+        $this->postSale('5000', '0', CarbonImmutable::parse('2026-03-15'));
+        $this->postExpense('5300', '2000', CarbonImmutable::parse('2026-04-01'));
+
+        $statement = $this->incomeStatement('2026-01-01', '2026-12-31');
+
+        $this->assertSame('0.0000', $this->total($statement, 'interest_tax_and_zakat'));
+        $this->assertSame(
+            $this->total($statement, 'operating_result'),
+            $this->total($statement, 'net_profit'),
+        );
+    }
+
+    #[Test]
+    public function below_the_line_charges_still_reach_the_balance_sheet_result(): void
+    {
+        // Splitting the statement into bands must not change what the company
+        // actually earned.
+        $this->postSale('10000', '0', CarbonImmutable::parse('2026-03-15'));
+        $this->postExpense('5963', '700', CarbonImmutable::parse('2026-06-01'));
+
+        $netProfit = $this->total($this->incomeStatement('2026-01-01', '2026-12-31'), 'net_profit');
+
+        [, $current] = $this->derivedEquityLines($this->balanceSheet('2026-12-31'));
+
+        $this->assertSame('9300.0000', $netProfit);
+        $this->assertSame($netProfit, $current->amounts[0]);
+    }
+
+    #[Test]
     public function cost_of_sales_is_taken_by_role_and_keeps_its_own_sub_accounts(): void
     {
         // A company that splits cost of sales into materials and freight must

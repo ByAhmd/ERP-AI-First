@@ -22,12 +22,22 @@ use Illuminate\Support\Collection;
  * day it is paid. Cash-basis reporting is a different statement and presenting
  * one as the other would misstate every period.
  *
- * Cost of sales is separated from operating expenses so gross profit can be
- * shown, because gross margin is the number a trading company manages. The
- * split is taken from the account carrying the cost-of-sales role and
- * everything beneath it — role, not code, so a company that renumbers its chart
- * keeps a correct statement, and one that breaks cost of sales into materials,
- * freight and direct labour gets all three in the right section automatically.
+ * Expenses are split into three bands, each producing a subtotal a reader asks
+ * for separately:
+ *
+ *  - Cost of sales, giving gross profit — the margin a trading company manages.
+ *  - Operating expenses, giving the result before financing and statutory
+ *    charges. Zakat is assessed on the company rather than incurred in earning
+ *    revenue, so an operating result stated after it would misreport how the
+ *    business actually performed. This is the subtotal Qoyod shows as
+ *    "صافي الدخل قبل الفوائد والضريبة والزكاة", and a Saudi statement is
+ *    expected to carry it.
+ *  - Interest, tax and zakat, giving net profit.
+ *
+ * Each band is taken from an account role and everything beneath it, never from
+ * a code. A company may renumber its chart, or break cost of sales into
+ * materials, freight and direct labour, and every account still lands in the
+ * right band without being configured.
  */
 final class IncomeStatement
 {
@@ -53,44 +63,60 @@ final class IncomeStatement
             $periods,
         );
 
-        $costOfSalesIds = $this->costOfSalesSubtree();
+        $costOfSales = $this->subtreeOf(SystemAccount::CostOfGoodsSold);
+        $belowTheLine = $this->subtreeOf(SystemAccount::InterestTaxAndZakat);
 
-        $revenue = $this->section(
+        $expenses = $this->accountsOfType(AccountType::Expense);
+
+        $revenueSection = $this->section(
             'revenue',
             $this->accountsOfType(AccountType::Revenue),
             $readings,
             $options,
         );
 
-        $costOfSales = $this->section(
+        $costOfSalesSection = $this->section(
             'cost_of_sales',
-            $this->accountsOfType(AccountType::Expense)
-                ->filter(fn (Account $a): bool => in_array($a->getKey(), $costOfSalesIds, true))
-                ->values(),
+            $expenses->filter($this->within($costOfSales))->values(),
             $readings,
             $options,
         );
 
-        $grossProfit = $this->subtract($revenue->totals, $costOfSales->totals);
+        $grossProfit = $this->subtract($revenueSection->totals, $costOfSalesSection->totals);
 
-        $expenses = $this->section(
+        // Everything that is neither cost of sales nor a financing or statutory
+        // charge. Both are lifted out, so an account added anywhere else in the
+        // chart still lands here without being told to.
+        $operatingSection = $this->section(
             'operating_expenses',
-            $this->accountsOfType(AccountType::Expense)
-                ->reject(fn (Account $a): bool => in_array($a->getKey(), $costOfSalesIds, true))
+            $expenses
+                ->reject($this->within($costOfSales))
+                ->reject($this->within($belowTheLine))
                 ->values(),
             $readings,
             $options,
         );
 
-        $netProfit = $this->subtract($grossProfit, $expenses->totals);
+        $operatingResult = $this->subtract($grossProfit, $operatingSection->totals);
+
+        $belowTheLineSection = $this->section(
+            'interest_tax_and_zakat',
+            $expenses->filter($this->within($belowTheLine))->values(),
+            $readings,
+            $options,
+        );
+
+        $netProfit = $this->subtract($operatingResult, $belowTheLineSection->totals);
 
         return new FinancialStatement(
             periods: $periods,
             sections: [
-                $revenue,
-                $costOfSales,
+                $revenueSection,
+                $costOfSalesSection,
                 StatementSection::summary('gross_profit', $grossProfit),
-                $expenses,
+                $operatingSection,
+                StatementSection::summary('operating_result', $operatingResult),
+                $belowTheLineSection,
                 StatementSection::summary('net_profit', $netProfit, emphasised: true),
             ],
             isFiltered: $options->filters->narrowsLines(),
@@ -98,15 +124,34 @@ final class IncomeStatement
     }
 
     /**
-     * The cost-of-sales account and every account beneath it.
+     * Membership test for a set of account ids.
+     *
+     * @param  list<string>  $ids
+     * @return callable(Account): bool
+     */
+    private function within(array $ids): callable
+    {
+        return static fn (Account $account): bool => in_array($account->getKey(), $ids, true);
+    }
+
+    /**
+     * The account fulfilling a role, and every account beneath it.
+     *
+     * Resolved by role rather than by code, so a company that renumbers its
+     * chart keeps a correctly classified statement, and one that breaks a
+     * grouping into sub-accounts gets all of them in the right section without
+     * configuring anything.
      *
      * @return list<string>
      */
-    private function costOfSalesSubtree(): array
+    private function subtreeOf(SystemAccount $role): array
     {
-        $root = $this->registry->find(SystemAccount::CostOfGoodsSold);
+        $root = $this->registry->find($role);
 
         if ($root === null || $root->path === null) {
+            // The role has no account in this company — an older chart that
+            // predates it, most likely. An empty section is the honest result;
+            // guessing at codes would be worse.
             return [];
         }
 

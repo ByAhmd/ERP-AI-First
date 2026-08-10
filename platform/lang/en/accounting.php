@@ -35,6 +35,8 @@ return [
             'cost_of_sales' => 'Cost of sales',
             'gross_profit' => 'Gross profit',
             'operating_expenses' => 'Operating expenses',
+            'operating_result' => 'Result before interest, tax and zakat',
+            'interest_tax_and_zakat' => 'Interest, tax and zakat',
             'net_profit' => 'Net profit',
         ],
 
@@ -293,6 +295,7 @@ return [
         'vat_input_recoverable' => 'VAT Input (Recoverable)',
         'withholding_tax_payable' => 'Withholding Tax Payable',
         'zakat_payable' => 'Zakat Payable',
+        'interest_tax_and_zakat' => 'Interest, Tax and Zakat',
         'inventory' => 'Inventory',
         'cost_of_goods_sold' => 'Cost of Goods Sold',
         'inventory_adjustment' => 'Inventory Adjustments',

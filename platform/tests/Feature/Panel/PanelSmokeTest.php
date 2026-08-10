@@ -147,6 +147,24 @@ final class PanelSmokeTest extends TestCase
     }
 
     #[Test]
+    public function the_income_statement_renders_every_subtotal_it_promises(): void
+    {
+        // A missing translation key renders as the key itself rather than
+        // throwing, so a 200 proves nothing about the labels. These are the
+        // headings the statement is read by, and the middle one is the Saudi
+        // requirement the first release of this report shipped without.
+        app(ChartOfAccountsTemplate::class)->applyTo($this->company);
+
+        $response = $this->actingAs($this->admin)
+            ->get("/admin/{$this->company->getKey()}/income-statement-page")
+            ->assertOk();
+
+        foreach (['gross_profit', 'operating_result', 'interest_tax_and_zakat', 'net_profit'] as $section) {
+            $response->assertSee(__("accounting.statements.sections.{$section}"), escape: false);
+        }
+    }
+
+    #[Test]
     public function the_entry_form_renders_a_select_for_each_user_defined_dimension(): void
     {
         app(ChartOfAccountsTemplate::class)->applyTo($this->company);
