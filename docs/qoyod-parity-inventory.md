@@ -149,6 +149,88 @@ balance carried to the opening balance suspense account rather than refused or
 hidden. This is a place we are ahead rather than at parity — and it is the first
 thing a company leaving Qoyod has to do.
 
+## Sales documents
+
+Captured from the live tenant's own forms, so the field names below are Qoyod's
+rather than a guess at them. The account holds no documents, so list tables do
+not render; the forms do, and they carry the model.
+
+### Taxes (`الضرائب`)
+
+Columns: `رقم الضريبة` · `الاسم` · `الرمز` · `النسبة` · `الحساب` · `الخيارات`.
+Three are seeded, and the codes are ZATCA's category codes, not decoration:
+
+| # | الاسم | الرمز | النسبة | الحساب |
+|---|---|---|---|---|
+| 1 | ضريبة القيمة المضافة | `S` | 15.0 % | 2105 ضريبة القيمة المضافة المستحقة |
+| 2 | الضريبة الصفرية | `Z` | 0.0 % | 2105 |
+| 3 | معفاة من الضريبة | `E` | 0.0 % | 2105 |
+
+A tax carries its own account, so the posting target is configuration rather
+than something the invoice decides.
+
+### Customer (`إضافة عميل`)
+
+One `contact` record serves customers and suppliers — both menu items point at
+`/tenant/contacts`.
+
+`code` (الرقم المرجعي, required, auto `CUS001`) · `contact_name` (اسم العميل,
+required) · `primary_contact_number` · `secondary_contact_number` ·
+`primary_email` · `secondary_email` · `organization_name` · `website` ·
+`tax_number` (الرقم الضريبي) · `status` (نشط / غير نشط) · `currency_code` ·
+`pos` (عميل نقاط بيع) · `government_entity` (العميل جهة حكومية)
+
+Billing address: `billing_address` · `billing_city` · `billing_state` ·
+`billing_zip` · `building_number` · `billing_country`. Shipping address carries
+the same minus `building_number` — that field exists on billing alone because it
+is part of the Saudi national address a tax invoice must show.
+
+Bank: `name` · `account_name` · `country` · `currency` · `iban` ·
+`account_number` · `swift_code` · `address`.
+
+Qoyod's own help notes that `government_entity` cannot be changed once set, and
+that extra identifiers (commercial registration and similar) appear only after
+e-invoicing is switched on in general settings.
+
+### Sales invoice (`إنشاء فاتورة مبيعات`)
+
+Header: `reference` (المرجع, required, auto `INV1`) · `description` ·
+`contact_id` (العميل) · `issue_date` (تاريخ الإصدار, required) ·
+`tenant_payment_term_id` (شروط الدفع) · `due_date` (تاريخ الاستحقاق, required) ·
+`supply_date` (تاريخ التوريد, required) · `total_amount` ·
+`terms_and_conditions` · `notes` · `base_rate` · `foreign_rate`
+
+`supply_date` is a ZATCA requirement, and `base_rate`/`foreign_rate` put the
+exchange rate on the document — multi-currency is per document, and the customer
+carries a default currency.
+
+Line columns, in order:
+`#` · `المنتج` · `الوصف` · `الكمية` · `سعر الوحدة` · `شامل؟` · `الخصم` ·
+`الاجمالي قبل الضريبة` · `الضريبة %` · `قيمة الضريبة` · `القيمة`
+
+Line fields: `product_id` · `product_description` · `quantity` · `unit_type` ·
+`unit_price` · `is_inclusive` · `discount_percentage` · `discount_type` ·
+`row_total_no_tax` · `tax_id` · `row_tax` · `line_total`
+
+`is_inclusive` (`شامل؟`) is per line: a price may be entered VAT-inclusive or
+VAT-exclusive. This is precisely the case the predecessor system got wrong —
+it credited revenue with the tax-inclusive total — so it is the behaviour worth
+testing hardest.
+
+An invoice can also carry a payment inline, through
+`receipts_attributes[0]`: `reference` · `account_id` · `description` · `date` ·
+`fc_amount` · `amount` · `balance_amount` · `inventory_id`.
+
+**Saving has two outcomes, and Qoyod's help states them explicitly:**
+
+- `حفظ وموافقة` — approve. The invoice is final, appears in reports, and affects
+  the accounts.
+- `حفظ كمسودة` — draft. Stored and editable, and affects neither.
+
+That is the same distinction `JournalPoster` already draws between `draft()` and
+`post()`, so the document layer maps onto the ledger without inventing a second
+notion of "not yet real".
+
 ## Gaps this inspection opened
 
 Ordered by how much of the ledger they touch. Struck items have since been

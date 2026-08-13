@@ -11,6 +11,7 @@ use App\Models\Dimension;
 use App\Models\DimensionValue;
 use App\Models\User;
 use App\Services\Accounting\ChartOfAccountsTemplate;
+use App\Services\Sales\TaxTemplate;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -145,6 +146,24 @@ final class PanelSmokeTest extends TestCase
         $this->actingAs($this->admin)->get("{$base}/balance-sheet-page")->assertOk();
         $this->actingAs($this->admin)->get("{$base}/income-statement-page")->assertOk();
         $this->actingAs($this->admin)->get("{$base}/opening-balances-page")->assertOk();
+    }
+
+    #[Test]
+    public function the_sales_pages_render(): void
+    {
+        app(ChartOfAccountsTemplate::class)->applyTo($this->company);
+        app(TaxTemplate::class)->applyTo($this->company);
+
+        $base = "/admin/{$this->company->getKey()}";
+
+        $this->actingAs($this->admin)
+            ->get("{$base}/taxes")
+            ->assertOk()
+            // The seeded rates, under Qoyod's own wording.
+            ->assertSee('ضريبة القيمة المضافة')
+            ->assertSee(__('sales.taxes.columns.code'), escape: false);
+
+        $this->actingAs($this->admin)->get("{$base}/taxes/create")->assertOk();
     }
 
     #[Test]

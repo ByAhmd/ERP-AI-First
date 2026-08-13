@@ -7,9 +7,11 @@ namespace App\Providers;
 use App\Models\Account;
 use App\Models\Dimension;
 use App\Models\JournalEntry;
+use App\Models\Tax;
 use App\Observers\AccountObserver;
 use App\Observers\DimensionObserver;
 use App\Observers\JournalEntryObserver;
+use App\Observers\TaxObserver;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
@@ -45,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         Account::observe(AccountObserver::class);
         Dimension::observe(DimensionObserver::class);
         JournalEntry::observe(JournalEntryObserver::class);
+        Tax::observe(TaxObserver::class);
     }
 
     /**
