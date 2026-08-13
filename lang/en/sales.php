@@ -101,6 +101,7 @@ return [
             'tax_amount' => 'Tax amount',
             'line_total' => 'Amount',
             'add' => 'Add item',
+            'discount_kind' => 'Discount type',
         ],
         'discount_type' => [
             'percentage' => 'Percent %',
@@ -111,6 +112,7 @@ return [
             'discount' => 'Total discount',
             'tax' => 'Total tax',
             'grand' => 'Total',
+            'summary' => 'Net :net · Tax :tax · Total :total',
         ],
         'actions' => [
             'save_draft' => 'Save as draft',

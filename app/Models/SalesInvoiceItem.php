@@ -58,9 +58,64 @@ class SalesInvoiceItem extends Model
         'line_total' => 0,
     ];
 
+    /**
+     * Number a line that arrives without one.
+     *
+     * The Filament repeater writes lines straight through the relationship, so
+     * it never sets this — and the column has no database default, so the
+     * insert fails outright. The recalculator renumbers the whole invoice
+     * afterwards, which is too late to help.
+     *
+     * This is the second time this exact defect has appeared: the journal entry
+     * form hit it first, and for the same reason. Any table whose rows are
+     * written by a repeater and numbered by a service needs the fallback here,
+     * in the model, where every path reaches it.
+     */
+    protected static function booted(): void
+    {
+        static::creating(static function (self $item): void {
+            if (blank($item->line_number)) {
+                $item->line_number = 1 + (int) static::query()
+                    ->where('sales_invoice_id', $item->sales_invoice_id)
+                    ->max('line_number');
+            }
+
+            $item->copyProductSnapshot();
+        });
+    }
+
+    /**
+     * Take the name and unit from the product, once.
+     *
+     * The line has to keep saying what was billed after the product is renamed,
+     * so these are copies rather than a relationship read at display time. Done
+     * here rather than in the form because an import and an API call have to
+     * produce the same row a clerk does.
+     */
+    private function copyProductSnapshot(): void
+    {
+        if (filled($this->product_name) && filled($this->unit_name)) {
+            return;
+        }
+
+        $product = $this->product_id === null ? null : Product::query()->find($this->product_id);
+
+        if ($product === null) {
+            // A free-text line is legitimate — a one-off charge with no
+            // catalogue entry behind it — but it has to say something.
+            $this->product_name = $this->product_name ?: ($this->product_description ?: '—');
+
+            return;
+        }
+
+        $this->product_name = $this->product_name ?: $product->name;
+        $this->unit_name = $this->unit_name ?: $product->unitType?->name;
+    }
+
     protected function casts(): array
     {
         return [
+            'line_number' => 'integer',
             'is_inclusive' => 'boolean',
             'discount_type' => DiscountType::class,
             'tax_category' => TaxCategory::class,

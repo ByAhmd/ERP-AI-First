@@ -101,6 +101,7 @@ return [
             'tax_amount' => 'قيمة الضريبة',
             'line_total' => 'القيمة',
             'add' => 'إضافة بند',
+            'discount_kind' => 'نوع الخصم',
         ],
         'discount_type' => [
             'percentage' => 'نسبة %',
@@ -111,6 +112,7 @@ return [
             'discount' => 'إجمالي الخصم',
             'tax' => 'إجمالي الضريبة',
             'grand' => 'الإجمالي',
+            'summary' => 'الإجمالي قبل الضريبة :net · الضريبة :tax · الإجمالي :total',
         ],
         'actions' => [
             'save_draft' => 'حفظ كمسودة',

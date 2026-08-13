@@ -194,6 +194,16 @@ final class PanelSmokeTest extends TestCase
             ->get("{$base}/product-categories")
             ->assertOk()
             ->assertSee('الصنف الأساسي');
+
+        $this->actingAs($this->admin)->get("{$base}/sales-invoices")->assertOk();
+        $this->actingAs($this->admin)
+            ->get("{$base}/sales-invoices/create")
+            ->assertOk()
+            // ZATCA wants the supply date separately from the issue date, and
+            // the line table is Qoyod's, so both are asserted rather than
+            // assumed from a 200.
+            ->assertSee(__('sales.invoices.fields.supply_date'), escape: false)
+            ->assertSee(__('sales.invoices.items.is_inclusive'), escape: false);
     }
 
     #[Test]

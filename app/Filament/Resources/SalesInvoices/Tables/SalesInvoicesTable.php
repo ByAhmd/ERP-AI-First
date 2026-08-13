@@ -1,0 +1,78 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Filament\Resources\SalesInvoices\Tables;
+
+use App\Enums\InvoiceStatus;
+use App\Models\SalesInvoice;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+
+class SalesInvoicesTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('reference')
+                    ->label(__('sales.invoices.columns.reference'))
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('contact.contact_name')
+                    ->label(__('sales.invoices.columns.contact'))
+                    ->searchable(),
+
+                TextColumn::make('issue_date')
+                    ->label(__('sales.invoices.columns.issue_date'))
+                    ->date('d M Y')
+                    ->sortable(),
+
+                TextColumn::make('due_date')
+                    ->label(__('sales.invoices.columns.due_date'))
+                    ->date('d M Y')
+                    ->sortable(),
+
+                TextColumn::make('subtotal_net')
+                    ->label(__('sales.invoices.columns.net'))
+                    ->numeric(decimalPlaces: 2)
+                    ->alignEnd(),
+
+                TextColumn::make('tax_total')
+                    ->label(__('sales.invoices.columns.tax'))
+                    ->numeric(decimalPlaces: 2)
+                    ->alignEnd(),
+
+                TextColumn::make('total')
+                    ->label(__('sales.invoices.columns.total'))
+                    ->numeric(decimalPlaces: 2)
+                    ->alignEnd()
+                    ->weight('bold')
+                    ->sortable(),
+
+                TextColumn::make('status')
+                    ->label(__('sales.invoices.columns.status'))
+                    ->badge(),
+            ])
+            ->defaultSort('issue_date', 'desc')
+            ->filters([
+                SelectFilter::make('status')
+                    ->label(__('sales.invoices.columns.status'))
+                    ->options(InvoiceStatus::class),
+            ])
+            ->recordActions([
+                // A draft is edited; an approved invoice is only read. Offering
+                // an edit action that the service is bound to refuse would be a
+                // worse way to say so.
+                EditAction::make()
+                    ->visible(fn (SalesInvoice $record): bool => $record->isDraft()),
+
+                ViewAction::make()
+                    ->visible(fn (SalesInvoice $record): bool => ! $record->isDraft()),
+            ]);
+    }
+}
