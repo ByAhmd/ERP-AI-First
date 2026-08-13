@@ -1,58 +1,57 @@
 # ERP Platform
 
-Saudi-first ERP and accounting platform. Laravel 13 + Filament 5 + MySQL 8.4.
-
-> The legacy NestJS/Prisma/Next.js application under `../apps` and `../packages` is
-> retained as read-only reference during the rebuild and will be removed at parity.
-> Do not add to it.
+Saudi-first ERP and accounting platform. Laravel 13 + Filament 5 + MySQL 8+ on
+PHP 8.4.
 
 ## Requirements
 
-Docker Desktop only. The application runs entirely in Linux containers so that the
-development environment matches production — notably `ext-pcntl`, which Laravel
-Horizon requires and which Windows cannot provide in any PHP build.
-
-A host PHP 8.4 exists at `C:\Users\ahmed\php84` but is **not** used to run the app.
+[Laravel Herd](https://herd.laravel.com) for PHP and the web server,
+[DBngin](https://dbngin.com) for MySQL, and Node 20.12 or later for building
+assets. No Docker.
 
 ## Start
 
 ```bash
-docker compose up -d
+herd link erp-ai
+```
+
+```bash
+composer install && npm install && npm run build
+```
+
+```bash
+php artisan migrate --seed
 ```
 
 | Service | URL |
 |---|---|
-| Application | http://localhost:8080 |
-| Filament panel | http://localhost:8080/admin |
-| Horizon (queues) | http://localhost:8080/horizon |
+| Application | http://erp-ai.test |
+| Filament panel | http://erp-ai.test/admin |
 
-MySQL is published on host port **3307** and Redis on **6380** — 3306 and 6379 are
-in use by an unrelated project on this machine.
+Databases are `erp_ai` for development and `erp_ai_testing` for the suite, both
+owned by a MySQL user of the same name.
 
 ## Running commands
 
-All `artisan` and `composer` commands run inside the container. Running them from
-Windows will fail, because `.env` resolves `mysql` and `redis` as container
-hostnames.
+`artisan` and `composer` run on the host against Herd's PHP. If another PHP is
+earlier on your `PATH`, call Herd's directly:
 
 ```bash
-docker compose exec app php artisan migrate
+~/.config/herd/bin/php84/php.exe artisan migrate
 ```
 
-```bash
-docker compose exec app composer require vendor/package
-```
+Composer scripts cover the common paths: `composer check` runs the linter, the
+static analyser and the suite in that order.
 
-## Services
+## Queues
 
-| Container | Role |
-|---|---|
-| `erp-app` | PHP 8.4 FPM |
-| `erp-nginx` | Web server |
-| `erp-horizon` | Queue supervisor |
-| `erp-scheduler` | `schedule:work` |
-| `erp-mysql` | MySQL 8.4, `utf8mb4_0900_ai_ci` |
-| `erp-redis` | Cache, queue, session |
+The queue is `database` locally, worked by `php artisan queue:listen`.
+
+Horizon is a dependency because production runs on Linux, but it cannot run on a
+Windows development machine: it requires `ext-pcntl` and `ext-posix`, which no
+Windows PHP build provides. `composer.json` declares both satisfied under
+`config.platform` so the dependency resolves at all. See
+[ADR-011](docs/decisions/README.md).
 
 ## Conventions
 
@@ -61,6 +60,6 @@ in UTC and presented in `Asia/Riyadh`. Hijri dates use PHP's `intl` extension wi
 the `islamic-umalqura` calendar — the official Saudi calendar — rather than a
 third-party package.
 
-MySQL runs at `READ-COMMITTED` isolation. This is deliberate: `REPEATABLE-READ`
-takes gap locks on `SELECT ... FOR UPDATE`, which would serialise the gapless
-document-numbering allocator under concurrency.
+MySQL should run at `READ-COMMITTED` isolation. This is deliberate:
+`REPEATABLE-READ` takes gap locks on `SELECT ... FOR UPDATE`, which would
+serialise the gapless document-numbering allocator under concurrency.

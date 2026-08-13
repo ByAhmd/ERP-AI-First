@@ -59,8 +59,37 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            /*
+             * READ COMMITTED, set on the connection rather than on the server.
+             *
+             * The gapless document numbering in DocumentNumberAllocator locks a
+             * counter row with SELECT ... FOR UPDATE. Under MySQL's default
+             * REPEATABLE READ that statement also takes gap locks, so unrelated
+             * concurrent allocations serialise against each other and, on
+             * adjacent keys, can deadlock.
+             *
+             * This used to be a flag on the MySQL container. It lives here now
+             * because the requirement belongs to the application, not to
+             * whichever server it happens to be pointed at — a developer's
+             * DBngin instance, CI, or production all get it without being
+             * configured for it.
+             *
+             * Not applied under testing. RefreshDatabase holds one transaction
+             * open for the length of a test and reconnects around its initial
+             * migration; an init command re-runs on every reconnect, and MySQL
+             * refuses to change transaction characteristics once a transaction
+             * has begun. Applying it there loses the wrapping transaction and
+             * leaves committed schema behind for the next test to trip over.
+             *
+             * The divergence is safe because the setting only governs locking
+             * under concurrency, and the suite is single-threaded. Nothing it
+             * asserts can depend on the isolation level.
+             */
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                Mysql::ATTR_INIT_COMMAND => env('APP_ENV') === 'testing'
+                    ? null
+                    : 'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
             ]) : [],
         ],
 

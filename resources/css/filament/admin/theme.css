@@ -1,16 +1,32 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../app/Providers/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
 /*
- * ERP Platform theme.
- *
- * Follows the shape most Saudi accounting products use — and that Qoyod uses —
- * a light working surface with a dark, high-contrast sidebar. Accountants read
- * dense numeric tables for long stretches, and a light surface is easier on the
- * eyes for that than a dark one.
- *
- * The sidebar is deep green rather than the navy Qoyod uses, per the brand
- * direction for this platform.
- *
- * Written with logical properties (inline-start/end) throughout so the layout
- * mirrors correctly in Arabic without a second stylesheet.
+ | ERP Platform theme.
+ |
+ | Follows the shape most Saudi accounting products use — and that Qoyod uses —
+ | a light working surface with a dark, high-contrast sidebar. Accountants read
+ | dense numeric tables for long stretches, and a light surface is easier on the
+ | eyes for that than a dark one.
+ |
+ | The sidebar is deep green rather than the navy Qoyod uses, per the brand
+ | direction for this platform.
+ |
+ | Written with logical properties (inline-start/end) throughout so the layout
+ | mirrors correctly in Arabic without a second stylesheet.
+ |
+ | Compiled through Vite rather than served as a static stylesheet. It previously
+ | loaded from public/ through a HEAD_END render hook, which avoided a Node
+ | toolchain at the cost of Tailwind never running over our Blade views. The
+ | project now builds assets, so the utilities are available and this file is
+ | the panel's theme rather than an override layered on top of it.
+ |
+ | The rules below are plain CSS on purpose. They target Filament's own class
+ | names and our report markup, neither of which is expressed in utilities, and
+ | rewriting them as @apply would obscure what they override.
  */
 
 :root {
@@ -243,11 +259,10 @@
    Filament ones, because both need an opening-balance row, a running balance
    and a totals foot that a resource table does not model.
 
-   These classes exist because this application deliberately does not compile a
-   Filament custom theme: Tailwind is never run over our Blade views, so its
-   utility classes are not generated for them. Without somewhere to put it, that
-   pushes styling into inline style attributes — which is where these rules
-   started. Real classes are the alternative, not a Node toolchain.
+   They are real classes rather than utilities because each carries a rule
+   Tailwind has no utility for — tabular figures, a border that only appears
+   between sections, an indent step that mirrors in Arabic — and because a
+   statement's markup reads better naming what a row is than how it looks.
    --------------------------------------------------------------------------- */
 
 /* Wide numeric tables must scroll on their own rather than the page. */

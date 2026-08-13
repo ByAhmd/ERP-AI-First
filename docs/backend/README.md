@@ -37,6 +37,24 @@ working around it:
 ~/.config/herd/bin/php84/php.exe artisan migrate
 ```
 
+## Assets
+
+The Filament theme is compiled, not served statically. It lives at
+`resources/css/filament/admin/theme.css` and is registered on the panel with
+`viteTheme()`.
+
+```bash
+npm install && npm run build
+```
+
+Vite 8 needs a Node with `styleText` in `node:util` — Node 20.12 or later. The
+Node on `PATH` may be older, in which case the build fails with
+`does not provide an export named 'styleText'`. Herd ships a current one:
+
+```bash
+export PATH="$HOME/.config/herd/bin/nvm/v26.7.0:$PATH"
+```
+
 ## Horizon is not runnable locally
 
 `laravel/horizon` requires `ext-pcntl` and `ext-posix`, and no Windows PHP build
