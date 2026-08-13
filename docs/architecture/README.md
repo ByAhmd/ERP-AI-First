@@ -1,8 +1,12 @@
 # Architecture
 
-Laravel 13, Filament 5, MySQL 8.4, Redis. The Filament panel is the primary user
+Laravel 13, Filament 5, MySQL 8+. The Filament panel is the primary user
 interface; a versioned REST API serves the POS client, mobile applications and
 third-party integrations.
+
+Locally the stack is Herd and DBngin — see [backend](../backend/README.md).
+Redis is configured but unused: cache and sessions are files, and the queue is
+the database, which is what a Windows development machine can actually run.
 
 ## Layering
 
@@ -44,7 +48,6 @@ Rules that follow from this:
 | `app/Http/Controllers/Api/V1` | API transport |
 | `app/Filament` | Panel resources, pages, widgets |
 | `routes/api/v1.php` | Versioned API surface |
-| `docker/` | PHP image and nginx configuration |
 
 ## API versioning
 
@@ -71,10 +74,9 @@ drift from the published Umm al-Qura tables.
 
 ## Development environment
 
-The application runs in Linux containers, including locally. This is not
-convenience: Laravel Horizon requires `ext-pcntl`, which Windows cannot provide
-in any PHP build. Running the same OS locally and in production also removes
-path-separator and filesystem-case differences, which on a codebase this size
-surface as production-only defects.
+Laravel Herd serves the application and provides PHP; DBngin provides MySQL.
+The same toolchain runs the developer's other Laravel project, which is the
+point — see [ADR-011](../decisions/README.md#adr-011--herd-and-dbngin-superseding-containers)
+for what this costs, and [backend](../backend/README.md) for how to run it.
 
 See [backend](../backend/README.md) for commands.

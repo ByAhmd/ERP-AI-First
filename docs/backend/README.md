@@ -1,42 +1,64 @@
 # Backend
 
-The application lives in `platform/`. Laravel 13 on PHP 8.4.
+Laravel 13 on PHP 8.4, at the repository root.
 
 ## Running it
 
-Docker Desktop is the only prerequisite. The app runs in Linux containers even
-locally — see [architecture](../architecture/README.md) for why.
+[Laravel Herd](https://herd.laravel.com) serves the site and provides PHP;
+[DBngin](https://dbngin.com) provides MySQL on its default port. There is no
+Docker.
 
 ```bash
-docker compose up -d
+herd link erp-ai
 ```
 
 | Service | URL |
 |---|---|
-| Application | http://localhost:8080 |
-| Filament panel | http://localhost:8080/admin |
-| Horizon | http://localhost:8080/horizon |
+| Application | http://erp-ai.test |
+| Filament panel | http://erp-ai.test/admin |
 
-MySQL is published on host port **3307** and Redis on **6380**, because 3306 and
-6379 are occupied by an unrelated project on the current development machine.
+Databases are `erp_ai` for development and `erp_ai_testing` for the suite, both
+owned by a MySQL user of the same name.
 
 ## Commands
 
-Every `artisan` and `composer` command runs inside the container. Running them
-from the host fails: `.env` resolves `mysql` and `redis` as container hostnames.
+`artisan` and `composer` run on the host, against Herd's PHP.
 
 ```bash
-docker compose exec app php artisan migrate
+php artisan migrate
 ```
 
+If a different PHP is earlier on your `PATH` — an XAMPP install, for instance —
+`vendor/composer/platform_check.php` will refuse to load, because the
+dependencies were resolved for 8.4. Call Herd's binary directly rather than
+working around it:
+
 ```bash
-docker compose exec app composer require vendor/package
+~/.config/herd/bin/php84/php.exe artisan migrate
 ```
+
+## Horizon is not runnable locally
+
+`laravel/horizon` requires `ext-pcntl` and `ext-posix`, and no Windows PHP build
+provides either. Composer would therefore refuse to install at all, so
+`composer.json` declares both as satisfied under `config.platform`. That
+override exists solely to let the dependency resolve; it does not make the
+extensions appear.
+
+The practical consequence is that the `horizon` command cannot run on this
+machine. Locally the queue is `database` and is worked with:
+
+```bash
+php artisan queue:listen
+```
+
+Horizon remains a dependency because production runs on Linux, where it is the
+intended worker.
 
 ## First run
 
 ```bash
-docker compose exec app php artisan migrate:fresh --seed
+php artisan migrate:fresh --seed
 ```
 
 `FirstRunSeeder` creates one company, one administrator, and a company-scoped
@@ -50,7 +72,7 @@ existing administrator's password is never reset.
 After adding a Filament resource, regenerate permissions and policies:
 
 ```bash
-docker compose exec app php artisan shield:generate --all --panel=admin --option=policies_and_permissions
+php artisan shield:generate --all --panel=admin --option=policies_and_permissions
 ```
 
 Run this only when at least one company exists, or it writes global roles — see
@@ -59,10 +81,10 @@ Run this only when at least one company exists, or it writes global roles — se
 ## Testing
 
 ```bash
-docker compose exec app php artisan test
+php artisan test
 ```
 
-Tests run against a real MySQL database (`erp_testing`), not SQLite. An
+Tests run against a real MySQL database (`erp_ai_testing`), not SQLite. An
 accounting ledger tested on a different engine than it runs on is not tested.
 
 Two conventions worth keeping:

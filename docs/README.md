@@ -5,14 +5,11 @@ disagree, the disagreement is a defect — raise it rather than working around i
 
 ## Status
 
-The platform is being rebuilt. Two codebases are present:
+Laravel 13 · Filament 5 · MySQL 8 · PHP 8.4, at the repository root.
 
-| Path | Status |
-|---|---|
-| `platform/` | **Active.** Laravel 13 · Filament 5 · MySQL 8.4 · Redis |
-| `apps/`, `packages/` | **Deprecated.** NestJS · Prisma · PostgreSQL · Next.js. Read-only reference; deleted at feature parity. Do not extend. |
-
-Everything in this documentation describes `platform/` unless explicitly stated.
+The NestJS, Prisma, PostgreSQL and Next.js codebase that preceded it has been
+deleted. It lived in `apps/` and `packages/` and is recoverable from git history
+up to commit `f2ee79f`; nothing in the current tree depends on it.
 
 ## Contents
 

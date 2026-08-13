@@ -53,7 +53,7 @@ cost far more than designing for it.
 
 ## ADR-006 — Containerised development
 
-**Decided.** The application runs in Linux containers locally.
+**Superseded by ADR-011.** The application ran in Linux containers locally.
 
 Horizon requires `ext-pcntl`, which Windows cannot provide in any PHP build. The
 alternative — declaring Horizon for production and running bare queue workers
@@ -123,3 +123,31 @@ the quality checklist.
 
 Neither artefact existed, making the gates unverifiable. Filament conventions
 plus the Arabic/RTL requirements govern interface work instead.
+
+## ADR-011 — Herd and DBngin, superseding containers
+
+**Decided.** Local development runs on Laravel Herd and DBngin. Docker is
+removed. Supersedes [ADR-006](#adr-006--containerised-development).
+
+ADR-006 accepted containers to keep Horizon runnable locally, and judged that
+declaring Horizon for production while running bare workers in development would
+leave the two diverging on the component most likely to fail silently. That
+reasoning was sound and is now outweighed.
+
+What changed is that the same developer maintains a second Laravel application,
+StockFlow, on Herd and DBngin. Two toolchains on one machine cost more than the
+divergence they were avoiding: two ways to run a migration, two places a port
+can collide, and a container that has to be running before a test can be read.
+Aligning both projects removes that.
+
+The cost is accepted rather than solved. `laravel/horizon` requires `ext-pcntl`
+and `ext-posix`, which no Windows PHP build provides, so `composer.json`
+declares both satisfied under `config.platform` to let the dependency resolve.
+The `horizon` command cannot run on a development machine. Locally the queue is
+`database`, worked by `queue:listen`; production runs on Linux, where Horizon is
+still the intended worker. Redis stays configured and unused — cache and
+sessions are files.
+
+Tests remain on MySQL, on a separate `erp_ai_testing` database. ADR-002's
+reasoning is untouched: an accounting ledger tested on a different engine than
+it runs on is not tested.
