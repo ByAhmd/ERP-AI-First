@@ -243,6 +243,29 @@ payment states (paid, partly paid, overdue) most likely derive from receipts
 rather than being stored. Treated as unconfirmed rather than guessed — worth a
 second look on a tenant that has invoices.
 
+### Credit note (`إنشاء إشعار دائن`)
+
+Structurally the invoice, with the same eleven line columns, the same line
+fields and the same inline `receipts_attributes` block. It differs in exactly
+three ways:
+
+- `parent_id` — the sales invoice being credited, chosen from a list.
+- `external_parent_reference` (`مرجع فاتورة المبيعات الأصلية`) — a free-text
+  reference, for crediting an invoice that was never in the system. Rendered
+  required on the tenant inspected, though that tenant has no invoices for
+  `parent_id` to offer, so the two are likely alternatives rather than both
+  being mandatory.
+- **No `supply_date`.** The invoice requires one; the credit note does not.
+
+Header fields: `reference` · `description` · `contact_id` · `parent_id` ·
+`external_parent_reference` · `issue_date` (labelled `التاريخ`, not
+`تاريخ الإصدار`) · `tenant_payment_term_id` · `due_date` ·
+`terms_and_conditions` · `notes` · `base_rate` · `foreign_rate`.
+
+**Not present:** any reason-for-issuance field. ZATCA requires one on a credit
+note for Phase 2 integration, so either Qoyod derives it from `description` or
+it is collected elsewhere in the e-invoicing flow.
+
 ## Gaps this inspection opened
 
 Ordered by how much of the ledger they touch. Struck items have since been

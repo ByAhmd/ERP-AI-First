@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\SalesInvoices\Tables;
 
-use App\Enums\InvoiceStatus;
+use App\Enums\DocumentStatus;
 use App\Models\SalesInvoice;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -62,7 +62,7 @@ class SalesInvoicesTable
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('sales.invoices.columns.status'))
-                    ->options(InvoiceStatus::class),
+                    ->options(DocumentStatus::class),
             ])
             ->recordActions([
                 // A draft is edited; an approved invoice is only read. Offering

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Sales;
 
 use App\Enums\ContactStatus;
-use App\Enums\InvoiceStatus;
+use App\Enums\DocumentStatus;
 use App\Enums\SystemAccount;
 use App\Models\SalesInvoice;
 use App\Services\Accounting\AccountRegistry;
@@ -85,7 +85,7 @@ final class SalesInvoicePoster
             );
 
             $invoice->forceFill([
-                'status' => InvoiceStatus::Approved,
+                'status' => DocumentStatus::Approved,
                 'journal_entry_id' => $entry->getKey(),
                 'approved_at' => now(),
                 'approved_by_id' => $userId,

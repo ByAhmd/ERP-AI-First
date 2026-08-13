@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Sales;
 
 use App\Enums\ContactStatus;
-use App\Enums\InvoiceStatus;
+use App\Enums\DocumentStatus;
 use App\Filament\Resources\SalesInvoices\Pages\CreateSalesInvoice;
 use App\Filament\Resources\SalesInvoices\Pages\EditSalesInvoice;
 use App\Models\Company;
@@ -101,7 +101,7 @@ final class SalesInvoicePanelTest extends TestCase
 
         $invoice = SalesInvoice::query()->firstOrFail();
 
-        $this->assertSame(InvoiceStatus::Draft, $invoice->status);
+        $this->assertSame(DocumentStatus::Draft, $invoice->status);
         // Totals are derived after the lines exist, never taken from the form.
         $this->assertSame('300.0000', $invoice->subtotal_net);
         $this->assertSame('45.0000', $invoice->tax_total);
@@ -132,7 +132,7 @@ final class SalesInvoicePanelTest extends TestCase
 
         $approved = $invoice->refresh();
 
-        $this->assertSame(InvoiceStatus::Approved, $approved->status);
+        $this->assertSame(DocumentStatus::Approved, $approved->status);
         $this->assertNotNull($approved->journal_entry_id);
         $this->assertTrue($approved->journalEntry->isBalanced());
     }
@@ -149,7 +149,7 @@ final class SalesInvoicePanelTest extends TestCase
             ->assertOk();
 
         // Still a draft, and no half-written ledger entry behind it.
-        $this->assertSame(InvoiceStatus::Draft, $invoice->refresh()->status);
+        $this->assertSame(DocumentStatus::Draft, $invoice->refresh()->status);
         $this->assertNull($invoice->journal_entry_id);
     }
 

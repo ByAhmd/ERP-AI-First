@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\CreditNoteReason;
 use App\Enums\DocumentStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
@@ -17,20 +18,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 /**
- * A sales invoice.
+ * A sales credit note.
  *
- * Two documents in one: an accounting record and a thing a customer holds. The
- * totals stored here are what both must agree on, which is why they are written
- * by the posting service inside the transaction that writes the lines and are
- * never recomputed on read.
- *
- * No soft deletes. An approved invoice is part of the ledger and is corrected
- * by credit note, exactly as a posted journal entry is corrected by reversal.
+ * Reduces what a customer owes, and is the only correction available for an
+ * approved invoice — which is why the invoice itself has no edit path once
+ * posted. Both documents stay visible afterwards, as they must: the customer
+ * holds the invoice.
  *
  * @property DocumentStatus $status
+ * @property CreditNoteReason $reason_code
  * @property CarbonImmutable $issue_date
  * @property CarbonImmutable $due_date
- * @property CarbonImmutable $supply_date
+ * @property CarbonImmutable $event_date
  * @property string $subtotal_net
  * @property string $discount_total
  * @property string $tax_total
@@ -38,14 +37,16 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $company_id
  */
 #[Fillable([
-    'company_id', 'reference', 'status', 'contact_id',
-    'issue_date', 'due_date', 'supply_date',
+    'company_id', 'reference', 'status', 'contact_id', 'parent_id',
+    'original_invoice_number', 'original_invoice_date',
+    'issue_date', 'due_date', 'event_date',
+    'reason_code', 'reason_text',
     'description', 'terms_and_conditions', 'notes',
     'subtotal_net', 'discount_total', 'tax_total', 'total',
     'currency_id', 'exchange_rate', 'journal_entry_id',
     'approved_at', 'approved_by_id', 'created_by_id',
 ])]
-class SalesInvoice extends Model implements AuditableContract
+class SalesCreditNote extends Model implements AuditableContract
 {
     use AuditsCompany;
     use BelongsToCompany;
@@ -66,9 +67,11 @@ class SalesInvoice extends Model implements AuditableContract
     {
         return [
             'status' => DocumentStatus::class,
+            'reason_code' => CreditNoteReason::class,
             'issue_date' => 'date',
             'due_date' => 'date',
-            'supply_date' => 'date',
+            'event_date' => 'date',
+            'original_invoice_date' => 'date',
             'approved_at' => 'datetime',
             'subtotal_net' => 'decimal:4',
             'discount_total' => 'decimal:4',
@@ -79,11 +82,11 @@ class SalesInvoice extends Model implements AuditableContract
     }
 
     /**
-     * @return HasMany<SalesInvoiceItem, $this>
+     * @return HasMany<SalesCreditNoteItem, $this>
      */
     public function items(): HasMany
     {
-        return $this->hasMany(SalesInvoiceItem::class)->orderBy('line_number');
+        return $this->hasMany(SalesCreditNoteItem::class)->orderBy('line_number');
     }
 
     /**
@@ -92,6 +95,16 @@ class SalesInvoice extends Model implements AuditableContract
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * The invoice being credited, when it is one this platform holds.
+     *
+     * @return BelongsTo<SalesInvoice, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(SalesInvoice::class, 'parent_id');
     }
 
     /**
@@ -129,13 +142,6 @@ class SalesInvoice extends Model implements AuditableContract
         return $query->where('status', DocumentStatus::Approved);
     }
 
-    /**
-     * Whether the stored totals still agree with the lines.
-     *
-     * Read by the tests rather than by the application: the service writes both
-     * in one transaction, so a disagreement is a bug rather than a state to
-     * handle at runtime.
-     */
     public function totalsReconcile(): bool
     {
         return bccomp(

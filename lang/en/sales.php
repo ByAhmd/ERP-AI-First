@@ -50,7 +50,7 @@ return [
         'E' => 'Exempt',
     ],
 
-    'invoice_status' => [
+    'document_status' => [
         'draft' => 'Draft',
         'approved' => 'Approved',
         'void' => 'Void',
@@ -134,6 +134,49 @@ return [
             'discount_exceeds_line' => 'The discount is larger than the line it applies to.',
             'negative_discount' => 'A discount cannot be negative.',
             'totals_do_not_reconcile' => 'The totals on invoice :reference do not agree with its lines.',
+        ],
+    ],
+
+    'credit_note_reason' => [
+        'cancellation' => 'Supply cancelled, wholly or partly',
+        'supply_change' => 'Material change to the supply affecting the tax',
+        'price_adjustment' => 'Adjustment to the agreed value of the supply',
+        'goods_return' => 'Return of goods or services',
+    ],
+
+    'credit_notes' => [
+        'label' => 'Credit Note',
+        'plural_label' => 'Credit Notes',
+        'nav_label' => 'Credit Notes',
+        'narration' => 'Credit note :reference against invoice :invoice',
+        'fields' => [
+            'reference' => 'Reference',
+            'contact' => 'Customer',
+            'parent' => 'Original sales invoice',
+            'original_invoice_number' => 'Original invoice reference',
+            'original_invoice_date' => 'Original invoice date',
+            'issue_date' => 'Date',
+            'due_date' => 'Due date',
+            'event_date' => 'Event date',
+            'reason_code' => 'Reason for issue',
+            'reason_text' => 'Reason detail',
+        ],
+        'hints' => [
+            'original_invoice_number' => 'Always required, even when the original invoice was raised outside this system.',
+            'event_date' => 'When the triggering event occurred. The fifteen-day window runs from the end of that month.',
+            'reason_text' => 'Printed on the note, and required by ZATCA.',
+        ],
+        'errors' => [
+            'already_approved' => 'Credit note :reference is already approved.',
+            'not_draft' => 'A credit note cannot be edited once approved.',
+            'no_items' => 'A credit note with no items cannot be approved.',
+            'nothing_to_credit' => 'Credit note :reference comes to zero, so there is nothing to credit.',
+            'inactive_contact' => 'Customer :contact is inactive.',
+            'totals_do_not_reconcile' => 'The totals on credit note :reference do not agree with its lines.',
+            'parent_not_approved' => 'Invoice :reference is not approved, so it cannot be credited.',
+            'customer_mismatch' => 'This credit note names a different customer from invoice :invoice.',
+            'dated_before_invoice' => 'The credit note is dated before invoice :invoice.',
+            'exceeds_invoice' => 'This exceeds what is left of invoice :invoice — :remaining remains.',
         ],
     ],
 

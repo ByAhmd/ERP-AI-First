@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $is_inclusive
  * @property string $quantity
  * @property string $unit_price
+ * @property string $tax_rate
  * @property string $net_amount
  * @property string $tax_amount
  * @property string $line_total

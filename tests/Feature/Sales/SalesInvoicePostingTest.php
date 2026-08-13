@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Sales;
 
 use App\Enums\ContactStatus;
-use App\Enums\InvoiceStatus;
+use App\Enums\DocumentStatus;
 use App\Enums\SystemAccount;
 use App\Enums\TaxCategory;
 use App\Models\Company;
@@ -71,7 +71,7 @@ final class SalesInvoicePostingTest extends TestCase
 
         $approved = app(SalesInvoicePoster::class)->approve($invoice);
 
-        $this->assertSame(InvoiceStatus::Approved, $approved->status);
+        $this->assertSame(DocumentStatus::Approved, $approved->status);
         $this->assertSame('300.0000', $approved->subtotal_net);
         $this->assertSame('45.0000', $approved->tax_total);
         $this->assertSame('345.0000', $approved->total);

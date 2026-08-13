@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DiscountType;
-use App\Enums\InvoiceStatus;
+use App\Enums\DocumentStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -36,7 +36,7 @@ return new class extends Migration
             $table->foreignUlid('company_id')->constrained()->cascadeOnDelete();
 
             $table->string('reference', 40);
-            $table->string('status', 20)->default(InvoiceStatus::Draft->value);
+            $table->string('status', 20)->default(DocumentStatus::Draft->value);
 
             $table->foreignUlid('contact_id')->constrained('contacts')->restrictOnDelete();
 

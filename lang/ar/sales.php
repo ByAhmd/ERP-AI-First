@@ -50,7 +50,7 @@ return [
         'E' => 'معفاة',
     ],
 
-    'invoice_status' => [
+    'document_status' => [
         'draft' => 'مسودة',
         'approved' => 'معتمدة',
         'void' => 'ملغاة',
@@ -134,6 +134,49 @@ return [
             'discount_exceeds_line' => 'الخصم أكبر من قيمة البند.',
             'negative_discount' => 'الخصم لا يمكن أن يكون بالسالب.',
             'totals_do_not_reconcile' => 'إجماليات الفاتورة :reference لا تتطابق مع بنودها.',
+        ],
+    ],
+
+    'credit_note_reason' => [
+        'cancellation' => 'إلغاء التوريد كلياً أو جزئياً',
+        'supply_change' => 'تغيير جوهري في التوريد يؤثر على الضريبة',
+        'price_adjustment' => 'تعديل قيمة التوريد المتفق عليها',
+        'goods_return' => 'إرجاع بضاعة أو خدمات',
+    ],
+
+    'credit_notes' => [
+        'label' => 'إشعار دائن',
+        'plural_label' => 'الإشعارات الدائنة',
+        'nav_label' => 'الإشعارات الدائنة',
+        'narration' => 'إشعار دائن :reference عن الفاتورة :invoice',
+        'fields' => [
+            'reference' => 'المرجع',
+            'contact' => 'العميل',
+            'parent' => 'فاتورة المبيعات الأصلية',
+            'original_invoice_number' => 'مرجع فاتورة المبيعات الأصلية',
+            'original_invoice_date' => 'تاريخ الفاتورة الأصلية',
+            'issue_date' => 'التاريخ',
+            'due_date' => 'تاريخ الاستحقاق',
+            'event_date' => 'تاريخ الحدث',
+            'reason_code' => 'سبب الإصدار',
+            'reason_text' => 'بيان السبب',
+        ],
+        'hints' => [
+            'original_invoice_number' => 'مطلوب دائماً، حتى إذا كانت الفاتورة الأصلية صادرة خارج النظام.',
+            'event_date' => 'تاريخ وقوع الحدث الموجب للإشعار. تُحتسب مهلة الخمسة عشر يوماً من نهاية شهره.',
+            'reason_text' => 'يُطبع على الإشعار، وتشترطه هيئة الزكاة والضريبة والجمارك.',
+        ],
+        'errors' => [
+            'already_approved' => 'الإشعار :reference معتمد بالفعل.',
+            'not_draft' => 'لا يمكن تعديل إشعار بعد اعتماده.',
+            'no_items' => 'لا يمكن اعتماد إشعار بلا بنود.',
+            'nothing_to_credit' => 'الإشعار :reference بقيمة صفر ولا يوجد ما يُخصم.',
+            'inactive_contact' => 'العميل :contact غير نشط.',
+            'totals_do_not_reconcile' => 'إجماليات الإشعار :reference لا تتطابق مع بنوده.',
+            'parent_not_approved' => 'الفاتورة :reference غير معتمدة، ولا يمكن إصدار إشعار دائن عنها.',
+            'customer_mismatch' => 'عميل الإشعار يختلف عن عميل الفاتورة :invoice.',
+            'dated_before_invoice' => 'تاريخ الإشعار يسبق تاريخ الفاتورة :invoice.',
+            'exceeds_invoice' => 'قيمة الإشعار تتجاوز المتبقي من الفاتورة :invoice، والمتبقي :remaining.',
         ],
     ],
 
