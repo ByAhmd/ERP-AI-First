@@ -74,22 +74,17 @@ return [
              * DBngin instance, CI, or production all get it without being
              * configured for it.
              *
-             * Not applied under testing. RefreshDatabase holds one transaction
-             * open for the length of a test and reconnects around its initial
-             * migration; an init command re-runs on every reconnect, and MySQL
-             * refuses to change transaction characteristics once a transaction
-             * has begun. Applying it there loses the wrapping transaction and
-             * leaves committed schema behind for the next test to trip over.
-             *
-             * The divergence is safe because the setting only governs locking
-             * under concurrency, and the suite is single-threaded. Nothing it
-             * asserts can depend on the isolation level.
+             * The tests run under it too, which took some doing. An init
+             * command re-runs on every reconnect, and CompanyIsolationTest
+             * created its probe table in setUp — DDL commits implicitly in
+             * MySQL, discarding the transaction RefreshDatabase wraps each test
+             * in. That table is created by a migration now, so nothing in the
+             * suite issues DDL inside a test and this can hold everywhere
+             * rather than being switched off where it is inconvenient.
              */
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-                Mysql::ATTR_INIT_COMMAND => env('APP_ENV') === 'testing'
-                    ? null
-                    : 'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
+                Mysql::ATTR_INIT_COMMAND => 'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
             ]) : [],
         ],
 

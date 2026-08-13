@@ -11,9 +11,7 @@ use App\Support\Tenancy\Exceptions\CompanyContextMissing;
 use App\Support\Tenancy\Exceptions\CompanyMismatch;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -36,13 +34,10 @@ final class CompanyIsolationTest extends TestCase
     {
         parent::setUp();
 
-        Schema::create('ledger_probes', function (Blueprint $table): void {
-            $table->ulid('id')->primary();
-            $table->foreignUlid('company_id')->constrained()->cascadeOnDelete();
-            $table->string('label');
-            $table->timestamps();
-        });
-
+        // The probe table is created by a migration under tests/database, not
+        // here. Creating it in setUp put DDL inside the transaction
+        // RefreshDatabase opens per test, and DDL commits implicitly in MySQL —
+        // so the rollback never happened and each test left its fixtures behind.
         $context = app(CompanyContext::class);
 
         // Companies themselves are unscoped, but creating them establishes no
@@ -51,13 +46,6 @@ final class CompanyIsolationTest extends TestCase
         $this->globex = Company::create(['name' => 'Globex Industrial', 'vat_registration_number' => '300000000000011']);
 
         $context->forget();
-    }
-
-    protected function tearDown(): void
-    {
-        Schema::dropIfExists('ledger_probes');
-
-        parent::tearDown();
     }
 
     #[Test]
@@ -176,8 +164,8 @@ final class CompanyIsolationTest extends TestCase
  * trait, not to any particular table, so a throwaway table keeps the test
  * independent of whichever models happen to exist.
  *
- * Its columns are created in setUp() rather than by a migration, so the schema
- * scanner cannot infer them.
+ * Its table is created by a migration under tests/database, which the static
+ * analyser does not scan, so the columns are annotated here instead.
  *
  * @property string $label
  * @property string $company_id

@@ -19,6 +19,7 @@ use App\Services\Accounting\JournalPoster;
 use App\Support\Tenancy\CompanyContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -222,6 +223,21 @@ final class JournalPosterTest extends TestCase
             'JE-2026-00004',
             'JE-2026-00005',
         ], $numbers);
+    }
+
+    #[Test]
+    public function the_connection_isolates_at_read_committed(): void
+    {
+        // The allocator takes SELECT ... FOR UPDATE on a counter row. Under
+        // MySQL's default REPEATABLE READ that also takes gap locks, so
+        // allocations on neighbouring keys serialise and can deadlock — a
+        // failure that only appears under concurrent load, which is to say in
+        // production. The level is set on the connection in config/database.php
+        // rather than on the server, and this asserts it survived.
+        $this->assertSame(
+            'READ-COMMITTED',
+            DB::selectOne('SELECT @@session.transaction_isolation AS level')->level,
+        );
     }
 
     #[Test]
