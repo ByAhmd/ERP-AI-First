@@ -164,6 +164,20 @@ final class PanelSmokeTest extends TestCase
             ->assertSee(__('sales.taxes.columns.code'), escape: false);
 
         $this->actingAs($this->admin)->get("{$base}/taxes/create")->assertOk();
+
+        $this->actingAs($this->admin)
+            ->get("{$base}/customers")
+            ->assertOk()
+            ->assertSee(__('sales.contacts.columns.code'), escape: false);
+
+        $this->actingAs($this->admin)
+            ->get("{$base}/customers/create")
+            ->assertOk()
+            // The four sections Qoyod's form is divided into, in its order.
+            ->assertSee(__('sales.contacts.sections.details'), escape: false)
+            ->assertSee(__('sales.contacts.sections.billing_address'), escape: false)
+            ->assertSee(__('sales.contacts.sections.shipping_address'), escape: false)
+            ->assertSee(__('sales.contacts.sections.bank'), escape: false);
     }
 
     #[Test]

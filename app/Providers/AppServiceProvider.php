@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\Account;
+use App\Models\Contact;
 use App\Models\Dimension;
 use App\Models\JournalEntry;
 use App\Models\Tax;
 use App\Observers\AccountObserver;
+use App\Observers\ContactObserver;
 use App\Observers\DimensionObserver;
 use App\Observers\JournalEntryObserver;
 use App\Observers\TaxObserver;
@@ -45,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
     private function registerObservers(): void
     {
         Account::observe(AccountObserver::class);
+        Contact::observe(ContactObserver::class);
         Dimension::observe(DimensionObserver::class);
         JournalEntry::observe(JournalEntryObserver::class);
         Tax::observe(TaxObserver::class);
