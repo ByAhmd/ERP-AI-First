@@ -231,6 +231,18 @@ That is the same distinction `JournalPoster` already draws between `draft()` and
 `post()`, so the document layer maps onto the ledger without inventing a second
 notion of "not yet real".
 
+Header actions on the invoice list: `إضافة إلى عملية التدقيق` · `تصدير` ·
+`إنشاء سند عميل` · `استيراد الفواتير` · `إنشاء فاتورة` · `الإشعارات الدائنة` ·
+`إدارة السندات`.
+
+**Not confirmed:** the status tabs. The tenant holds no invoices, so the list
+renders its empty state and no status filter appears. The dashboard does link to
+`/tenant/invoices` under the label `معلقة`, which implies at least a pending
+payment state. Qoyod's documented lifecycle is draft versus approved; the
+payment states (paid, partly paid, overdue) most likely derive from receipts
+rather than being stored. Treated as unconfirmed rather than guessed — worth a
+second look on a tenant that has invoices.
+
 ## Gaps this inspection opened
 
 Ordered by how much of the ledger they touch. Struck items have since been
