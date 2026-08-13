@@ -50,6 +50,73 @@ return [
         'E' => 'معفاة',
     ],
 
+    'product_type' => [
+        'product' => 'منتج',
+        'bundle' => 'منتج مجمع',
+        'raw_material' => 'مادة أولية',
+        'service' => 'خدمة',
+        'expense' => 'مصروف',
+    ],
+
+    'products' => [
+        'label' => 'منتج',
+        'plural_label' => 'المنتجات والتكاليف',
+        'nav_label' => 'المنتجات والتكاليف',
+        'columns' => [
+            'sku' => 'الرقم التسلسلي',
+            'name' => 'الاسم',
+            'type' => 'النوع',
+            'category' => 'الصنف',
+            'unit' => 'وحدة القياس',
+            'tax' => 'الضريبة',
+            'selling_price' => 'سعر البيع',
+            'buying_price' => 'سعر الشراء',
+            'active' => 'نشط',
+        ],
+        'sections' => [
+            'details' => 'بيانات المنتج',
+            'pricing' => 'الأسعار',
+        ],
+        'fields' => [
+            'type' => 'نوع المنتج',
+            'name' => 'الاسم العربي',
+            'name_en' => 'الاسم الانجليزي',
+            'sku' => 'الرقم التسلسلي',
+            'barcode' => 'الباركود',
+            'category' => 'الصنف',
+            'unit_type' => 'وحدة القياس',
+            'tax' => 'الضريبة %',
+            'description' => 'الوصف',
+            'terms_and_conditions' => 'الشروط والأحكام',
+            'is_sold' => 'يُباع',
+            'is_purchased' => 'يُشترى',
+            'selling_price' => 'سعر البيع',
+            'buying_price' => 'سعر الشراء',
+            'is_active' => 'نشط',
+        ],
+        'hints' => [
+            'sku' => 'يُولَّد تلقائياً إذا تُرك فارغاً.',
+            'name_en' => 'مطلوب لأن الفاتورة الضريبية قد تُصدر بأي من اللغتين.',
+            'selling_price' => 'سعر افتراضي تنسخه المستندات؛ تعديله لاحقاً لا يغيّر فواتير سابقة.',
+        ],
+    ],
+
+    'product_categories' => [
+        'label' => 'صنف',
+        'plural_label' => 'الأصناف',
+        'nav_label' => 'الأصناف',
+        'columns' => [
+            'name' => 'الاسم',
+            'parent' => 'الصنف الأساس',
+            'description' => 'الوصف',
+        ],
+        'fields' => [
+            'name' => 'اسم الصنف',
+            'description' => 'الوصف',
+            'parent' => 'الصنف الأساس',
+        ],
+    ],
+
     'contact_type' => [
         'customer' => 'عميل',
         'supplier' => 'مورد',

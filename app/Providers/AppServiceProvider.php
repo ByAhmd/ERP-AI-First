@@ -8,11 +8,13 @@ use App\Models\Account;
 use App\Models\Contact;
 use App\Models\Dimension;
 use App\Models\JournalEntry;
+use App\Models\Product;
 use App\Models\Tax;
 use App\Observers\AccountObserver;
 use App\Observers\ContactObserver;
 use App\Observers\DimensionObserver;
 use App\Observers\JournalEntryObserver;
+use App\Observers\ProductObserver;
 use App\Observers\TaxObserver;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Illuminate\Database\Eloquent\Model;
@@ -50,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
         Contact::observe(ContactObserver::class);
         Dimension::observe(DimensionObserver::class);
         JournalEntry::observe(JournalEntryObserver::class);
+        Product::observe(ProductObserver::class);
         Tax::observe(TaxObserver::class);
     }
 

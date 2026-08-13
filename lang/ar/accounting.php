@@ -333,6 +333,7 @@ return [
         'withholding_tax_payable' => 'ضريبة الاستقطاع المستحقة',
         'zakat_payable' => 'الزكاة المستحقة',
         'interest_tax_and_zakat' => 'الفوائد والضرائب والزكاة',
+        'sales_revenue' => 'إيرادات المبيعات',
         'inventory' => 'المخزون',
         'cost_of_goods_sold' => 'تكلفة البضاعة المباعة',
         'inventory_adjustment' => 'تسويات المخزون',

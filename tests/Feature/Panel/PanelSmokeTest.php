@@ -11,6 +11,7 @@ use App\Models\Dimension;
 use App\Models\DimensionValue;
 use App\Models\User;
 use App\Services\Accounting\ChartOfAccountsTemplate;
+use App\Services\Sales\CatalogueTemplate;
 use App\Services\Sales\TaxTemplate;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -178,6 +179,21 @@ final class PanelSmokeTest extends TestCase
             ->assertSee(__('sales.contacts.sections.billing_address'), escape: false)
             ->assertSee(__('sales.contacts.sections.shipping_address'), escape: false)
             ->assertSee(__('sales.contacts.sections.bank'), escape: false);
+
+        app(CatalogueTemplate::class)->applyTo($this->company);
+
+        $this->actingAs($this->admin)->get("{$base}/products")->assertOk();
+        $this->actingAs($this->admin)
+            ->get("{$base}/products/create")
+            ->assertOk()
+            // Both names are required on a Qoyod product, and both appear here.
+            ->assertSee(__('sales.products.fields.name'), escape: false)
+            ->assertSee(__('sales.products.fields.name_en'), escape: false);
+
+        $this->actingAs($this->admin)
+            ->get("{$base}/product-categories")
+            ->assertOk()
+            ->assertSee('الصنف الأساسي');
     }
 
     #[Test]

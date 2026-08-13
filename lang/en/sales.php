@@ -50,6 +50,73 @@ return [
         'E' => 'Exempt',
     ],
 
+    'product_type' => [
+        'product' => 'Product',
+        'bundle' => 'Bundle',
+        'raw_material' => 'Raw material',
+        'service' => 'Service',
+        'expense' => 'Expense',
+    ],
+
+    'products' => [
+        'label' => 'Product',
+        'plural_label' => 'Products and Costs',
+        'nav_label' => 'Products and Costs',
+        'columns' => [
+            'sku' => 'SKU',
+            'name' => 'Name',
+            'type' => 'Type',
+            'category' => 'Category',
+            'unit' => 'Unit',
+            'tax' => 'Tax',
+            'selling_price' => 'Selling price',
+            'buying_price' => 'Buying price',
+            'active' => 'Active',
+        ],
+        'sections' => [
+            'details' => 'Product details',
+            'pricing' => 'Pricing',
+        ],
+        'fields' => [
+            'type' => 'Product type',
+            'name' => 'Name in Arabic',
+            'name_en' => 'Name in English',
+            'sku' => 'SKU',
+            'barcode' => 'Barcode',
+            'category' => 'Category',
+            'unit_type' => 'Unit',
+            'tax' => 'Tax %',
+            'description' => 'Description',
+            'terms_and_conditions' => 'Terms and conditions',
+            'is_sold' => 'Sold',
+            'is_purchased' => 'Purchased',
+            'selling_price' => 'Selling price',
+            'buying_price' => 'Buying price',
+            'is_active' => 'Active',
+        ],
+        'hints' => [
+            'sku' => 'Generated automatically if left blank.',
+            'name_en' => 'Required because a tax invoice may be issued in either language.',
+            'selling_price' => 'A default documents copy; changing it later does not alter invoices already raised.',
+        ],
+    ],
+
+    'product_categories' => [
+        'label' => 'Category',
+        'plural_label' => 'Categories',
+        'nav_label' => 'Categories',
+        'columns' => [
+            'name' => 'Name',
+            'parent' => 'Parent category',
+            'description' => 'Description',
+        ],
+        'fields' => [
+            'name' => 'Category name',
+            'description' => 'Description',
+            'parent' => 'Parent category',
+        ],
+    ],
+
     'contact_type' => [
         'customer' => 'Customer',
         'supplier' => 'Supplier',

@@ -147,7 +147,7 @@ final class ChartOfAccountsTemplate
             ]),
 
             $this->node('4000', 'الإيرادات', 'Revenue', $revenue, children: [
-                $this->node('4100', 'إيرادات المبيعات', 'Sales Revenue', $revenue),
+                $this->node('4100', 'إيرادات المبيعات', 'Sales Revenue', $revenue, SystemAccount::SalesRevenue),
                 $this->node('4200', 'إيرادات الخدمات', 'Service Revenue', $revenue),
                 $this->node('4300', 'إيرادات أخرى', 'Other Income', $revenue),
                 $this->node('4400', 'مردودات وخصومات المبيعات', 'Sales Returns and Discounts', $revenue),

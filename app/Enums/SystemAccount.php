@@ -38,6 +38,12 @@ enum SystemAccount: string
     // is classified with them automatically.
     case InterestTaxAndZakat = 'interest_tax_and_zakat';
 
+    // Where an approved sales document credits its net revenue. Qoyod carries
+    // no revenue account on a product or its category, posting instead to one
+    // company-level default; this is that default, resolved by role so a
+    // company may renumber its chart without breaking invoicing.
+    case SalesRevenue = 'sales_revenue';
+
     // Inventory and cost of sales, posted when stock moves.
     case Inventory = 'inventory';
     case CostOfGoodsSold = 'cost_of_goods_sold';

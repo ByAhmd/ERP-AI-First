@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Accounting\ChartOfAccountsTemplate;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Identity\RoleProvisioner;
+use App\Services\Sales\CatalogueTemplate;
 use App\Services\Sales\TaxTemplate;
 use App\Support\Tenancy\CompanyContext;
 use Illuminate\Database\Seeder;
@@ -106,6 +107,9 @@ class FirstRunSeeder extends Seeder
         // After the chart, never before: a tax names the account it posts to,
         // and that account has to exist first.
         app(TaxTemplate::class)->applyTo($company);
+
+        // A product needs a category, a unit and a rate before it can exist.
+        app(CatalogueTemplate::class)->applyTo($company);
 
         $calendar = app(FiscalCalendar::class);
 

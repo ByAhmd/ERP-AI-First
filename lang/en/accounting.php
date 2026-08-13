@@ -333,6 +333,7 @@ return [
         'withholding_tax_payable' => 'Withholding Tax Payable',
         'zakat_payable' => 'Zakat Payable',
         'interest_tax_and_zakat' => 'Interest, Tax and Zakat',
+        'sales_revenue' => 'Sales Revenue',
         'inventory' => 'Inventory',
         'cost_of_goods_sold' => 'Cost of Goods Sold',
         'inventory_adjustment' => 'Inventory Adjustments',
