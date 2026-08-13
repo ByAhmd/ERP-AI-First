@@ -57,6 +57,23 @@ worker and Vite down with it. For logs, tail the file:
 tail -f storage/logs/laravel.log
 ```
 
+### If the panel loads with no styling at all
+
+Plain blue links, unstyled Arabic text and one enormous black icon filling the
+screen. It looks like the theme was lost; it was not.
+
+`public/hot` is the marker Vite writes while its dev server is running. While it
+exists, Laravel resolves every asset to `http://localhost:5173` instead of the
+compiled build — so if Vite is no longer running, the stylesheet and scripts all
+404 and the page renders as bare HTML. Vite removes the file when it shuts down
+cleanly, and leaves it behind when it is killed.
+
+```bash
+rm -f public/hot && npm run build
+```
+
+The file is gitignored, so this only ever affects the machine it happened on.
+
 ## Queues
 
 The queue is `database` locally, worked by `php artisan queue:listen`.
