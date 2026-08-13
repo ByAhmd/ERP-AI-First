@@ -43,6 +43,20 @@ earlier on your `PATH`, call Herd's directly:
 Composer scripts cover the common paths: `composer check` runs the linter, the
 static analyser and the suite in that order.
 
+`composer dev` starts the two things that have to keep running while you work —
+the queue worker and Vite — and stops them together.
+
+It starts neither `artisan serve` nor `artisan pail`, both of which the Laravel
+skeleton includes. Herd already serves the site at `erp-ai.test`, and a second
+copy on `localhost:8000` would carry its own session cookies and its own opinion
+about which asset build is current. Pail cannot run at all: like Horizon it
+requires `ext-pcntl`, so it threw on startup and `--kill-others` took the queue
+worker and Vite down with it. For logs, tail the file:
+
+```bash
+tail -f storage/logs/laravel.log
+```
+
 ## Queues
 
 The queue is `database` locally, worked by `php artisan queue:listen`.
