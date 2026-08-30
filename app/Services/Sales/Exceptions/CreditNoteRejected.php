@@ -58,6 +58,13 @@ final class CreditNoteRejected extends RuntimeException
         ]));
     }
 
+    public static function simplifiedForRegisteredBuyer(Contact $contact): self
+    {
+        return new self(__('sales.invoices.errors.simplified_for_registered', [
+            'contact' => $contact->contact_name,
+        ]));
+    }
+
     /**
      * Only an approved invoice can be credited: a draft has never reached the
      * ledger, and a voided one has already had its entry reversed.

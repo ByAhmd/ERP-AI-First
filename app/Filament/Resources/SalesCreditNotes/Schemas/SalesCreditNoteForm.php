@@ -6,6 +6,7 @@ namespace App\Filament\Resources\SalesCreditNotes\Schemas;
 
 use App\Enums\CreditNoteReason;
 use App\Enums\DiscountType;
+use App\Enums\InvoiceSubtype;
 use App\Enums\TaxCategory;
 use App\Models\Contact;
 use App\Models\Product;
@@ -142,6 +143,19 @@ class SalesCreditNoteForm
                         ->native(false)
                         ->default(now())
                         ->required(),
+
+                    Select::make('subtype')
+                        ->label(__('sales.invoices.fields.subtype'))
+                        ->helperText(__('sales.invoices.hints.subtype'))
+                        ->options(InvoiceSubtype::class)
+                        ->default(InvoiceSubtype::Simplified)
+                        ->selectablePlaceholder(false)
+                        ->required()
+                        // Only choosable for a note against an external
+                        // original. Where a parent invoice exists, the model
+                        // inherits its subtype whatever the form says, so a
+                        // select would be a control that lies.
+                        ->visible(fn (Get $get): bool => blank($get('parent_id'))),
 
                     Select::make('reason_code')
                         ->label(__('sales.credit_notes.fields.reason_code'))

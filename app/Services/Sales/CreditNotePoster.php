@@ -6,6 +6,7 @@ namespace App\Services\Sales;
 
 use App\Enums\ContactStatus;
 use App\Enums\DocumentStatus;
+use App\Enums\InvoiceSubtype;
 use App\Enums\SystemAccount;
 use App\Models\SalesCreditNote;
 use App\Models\SalesInvoice;
@@ -168,6 +169,17 @@ final class CreditNotePoster
 
         if (! $note->totalsReconcile()) {
             throw CreditNoteRejected::totalsDoNotReconcile($note);
+        }
+
+        // Only for a note with no parent. Where a parent exists the subtype is
+        // inherited from it, and a buyer who registered for VAT after
+        // receiving a simplified invoice must still be able to have that
+        // invoice credited — as simplified, referencing it.
+        if ($note->parent_id === null
+            && $note->subtype === InvoiceSubtype::Simplified
+            && $contact !== null
+            && $contact->isTaxRegistered()) {
+            throw CreditNoteRejected::simplifiedForRegisteredBuyer($contact);
         }
 
         $this->guardAgainstParent($note);

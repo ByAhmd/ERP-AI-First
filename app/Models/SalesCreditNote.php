@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\CreditNoteReason;
 use App\Enums\DocumentStatus;
+use App\Enums\InvoiceSubtype;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
 use Carbon\CarbonImmutable;
@@ -26,6 +27,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * holds the invoice.
  *
  * @property DocumentStatus $status
+ * @property InvoiceSubtype $subtype
  * @property CreditNoteReason $reason_code
  * @property CarbonImmutable $issue_date
  * @property CarbonImmutable $due_date
@@ -37,7 +39,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $company_id
  */
 #[Fillable([
-    'company_id', 'reference', 'status', 'contact_id', 'parent_id',
+    'company_id', 'reference', 'status', 'subtype', 'contact_id', 'parent_id',
     'original_invoice_number', 'original_invoice_date',
     'issue_date', 'due_date', 'event_date',
     'reason_code', 'reason_text',
@@ -63,10 +65,36 @@ class SalesCreditNote extends Model implements AuditableContract
         'total' => 0,
     ];
 
+    /**
+     * A credit note's subtype follows the invoice it credits.
+     *
+     * Derived, never chosen: a simplified invoice is corrected by a simplified
+     * credit note and a standard one by a standard note, whatever the form
+     * said. Only a note against an external original — where there is no
+     * parent to follow — keeps the subtype it was given.
+     */
+    protected static function booted(): void
+    {
+        static::saving(static function (self $note): void {
+            if ($note->parent_id === null) {
+                return;
+            }
+
+            $parentSubtype = SalesInvoice::query()
+                ->whereKey($note->parent_id)
+                ->value('subtype');
+
+            if ($parentSubtype !== null) {
+                $note->subtype = $parentSubtype;
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'status' => DocumentStatus::class,
+            'subtype' => InvoiceSubtype::class,
             'reason_code' => CreditNoteReason::class,
             'issue_date' => 'date',
             'due_date' => 'date',

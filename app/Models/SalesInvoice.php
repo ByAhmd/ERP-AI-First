@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\DocumentStatus;
+use App\Enums\InvoiceSubtype;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
 use Carbon\CarbonImmutable;
@@ -28,6 +29,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * by credit note, exactly as a posted journal entry is corrected by reversal.
  *
  * @property DocumentStatus $status
+ * @property InvoiceSubtype $subtype
  * @property CarbonImmutable $issue_date
  * @property CarbonImmutable $due_date
  * @property CarbonImmutable $supply_date
@@ -38,7 +40,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $company_id
  */
 #[Fillable([
-    'company_id', 'reference', 'status', 'contact_id',
+    'company_id', 'reference', 'status', 'subtype', 'contact_id',
     'issue_date', 'due_date', 'supply_date',
     'description', 'terms_and_conditions', 'notes',
     'subtotal_net', 'discount_total', 'tax_total', 'total',
@@ -66,6 +68,7 @@ class SalesInvoice extends Model implements AuditableContract
     {
         return [
             'status' => DocumentStatus::class,
+            'subtype' => InvoiceSubtype::class,
             'issue_date' => 'date',
             'due_date' => 'date',
             'supply_date' => 'date',

@@ -50,6 +50,11 @@ return [
         'E' => 'Exempt',
     ],
 
+    'invoice_subtype' => [
+        '01' => 'Tax invoice',
+        '02' => 'Simplified tax invoice',
+    ],
+
     'document_status' => [
         'draft' => 'Draft',
         'approved' => 'Approved',
@@ -86,6 +91,7 @@ return [
             'payment_term' => 'Payment terms',
             'due_date' => 'Due date',
             'supply_date' => 'Supply date',
+            'subtype' => 'Invoice type',
             'terms_and_conditions' => 'Terms and conditions',
             'notes' => 'Notes',
         ],
@@ -124,6 +130,7 @@ return [
         'hints' => [
             'supply_date' => 'When the goods were supplied or the service performed. ZATCA requires it separately from the issue date.',
             'is_inclusive' => 'Is the unit price inclusive of VAT?',
+            'subtype' => 'Standard for VAT-registered customers, simplified for consumers.',
         ],
         'errors' => [
             'no_items' => 'An invoice with no items cannot be approved.',
@@ -131,6 +138,7 @@ return [
             'not_draft' => 'An invoice cannot be edited once approved.',
             'inactive_contact' => 'Customer :contact is inactive and cannot be invoiced.',
             'due_before_issue' => 'The due date cannot fall before the issue date.',
+            'simplified_for_registered' => 'Customer :contact is VAT-registered and needs a standard tax invoice, not a simplified one — a simplified invoice gives them nothing to recover input VAT with.',
             'discount_exceeds_line' => 'The discount is larger than the line it applies to.',
             'negative_discount' => 'A discount cannot be negative.',
             'totals_do_not_reconcile' => 'The totals on invoice :reference do not agree with its lines.',

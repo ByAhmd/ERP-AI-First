@@ -44,6 +44,17 @@ final class InvoiceRuleViolation extends RuntimeException
         ]));
     }
 
+    /**
+     * A simplified tax invoice identifies no buyer, so a VAT-registered
+     * customer can recover nothing from it. They need a standard one.
+     */
+    public static function simplifiedForRegisteredBuyer(Contact $contact): self
+    {
+        return new self(__('sales.invoices.errors.simplified_for_registered', [
+            'contact' => $contact->contact_name,
+        ]));
+    }
+
     public static function dueBeforeIssue(): self
     {
         return new self(__('sales.invoices.errors.due_before_issue'));

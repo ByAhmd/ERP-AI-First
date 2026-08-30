@@ -6,6 +6,7 @@ namespace App\Services\Sales;
 
 use App\Enums\ContactStatus;
 use App\Enums\DocumentStatus;
+use App\Enums\InvoiceSubtype;
 use App\Enums\SystemAccount;
 use App\Models\SalesInvoice;
 use App\Services\Accounting\AccountRegistry;
@@ -149,6 +150,15 @@ final class SalesInvoicePoster
 
         if ($contact !== null && $contact->status !== ContactStatus::Active) {
             throw InvoiceRuleViolation::inactiveContact($contact);
+        }
+
+        // A simplified invoice to a VAT-registered buyer is a compliance
+        // failure, not a preference: it identifies no buyer, so the customer
+        // has nothing to recover input VAT with.
+        if ($invoice->subtype === InvoiceSubtype::Simplified
+            && $contact !== null
+            && $contact->isTaxRegistered()) {
+            throw InvoiceRuleViolation::simplifiedForRegisteredBuyer($contact);
         }
 
         if ($invoice->due_date->lessThan($invoice->issue_date)) {

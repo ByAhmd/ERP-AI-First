@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\SalesInvoices\Schemas;
 
 use App\Enums\DiscountType;
+use App\Enums\InvoiceSubtype;
 use App\Enums\TaxCategory;
 use App\Models\Contact;
 use App\Models\Product;
@@ -62,6 +63,23 @@ class SalesInvoiceForm
                             ])
                             ->all())
                         ->searchable()
+                        ->required()
+                        ->live()
+                        // Choosing a customer chooses the default document: a
+                        // VAT-registered buyer needs a standard tax invoice, a
+                        // consumer gets a simplified one. Still overridable.
+                        ->afterStateUpdated(function (Set $set, ?string $state): void {
+                            $contact = blank($state) ? null : Contact::query()->find($state);
+
+                            $set('subtype', InvoiceSubtype::forContact($contact)->value);
+                        }),
+
+                    Select::make('subtype')
+                        ->label(__('sales.invoices.fields.subtype'))
+                        ->helperText(__('sales.invoices.hints.subtype'))
+                        ->options(InvoiceSubtype::class)
+                        ->default(InvoiceSubtype::Simplified)
+                        ->selectablePlaceholder(false)
                         ->required(),
 
                     DatePicker::make('issue_date')

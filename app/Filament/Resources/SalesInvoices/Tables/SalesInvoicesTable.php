@@ -54,6 +54,10 @@ class SalesInvoicesTable
                     ->weight('bold')
                     ->sortable(),
 
+                TextColumn::make('subtype')
+                    ->label(__('sales.invoices.fields.subtype'))
+                    ->badge(),
+
                 TextColumn::make('status')
                     ->label(__('sales.invoices.columns.status'))
                     ->badge(),
