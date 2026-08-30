@@ -149,6 +149,10 @@ return [
         'plural_label' => 'Credit Notes',
         'nav_label' => 'Credit Notes',
         'narration' => 'Credit note :reference against invoice :invoice',
+        'actions' => [
+            'approve_confirm' => 'Once approved the credit note posts to the accounts and reduces what the customer owes. It cannot then be edited.',
+            'approved' => 'Credit note approved and posted.',
+        ],
         'fields' => [
             'reference' => 'Reference',
             'contact' => 'Customer',

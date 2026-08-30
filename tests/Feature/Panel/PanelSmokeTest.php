@@ -204,6 +204,14 @@ final class PanelSmokeTest extends TestCase
             // assumed from a 200.
             ->assertSee(__('sales.invoices.fields.supply_date'), escape: false)
             ->assertSee(__('sales.invoices.items.is_inclusive'), escape: false);
+
+        $this->actingAs($this->admin)->get("{$base}/sales-credit-notes")->assertOk();
+        $this->actingAs($this->admin)
+            ->get("{$base}/sales-credit-notes/create")
+            ->assertOk()
+            // The ZATCA fields Qoyod's own form does not show.
+            ->assertSee(__('sales.credit_notes.fields.original_invoice_number'), escape: false)
+            ->assertSee(__('sales.credit_notes.fields.reason_code'), escape: false);
     }
 
     #[Test]

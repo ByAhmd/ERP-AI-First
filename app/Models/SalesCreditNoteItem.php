@@ -133,6 +133,8 @@ class SalesCreditNoteItem extends Model
      */
     private function copyFromInvoiceLine(): void
     {
+        $this->resolveInvoiceLine();
+
         if ($this->sales_invoice_item_id === null) {
             return;
         }
@@ -150,6 +152,43 @@ class SalesCreditNoteItem extends Model
         $this->product_id ??= $line->product_id;
         $this->product_name = $this->product_name ?: $line->product_name;
         $this->unit_name = $this->unit_name ?: $line->unit_name;
+    }
+
+    /**
+     * Find the invoice line this credits, when the form did not say.
+     *
+     * Qoyod's credit note form offers a product column, not an invoice-line
+     * column, so nothing on screen names the line being credited. The link
+     * still has to exist — without it the only possible check is on the header
+     * total, which would allow three units credited at triple the price they
+     * were billed at.
+     *
+     * Matched on the product against the parent invoice. Where an invoice bills
+     * the same product on two lines the first is taken, which is a guess — but
+     * a guess that constrains the credit to a real line is better than no
+     * constraint at all.
+     */
+    private function resolveInvoiceLine(): void
+    {
+        if ($this->sales_invoice_item_id !== null || $this->product_id === null) {
+            return;
+        }
+
+        // The column is NOT NULL, but during `creating` the attribute may not
+        // have been assigned yet.
+        $note = blank($this->sales_credit_note_id)
+            ? null
+            : SalesCreditNote::query()->find($this->sales_credit_note_id);
+
+        if ($note === null || $note->parent_id === null) {
+            return;
+        }
+
+        $this->sales_invoice_item_id = SalesInvoiceItem::query()
+            ->where('sales_invoice_id', $note->parent_id)
+            ->where('product_id', $this->product_id)
+            ->orderBy('line_number')
+            ->value('id');
     }
 
     private function copyProductSnapshot(): void
