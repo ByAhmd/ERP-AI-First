@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
 
     'navigation_group' => 'Sales',
+    'products_group' => 'Products and Costs',
 
     'taxes' => [
         'label' => 'Tax',

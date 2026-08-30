@@ -161,6 +161,12 @@ return [
         'specific_description' => 'Applies only where it is chosen.',
     ],
 
+    'nav_overrides' => [
+        'entries' => 'Manual Journal Entries',
+        'branches' => 'Locations',
+        'general_ledger' => 'Account Statement',
+    ],
+
     'navigation_group' => 'Accounting',
     'reports_group' => 'Reports',
 

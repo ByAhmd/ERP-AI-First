@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 return [
 
+    'dashboard' => 'لوحة المتابعة',
+
     'settings' => [
-        'nav_label' => 'إعدادات الشركة',
+        'nav_label' => 'الإعدادات العامة',
         'title' => 'إعدادات الشركة',
         'save' => 'حفظ التغييرات',
         'saved' => 'تم حفظ إعدادات الشركة.',

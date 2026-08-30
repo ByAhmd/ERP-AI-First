@@ -39,7 +39,7 @@ class ProductCategoryResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -60,7 +60,7 @@ class ProductCategoryResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('sales.navigation_group');
+        return __('sales.products_group');
     }
 
     public static function form(Schema $schema): Schema

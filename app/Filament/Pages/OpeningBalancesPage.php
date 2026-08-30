@@ -34,7 +34,7 @@ class OpeningBalancesPage extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowDownOnSquare;
 
-    protected static ?int $navigationSort = 35;
+    protected static ?int $navigationSort = 30;
 
     protected string $view = 'filament.pages.opening-balances';
 

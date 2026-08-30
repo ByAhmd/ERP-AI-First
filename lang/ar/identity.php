@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 return [
 
-    'navigation_group' => 'الهوية والصلاحيات',
+    'navigation_group' => 'الإعدادات',
 
     'members' => [
         'label' => 'عضو',

@@ -23,7 +23,7 @@ class IncomeStatementPage extends FinancialStatementPage
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPresentationChartLine;
 
-    protected static ?int $navigationSort = 60;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationLabel(): string
     {

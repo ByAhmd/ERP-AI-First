@@ -161,6 +161,12 @@ return [
         'specific_description' => 'ينطبق فقط حيث يتم اختياره.',
     ],
 
+    'nav_overrides' => [
+        'entries' => 'قيود محاسبية يدوية',
+        'branches' => 'المواقع',
+        'general_ledger' => 'كشف الحساب',
+    ],
+
     'navigation_group' => 'المحاسبة',
     'reports_group' => 'التقارير',
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 return [
 
+    'nav_label' => 'User Activity Report',
+
     'label' => 'Audit record',
     'plural_label' => 'Audit trail',
     'system_actor' => 'System',

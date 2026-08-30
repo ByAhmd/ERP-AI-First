@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
 
     'navigation_group' => 'المبيعات',
+    'products_group' => 'المنتجات والتكاليف',
 
     'taxes' => [
         'label' => 'الضريبة',

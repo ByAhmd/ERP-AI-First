@@ -70,8 +70,22 @@ final class PanelSmokeTest extends TestCase
             ->assertOk();
 
         $response->assertSee(__('identity.members.plural_label'), escape: false);
-        $response->assertSee(__('audit.plural_label'), escape: false);
+        $response->assertSee(__('audit.nav_label'), escape: false);
         $response->assertSee(__('company.settings.nav_label'), escape: false);
+
+        // Qoyod's sidebar groups, all present: the panel provider names them
+        // and every one has at least one screen behind it.
+        $response->assertSee(__('company.dashboard'), escape: false);
+        $response->assertSee(__('sales.navigation_group'), escape: false);
+        $response->assertSee(__('sales.products_group'), escape: false);
+        $response->assertSee(__('accounting.navigation_group'), escape: false);
+        $response->assertSee(__('accounting.reports_group'), escape: false);
+        $response->assertSee(__('identity.navigation_group'), escape: false);
+
+        // The relabelled entries read as Qoyod writes them.
+        $response->assertSee(__('accounting.nav_overrides.entries'), escape: false);
+        $response->assertSee(__('accounting.nav_overrides.branches'), escape: false);
+        $response->assertSee(__('accounting.nav_overrides.general_ledger'), escape: false);
     }
 
     #[Test]

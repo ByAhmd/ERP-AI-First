@@ -49,7 +49,7 @@ class MemberResource extends Resource
 
     protected static ?string $tenantRelationshipName = 'memberships';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 50;
 
     public static function getModelLabel(): string
     {

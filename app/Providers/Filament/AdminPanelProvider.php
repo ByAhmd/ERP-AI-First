@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Dashboard;
 use App\Http\Middleware\BindCompanyContext;
 use App\Http\Middleware\SetLocale;
 use App\Models\Company;
@@ -13,7 +14,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -62,6 +63,21 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            // Qoyod's sidebar order. Groups render in this sequence; a group
+            // with no visible items (quotations before the purchases slice,
+            // say) simply does not appear, so the list can name the whole
+            // target layout ahead of the modules that will fill it.
+            // The labels are closures because panel() runs before SetLocale
+            // has read the user's language; a plain __() here would freeze the
+            // group names in the default locale and the per-request labels the
+            // resources emit would no longer match their groups.
+            ->navigationGroups([
+                NavigationGroup::make()->label(fn (): string => __('sales.navigation_group')),
+                NavigationGroup::make()->label(fn (): string => __('sales.products_group')),
+                NavigationGroup::make()->label(fn (): string => __('accounting.navigation_group')),
+                NavigationGroup::make()->label(fn (): string => __('accounting.reports_group')),
+                NavigationGroup::make()->label(fn (): string => __('identity.navigation_group')),
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

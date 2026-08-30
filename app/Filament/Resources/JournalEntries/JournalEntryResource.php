@@ -32,7 +32,7 @@ class JournalEntryResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $recordTitleAttribute = 'number';
 
@@ -44,6 +44,12 @@ class JournalEntryResource extends Resource
     public static function getPluralModelLabel(): string
     {
         return __('accounting.entries.plural_label');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        // Qoyod's sidebar wording; the resource's own labels are unchanged.
+        return __('accounting.nav_overrides.entries');
     }
 
     public static function getNavigationGroup(): ?string

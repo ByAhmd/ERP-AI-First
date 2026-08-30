@@ -34,7 +34,7 @@ class CompanySettings extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
 
-    protected static ?int $navigationSort = 90;
+    protected static ?int $navigationSort = 10;
 
     protected string $view = 'filament.pages.company-settings';
 

@@ -34,7 +34,7 @@ class GeneralLedgerPage extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentMagnifyingGlass;
 
-    protected static ?int $navigationSort = 41;
+    protected static ?int $navigationSort = 40;
 
     protected string $view = 'filament.pages.general-ledger';
 
@@ -50,7 +50,8 @@ class GeneralLedgerPage extends Page
 
     public static function getNavigationLabel(): string
     {
-        return __('accounting.general_ledger.title');
+        // Qoyod files this report as كشف الحساب; the page keeps its fuller title.
+        return __('accounting.nav_overrides.general_ledger');
     }
 
     public function getTitle(): string|Htmlable

@@ -35,7 +35,7 @@ class BranchResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 60;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -49,9 +49,15 @@ class BranchResource extends Resource
         return __('accounting.branches.plural_label');
     }
 
+    public static function getNavigationLabel(): string
+    {
+        // Qoyod's sidebar wording; the resource's own labels are unchanged.
+        return __('accounting.nav_overrides.branches');
+    }
+
     public static function getNavigationGroup(): ?string
     {
-        return __('accounting.navigation_group');
+        return __('sales.products_group');
     }
 
     public static function form(Schema $schema): Schema

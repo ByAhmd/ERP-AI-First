@@ -28,7 +28,7 @@ class FiscalYearResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -44,7 +44,7 @@ class FiscalYearResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('accounting.navigation_group');
+        return __('identity.navigation_group');
     }
 
     public static function table(Table $table): Table

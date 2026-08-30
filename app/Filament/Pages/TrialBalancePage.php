@@ -38,7 +38,7 @@ class TrialBalancePage extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 30;
 
     protected string $view = 'filament.pages.trial-balance';
 

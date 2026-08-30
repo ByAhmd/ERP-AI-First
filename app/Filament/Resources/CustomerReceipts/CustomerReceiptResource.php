@@ -37,7 +37,7 @@ class CustomerReceiptResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 28;
+    protected static ?int $navigationSort = 50;
 
     protected static ?string $recordTitleAttribute = 'reference';
 

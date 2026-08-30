@@ -27,7 +27,7 @@ class AuditResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
-    protected static ?int $navigationSort = 95;
+    protected static ?int $navigationSort = 90;
 
     /**
      * Scoped explicitly.
@@ -53,9 +53,15 @@ class AuditResource extends Resource
         return __('audit.plural_label');
     }
 
+    public static function getNavigationLabel(): string
+    {
+        // Qoyod files this under reports by its report name.
+        return __('audit.nav_label');
+    }
+
     public static function getNavigationGroup(): ?string
     {
-        return __('identity.navigation_group');
+        return __('accounting.reports_group');
     }
 
     public static function table(Table $table): Table

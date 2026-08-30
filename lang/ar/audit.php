@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 return [
 
+    'nav_label' => 'تقرير عمليات المستخدمين',
+
     'label' => 'سجل تدقيق',
     'plural_label' => 'سجل التدقيق',
     'system_actor' => 'النظام',

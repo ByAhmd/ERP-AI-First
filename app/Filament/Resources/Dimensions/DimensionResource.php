@@ -32,7 +32,7 @@ class DimensionResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -48,7 +48,7 @@ class DimensionResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('accounting.navigation_group');
+        return __('identity.navigation_group');
     }
 
     public static function form(Schema $schema): Schema

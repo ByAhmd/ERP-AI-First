@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 return [
 
-    'navigation_group' => 'Identity',
+    'navigation_group' => 'Settings',
 
     'members' => [
         'label' => 'Member',

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 return [
 
+    'dashboard' => 'Dashboard',
+
     'settings' => [
-        'nav_label' => 'Company settings',
+        'nav_label' => 'General Settings',
         'title' => 'Company settings',
         'save' => 'Save changes',
         'saved' => 'Company settings saved.',

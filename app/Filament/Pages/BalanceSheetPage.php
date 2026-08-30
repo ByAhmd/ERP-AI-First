@@ -23,7 +23,7 @@ class BalanceSheetPage extends FinancialStatementPage
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
 
-    protected static ?int $navigationSort = 50;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationLabel(): string
     {

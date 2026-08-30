@@ -33,7 +33,7 @@ class SalesInvoiceResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 25;
+    protected static ?int $navigationSort = 30;
 
     protected static ?string $recordTitleAttribute = 'reference';
 

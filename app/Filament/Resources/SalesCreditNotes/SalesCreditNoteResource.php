@@ -36,7 +36,7 @@ class SalesCreditNoteResource extends Resource
 
     protected static ?string $tenantOwnershipRelationshipName = 'company';
 
-    protected static ?int $navigationSort = 27;
+    protected static ?int $navigationSort = 40;
 
     protected static ?string $recordTitleAttribute = 'reference';
 
