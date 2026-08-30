@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\DocumentStatus;
 use App\Enums\PurchaseInvoiceKind;
+use App\Enums\PurchaseOrderStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
 use Carbon\CarbonImmutable;
@@ -40,7 +41,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $company_id
  */
 #[Fillable([
-    'company_id', 'reference', 'kind', 'status', 'contact_id',
+    'company_id', 'reference', 'kind', 'status', 'contact_id', 'purchase_order_id',
     'supplier_invoice_number', 'supplier_invoice_date',
     'issue_date', 'due_date',
     'description', 'terms_and_conditions', 'notes',
@@ -65,6 +66,29 @@ class PurchaseInvoice extends Model implements AuditableContract
         'tax_total' => 0,
         'total' => 0,
     ];
+
+    /**
+     * Deleting a still-draft converted bill releases its purchase order.
+     *
+     * Conversion flips the order to Billed in the same transaction that
+     * creates this draft. If the draft is then discarded, the order reverts
+     * to Approved — nothing stays stuck pointing at a row that no longer
+     * exists, and the unique index then permits an honest re-conversion.
+     * Only drafts are deletable, so this can never fire for a posted bill.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(static function (self $invoice): void {
+            if ($invoice->purchase_order_id === null) {
+                return;
+            }
+
+            PurchaseOrder::query()
+                ->whereKey($invoice->purchase_order_id)
+                ->where('status', PurchaseOrderStatus::Billed)
+                ->update(['status' => PurchaseOrderStatus::Approved]);
+        });
+    }
 
     protected function casts(): array
     {
@@ -97,6 +121,19 @@ class PurchaseInvoice extends Model implements AuditableContract
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * The purchase order this bill was converted from, if any.
+     *
+     * Provenance only: the bill snapshots everything it needs at
+     * conversion, and nothing reads back through this to produce a figure.
+     *
+     * @return BelongsTo<PurchaseOrder, $this>
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
     }
 
     /**
