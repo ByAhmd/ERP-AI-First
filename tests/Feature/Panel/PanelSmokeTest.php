@@ -86,6 +86,25 @@ final class PanelSmokeTest extends TestCase
         $response->assertSee(__('accounting.nav_overrides.entries'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.branches'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.general_ledger'), escape: false);
+
+        // And the groups render in Qoyod's order, not merely somewhere on the
+        // page — the provider's registration is what fixes the sequence, and
+        // an unregistered group would silently sort to the end.
+        $content = $response->getContent();
+        $positions = array_map(
+            fn (string $key): int => (int) mb_strpos($content, __($key)),
+            [
+                'sales.navigation_group',
+                'sales.products_group',
+                'accounting.navigation_group',
+                'accounting.reports_group',
+                'identity.navigation_group',
+            ],
+        );
+
+        $sorted = $positions;
+        sort($sorted);
+        $this->assertSame($sorted, $positions, 'Sidebar groups are out of Qoyod order.');
     }
 
     #[Test]
