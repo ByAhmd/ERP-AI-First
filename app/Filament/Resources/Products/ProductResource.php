@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Products;
 
+use App\Enums\AccountType;
 use App\Enums\ProductType;
+use App\Enums\SystemAccount;
 use App\Filament\Resources\Products\Pages\CreateProduct;
 use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Filament\Resources\Products\Pages\ListProducts;
+use App\Models\Account;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductUnitType;
@@ -172,6 +175,24 @@ class ProductResource extends Resource
                         ->minValue(0)
                         ->visible(fn (Get $get): bool => (bool) $get('is_purchased'))
                         ->required(fn (Get $get): bool => (bool) $get('is_purchased')),
+
+                    Select::make('expense_account_id')
+                        ->label(__('sales.products.fields.expense_account'))
+                        ->helperText(__('sales.products.hints.expense_account'))
+                        ->options(fn (): array => Account::query()
+                            ->where('is_postable', true)
+                            ->whereIn('type', [AccountType::Expense, AccountType::Asset])
+                            ->orderBy('code')
+                            ->get()
+                            ->mapWithKeys(fn (Account $a): array => [
+                                $a->getKey() => $a->code.' - '.$a->name,
+                            ])
+                            ->all())
+                        ->default(fn (): ?string => Account::query()
+                            ->where('system_key', SystemAccount::CostOfGoodsSold->value)
+                            ->value('id'))
+                        ->searchable()
+                        ->visible(fn (Get $get): bool => (bool) $get('is_purchased')),
                 ])
                 ->columns(2),
         ]);

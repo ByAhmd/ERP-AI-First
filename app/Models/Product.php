@@ -39,7 +39,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  */
 #[Fillable([
     'company_id', 'type', 'name', 'name_en', 'sku', 'barcode',
-    'category_id', 'unit_type_id', 'tax_id', 'description',
+    'category_id', 'unit_type_id', 'tax_id', 'expense_account_id', 'description',
     'terms_and_conditions', 'is_sold', 'is_purchased',
     'selling_price', 'buying_price', 'is_active',
 ])]
@@ -94,6 +94,20 @@ class Product extends Model implements AuditableContract
     public function tax(): BelongsTo
     {
         return $this->belongsTo(Tax::class, 'tax_id');
+    }
+
+    /**
+     * Where buying this product lands in the ledger.
+     *
+     * A default the bill line copies and may override — the line's own
+     * snapshot is what posts, so re-pointing the product later must not
+     * restate bills already approved.
+     *
+     * @return BelongsTo<Account, $this>
+     */
+    public function expenseAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'expense_account_id');
     }
 
     /**

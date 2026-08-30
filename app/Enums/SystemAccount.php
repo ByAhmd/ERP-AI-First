@@ -34,6 +34,13 @@ enum SystemAccount: string
     // allocated, which is exactly the by-role criterion of this enum.
     case CustomerAdvances = 'customer_advances';
 
+    // Money paid to a supplier and not yet applied to any bill. An asset —
+    // the mirror image of CustomerAdvances: it is ours until an allocation
+    // turns it into settlement. The platform debits this account when a
+    // payment voucher is not fully allocated, and credits it when a later
+    // allocation kills the advance.
+    case SupplierAdvances = 'supplier_advances';
+
     case WithholdingTaxPayable = 'withholding_tax_payable';
     case ZakatPayable = 'zakat_payable';
 

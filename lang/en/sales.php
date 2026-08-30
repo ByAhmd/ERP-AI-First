@@ -360,6 +360,7 @@ return [
             'tax' => 'Tax',
             'selling_price' => 'Selling price',
             'buying_price' => 'Buying price',
+            'expense_account' => 'Expense Account',
             'active' => 'Active',
         ],
         'sections' => [
@@ -384,6 +385,7 @@ return [
             'is_active' => 'Active',
         ],
         'hints' => [
+            'expense_account' => 'The account purchases of this product post to. Defaults to Cost of Goods Sold.',
             'sku' => 'Generated automatically if left blank.',
             'name_en' => 'Required because a tax invoice may be issued in either language.',
             'selling_price' => 'A default documents copy; changing it later does not alter invoices already raised.',

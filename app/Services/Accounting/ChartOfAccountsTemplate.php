@@ -107,7 +107,7 @@ final class ChartOfAccountsTemplate
                     // Recoverable input VAT is an asset: a claim against ZATCA.
                     $this->node('1150', 'ضريبة القيمة المضافة على المشتريات', 'VAT Input (Recoverable)', $asset, SystemAccount::VatInputRecoverable),
                     $this->node('1160', 'مصروفات مدفوعة مقدماً', 'Prepaid Expenses', $asset),
-                    $this->node('1170', 'دفعات مقدمة للموردين', 'Advances to Suppliers', $asset),
+                    $this->node('1170', 'دفعات مقدمة للموردين', 'Advances to Suppliers', $asset, SystemAccount::SupplierAdvances),
                 ]),
                 $this->node('1200', 'الأصول غير المتداولة', 'Non-Current Assets', $asset, children: [
                     $this->node('1210', 'الممتلكات والآلات والمعدات', 'Property, Plant and Equipment', $asset),
