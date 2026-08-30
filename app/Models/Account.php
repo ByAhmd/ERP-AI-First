@@ -30,6 +30,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property bool $is_postable
  * @property bool $is_active
  * @property bool $is_system
+ * @property bool $is_payment_account
  * @property int $depth
  * @property ?string $path
  * @property ?string $company_id
@@ -38,6 +39,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 #[Fillable([
     'company_id', 'parent_id', 'code', 'name', 'name_en', 'type',
     'description', 'is_postable', 'is_active', 'is_system', 'system_key',
+    'is_payment_account',
     'currency_id',
 ])]
 class Account extends Model implements AuditableContract
@@ -56,6 +58,7 @@ class Account extends Model implements AuditableContract
         'is_postable' => true,
         'is_active' => true,
         'is_system' => false,
+        'is_payment_account' => false,
         'depth' => 0,
     ];
 
@@ -66,6 +69,7 @@ class Account extends Model implements AuditableContract
             'is_postable' => 'boolean',
             'is_active' => 'boolean',
             'is_system' => 'boolean',
+            'is_payment_account' => 'boolean',
             'depth' => 'integer',
         ];
     }

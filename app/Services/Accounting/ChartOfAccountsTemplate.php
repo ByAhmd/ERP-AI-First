@@ -68,6 +68,7 @@ final class ChartOfAccountsTemplate
                 'name' => $node['name'],
                 'name_en' => $node['name_en'],
                 'type' => $node['type'],
+                'is_payment_account' => $node['payment'] ?? false,
                 'parent_id' => $parent?->getKey(),
                 'is_system' => isset($node['key']),
                 'system_key' => isset($node['key']) ? $node['key']->value : null,
@@ -99,8 +100,8 @@ final class ChartOfAccountsTemplate
         return [
             $this->node('1000', 'الأصول', 'Assets', $asset, children: [
                 $this->node('1100', 'الأصول المتداولة', 'Current Assets', $asset, children: [
-                    $this->node('1110', 'النقد في الصندوق', 'Cash on Hand', $asset),
-                    $this->node('1120', 'النقد لدى البنوك', 'Cash at Bank', $asset),
+                    $this->node('1110', 'النقد في الصندوق', 'Cash on Hand', $asset, payment: true),
+                    $this->node('1120', 'النقد لدى البنوك', 'Cash at Bank', $asset, payment: true),
                     $this->node('1130', 'الذمم المدينة', 'Accounts Receivable', $asset, SystemAccount::AccountsReceivable),
                     $this->node('1140', 'المخزون', 'Inventory', $asset, SystemAccount::Inventory),
                     // Recoverable input VAT is an asset: a claim against ZATCA.
@@ -130,7 +131,7 @@ final class ChartOfAccountsTemplate
                     $this->node('2150', 'التأمينات الاجتماعية المستحقة', 'GOSI Payable', $liability),
                     $this->node('2160', 'ضريبة الاستقطاع المستحقة', 'Withholding Tax Payable', $liability, SystemAccount::WithholdingTaxPayable),
                     $this->node('2170', 'الزكاة المستحقة', 'Zakat Payable', $liability, SystemAccount::ZakatPayable),
-                    $this->node('2180', 'دفعات مقدمة من العملاء', 'Customer Advances', $liability),
+                    $this->node('2180', 'دفعات مقدمة من العملاء', 'Customer Advances', $liability, SystemAccount::CustomerAdvances),
                 ]),
                 $this->node('2200', 'الالتزامات غير المتداولة', 'Non-Current Liabilities', $liability, children: [
                     $this->node('2210', 'قروض طويلة الأجل', 'Long-Term Loans', $liability),
@@ -191,10 +192,12 @@ final class ChartOfAccountsTemplate
         AccountType $type,
         ?SystemAccount $key = null,
         array $children = [],
+        bool $payment = false,
     ): array {
         return [
             'code' => $code,
             'name' => $name,
+            'payment' => $payment,
             'name_en' => $nameEn,
             'type' => $type,
             'key' => $key,

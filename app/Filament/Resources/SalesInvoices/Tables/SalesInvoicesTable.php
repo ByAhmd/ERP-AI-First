@@ -6,6 +6,7 @@ namespace App\Filament\Resources\SalesInvoices\Tables;
 
 use App\Enums\DocumentStatus;
 use App\Models\SalesInvoice;
+use App\Services\Sales\InvoiceOutstanding;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -17,6 +18,8 @@ class SalesInvoicesTable
     public static function configure(Table $table): Table
     {
         return $table
+            // Two correlated subqueries, once per query — not a sum per row.
+            ->modifyQueryUsing(fn ($query) => app(InvoiceOutstanding::class)->decorate($query))
             ->columns([
                 TextColumn::make('reference')
                     ->label(__('sales.invoices.columns.reference'))
@@ -58,6 +61,20 @@ class SalesInvoicesTable
                     ->label(__('sales.invoices.fields.subtype'))
                     ->badge(),
 
+                TextColumn::make('payment_status')
+                    ->label(__('sales.invoices.columns.payment'))
+                    ->state(fn (SalesInvoice $record): string => $record->isApproved()
+                        ? __('sales.payment_status.'.$record->paymentStatus())
+                        : '—')
+                    ->badge()
+                    ->color(fn (SalesInvoice $record): string => $record->isApproved()
+                        ? match ($record->paymentStatus()) {
+                            'paid' => 'success',
+                            'partially_paid' => 'warning',
+                            default => 'gray',
+                        }
+                        : 'gray'),
+
                 TextColumn::make('status')
                     ->label(__('sales.invoices.columns.status'))
                     ->badge(),
@@ -65,18 +82,18 @@ class SalesInvoicesTable
             ->defaultSort('issue_date', 'desc')
             ->filters([
                 SelectFilter::make('status')
-                    ->label(__('sales.invoices.columns.status'))
-                    ->options(DocumentStatus::class),
+                        ->label(__('sales.invoices.columns.status'))
+                        ->options(DocumentStatus::class),
             ])
             ->recordActions([
                 // A draft is edited; an approved invoice is only read. Offering
                 // an edit action that the service is bound to refuse would be a
                 // worse way to say so.
                 EditAction::make()
-                    ->visible(fn (SalesInvoice $record): bool => $record->isDraft()),
+                        ->visible(fn (SalesInvoice $record): bool => $record->isDraft()),
 
                 ViewAction::make()
-                    ->visible(fn (SalesInvoice $record): bool => ! $record->isDraft()),
+                        ->visible(fn (SalesInvoice $record): bool => ! $record->isDraft()),
             ]);
     }
 }

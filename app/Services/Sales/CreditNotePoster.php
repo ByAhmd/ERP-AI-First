@@ -51,6 +51,7 @@ final class CreditNotePoster
         private readonly JournalPoster $poster,
         private readonly AccountRegistry $registry,
         private readonly DocumentNumberAllocator $numbers,
+        private readonly InvoiceOutstanding $outstanding,
     ) {}
 
     /**
@@ -98,16 +99,18 @@ final class CreditNotePoster
     }
 
     /**
-     * How much of an invoice has not yet been credited.
+     * How much of an invoice is still open to be credited.
+     *
+     * Delegated to the shared {@see InvoiceOutstanding}, and the delegation is
+     * the fix for a real bug: this used to be a two-term figure — total less
+     * credit notes — which was correct until receipts existed and then
+     * silently wasn't. A fully-paid invoice could be fully credited on top,
+     * and the customer's receivable went negative inside a control account
+     * that can never show it.
      */
     public function remainingOn(SalesInvoice $invoice): string
     {
-        $credited = SalesCreditNote::query()
-            ->approved()
-            ->where('parent_id', $invoice->getKey())
-            ->sum('total');
-
-        return bcsub((string) $invoice->total, $this->scale((string) $credited), self::SCALE);
+        return $this->outstanding->outstanding($invoice);
     }
 
     /**

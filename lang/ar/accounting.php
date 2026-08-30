@@ -325,6 +325,11 @@ return [
 
     'reversal_of' => 'عكس القيد :number',
 
+    'payment_flag' => [
+        'label' => 'يمكن الدفع والتحصيل بهذا الحساب',
+        'hint' => 'يجعل الحساب متاحاً كحساب إيداع في سندات القبض والصرف.',
+    ],
+
     'system_account' => [
         'accounts_receivable' => 'الذمم المدينة',
         'accounts_payable' => 'الذمم الدائنة',

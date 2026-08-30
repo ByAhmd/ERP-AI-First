@@ -325,6 +325,11 @@ return [
 
     'reversal_of' => 'Reversal of :number',
 
+    'payment_flag' => [
+        'label' => 'Payments and collections allowed',
+        'hint' => 'Makes the account available as a deposit account on receipts and payment vouchers.',
+    ],
+
     'system_account' => [
         'accounts_receivable' => 'Accounts Receivable',
         'accounts_payable' => 'Accounts Payable',

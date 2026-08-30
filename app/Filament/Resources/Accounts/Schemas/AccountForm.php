@@ -81,6 +81,10 @@ class AccountForm
                         ->label(__('accounting.accounts.columns.active'))
                         ->default(true)
                         ->helperText(__('accounting.accounts.hints.active')),
+
+                    Toggle::make('is_payment_account')
+                        ->label(__('accounting.payment_flag.label'))
+                        ->helperText(__('accounting.payment_flag.hint')),
                 ])
                 ->columns(2),
 

@@ -212,6 +212,14 @@ final class PanelSmokeTest extends TestCase
             // The ZATCA fields Qoyod's own form does not show.
             ->assertSee(__('sales.credit_notes.fields.original_invoice_number'), escape: false)
             ->assertSee(__('sales.credit_notes.fields.reason_code'), escape: false);
+
+        $this->actingAs($this->admin)->get("{$base}/customer-receipts")->assertOk();
+        $this->actingAs($this->admin)
+            ->get("{$base}/customer-receipts/create")
+            ->assertOk()
+            // The deposit account is Qoyod's الحساب, gated by the payment flag.
+            ->assertSee(__('sales.receipts.fields.deposit_account'), escape: false)
+            ->assertSee(__('sales.receipts.allocations.title'), escape: false);
     }
 
     #[Test]

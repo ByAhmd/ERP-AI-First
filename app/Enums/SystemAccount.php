@@ -28,6 +28,12 @@ enum SystemAccount: string
     case VatOutputPayable = 'vat_output_payable';
     case VatInputRecoverable = 'vat_input_recoverable';
 
+    // Money received from a customer and not yet applied to any invoice. A
+    // liability: it is theirs until an allocation turns it into settlement.
+    // The platform chooses this account when a receipt is not fully
+    // allocated, which is exactly the by-role criterion of this enum.
+    case CustomerAdvances = 'customer_advances';
+
     case WithholdingTaxPayable = 'withholding_tax_payable';
     case ZakatPayable = 'zakat_payable';
 

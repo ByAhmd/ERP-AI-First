@@ -266,6 +266,29 @@ Header fields: `reference` · `description` · `contact_id` · `parent_id` ·
 note for Phase 2 integration, so either Qoyod derives it from `description` or
 it is collected elsewhere in the e-invoicing flow.
 
+### Receipts (`سندات العملاء` / `سند قبض`)
+
+The standalone receipt screens are plan-gated on the tenant inspected
+(2026-08-18): the list at `/tenant/receipts?contact_type=customer` renders —
+with tabs `سندات العملاء` / `سندات الموردين` / `جميع السندات`, an export
+button, and `إدارة السندات` at `/tenant/receipts/customer` — but
+`/tenant/receipts/new` redirects to the subscription page, so the create form
+could not be read.
+
+What their data model looks like is known anyway, because both the invoice and
+credit-note forms embed a receipt block (`receipts_attributes[0]`):
+
+`reference` · `account_id` (the cash/bank account the money lands in) ·
+`description` · `date` · `fc_amount` · `amount` · `balance_amount` ·
+`inventory_id` — plus `tenant_payment_term_id` at header level. So a Qoyod
+receipt names an arbitrary account rather than a fixed cash role, carries a
+foreign-currency amount alongside the base amount, and can be created inline
+while saving an invoice.
+
+**Not confirmed:** the standalone form's full field set, allocation across
+several invoices, and the receipt lifecycle. Worth re-reading on a tenant with
+the feature unlocked.
+
 ## Gaps this inspection opened
 
 Ordered by how much of the ledger they touch. Struck items have since been

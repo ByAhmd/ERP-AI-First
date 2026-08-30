@@ -133,6 +133,38 @@ class SalesInvoice extends Model implements AuditableContract
     }
 
     /**
+     * How much of the invoice remains owed, and the state that implies.
+     *
+     * Nothing is stored: a stored payment status goes stale on every event
+     * that changes the answer — a receipt approved, a credit note approved, an
+     * allocation released. The list attaches `amount_received` and
+     * `amount_credited` as subqueries through InvoiceOutstanding::decorate();
+     * a single loaded invoice may call this with those attributes absent, in
+     * which case they read as zero and the caller should have decorated.
+     */
+    public function paymentStatus(): string
+    {
+        $received = bcadd((string) ($this->getAttribute('amount_received') ?? '0'), '0', 4);
+        $credited = bcadd((string) ($this->getAttribute('amount_credited') ?? '0'), '0', 4);
+
+        $outstanding = bcsub(
+            bcsub((string) $this->total, $credited, 4),
+            $received,
+            4,
+        );
+
+        if (bccomp($outstanding, '0', 4) <= 0) {
+            return 'paid';
+        }
+
+        if (bccomp(bcadd($received, $credited, 4), '0', 4) > 0) {
+            return 'partially_paid';
+        }
+
+        return 'unpaid';
+    }
+
+    /**
      * Whether the stored totals still agree with the lines.
      *
      * Read by the tests rather than by the application: the service writes both
