@@ -82,6 +82,7 @@ final class PanelSmokeTest extends TestCase
         $response->assertSee(__('purchases.orders.nav_label'), escape: false);
         $response->assertSee(__('purchases.invoices.nav_label'), escape: false);
         $response->assertSee(__('purchases.debit_notes.nav_label'), escape: false);
+        $response->assertSee(__('purchases.simple_invoices.nav_label'), escape: false);
         $response->assertSee(__('purchases.payments.nav_label'), escape: false);
         $response->assertSee(__('sales.products_group'), escape: false);
         $response->assertSee(__('accounting.navigation_group'), escape: false);
