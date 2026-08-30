@@ -83,6 +83,7 @@ final class PanelSmokeTest extends TestCase
         $response->assertSee(__('identity.navigation_group'), escape: false);
 
         // The relabelled entries read as Qoyod writes them.
+        $response->assertSee(__('sales.quotations.nav_label'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.entries'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.branches'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.general_ledger'), escape: false);

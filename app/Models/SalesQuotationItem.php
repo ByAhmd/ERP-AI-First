@@ -13,13 +13,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One line of a sales invoice.
+ * One line of a sales quotation.
  *
- * Everything needed to explain the line is stored on it — the name billed, the
- * unit, the price, whether that price included tax, the discount, the rate and
- * the category. Nothing is read back through a relationship to produce a
- * figure. A product can be renamed and a tax re-rated; the invoice must keep
- * saying what it said when it was issued.
+ * The same snapshot discipline as an invoice line, for the same reason: the
+ * printed quotation must keep saying what it said after a product rename or a
+ * tax re-rate. What differs is what happens to the snapshots later — an
+ * invoice line's are final; a quotation line's rate and category are ignored
+ * at conversion, which re-resolves them from `tax_id` at the invoice's date.
  *
  * @property DiscountType $discount_type
  * @property ?TaxCategory $tax_category
@@ -33,14 +33,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ?string $company_id
  */
 #[Fillable([
-    'company_id', 'sales_invoice_id', 'line_number',
+    'company_id', 'sales_quotation_id', 'line_number',
     'product_id', 'product_name', 'product_description', 'unit_name',
     'quantity', 'unit_price', 'is_inclusive',
     'discount_value', 'discount_type', 'discount_amount',
     'tax_id', 'tax_rate', 'tax_category',
     'net_amount', 'tax_amount', 'line_total',
 ])]
-class SalesInvoiceItem extends Model
+class SalesQuotationItem extends Model
 {
     use BelongsToCompany;
     use HasUlids;
@@ -60,25 +60,21 @@ class SalesInvoiceItem extends Model
     ];
 
     /**
-     * Number a line that arrives without one.
+     * Number a line that arrives without one, and snapshot the product.
      *
-     * The Filament repeater writes lines straight through the relationship, so
-     * it never sets this — and the column has no database default, so the
-     * insert fails outright. The recalculator renumbers the whole invoice
-     * afterwards, which is too late to help.
-     *
-     * This is the second time this exact defect appeared — the journal entry
-     * form hit it first — and the quotation item is now the third, on
-     * schedule. Any table whose rows are
-     * written by a repeater and numbered by a service needs the fallback here,
-     * in the model, where every path reaches it.
+     * The third table to need this exact hook — journal lines and invoice
+     * items came first, each written by a repeater that never sets the line
+     * number over a column with no database default. Duplicated rather than
+     * shared for now: the credit-note item's hook must copy from the invoice
+     * line before snapshotting the product, and a shared concern's listener
+     * ordering would silently invert that. Extraction is its own refactor.
      */
     protected static function booted(): void
     {
         static::creating(static function (self $item): void {
             if (blank($item->line_number)) {
                 $item->line_number = 1 + (int) static::query()
-                    ->where('sales_invoice_id', $item->sales_invoice_id)
+                    ->where('sales_quotation_id', $item->sales_quotation_id)
                     ->max('line_number');
             }
 
@@ -88,11 +84,6 @@ class SalesInvoiceItem extends Model
 
     /**
      * Take the name and unit from the product, once.
-     *
-     * The line has to keep saying what was billed after the product is renamed,
-     * so these are copies rather than a relationship read at display time. Done
-     * here rather than in the form because an import and an API call have to
-     * produce the same row a clerk does.
      */
     private function copyProductSnapshot(): void
     {
@@ -133,11 +124,11 @@ class SalesInvoiceItem extends Model
     }
 
     /**
-     * @return BelongsTo<SalesInvoice, $this>
+     * @return BelongsTo<SalesQuotation, $this>
      */
-    public function invoice(): BelongsTo
+    public function quotation(): BelongsTo
     {
-        return $this->belongsTo(SalesInvoice::class, 'sales_invoice_id');
+        return $this->belongsTo(SalesQuotation::class, 'sales_quotation_id');
     }
 
     /**

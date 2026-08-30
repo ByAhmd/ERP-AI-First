@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\DocumentStatus;
 use App\Enums\InvoiceSubtype;
+use App\Enums\QuotationStatus;
 use App\Models\Concerns\AuditsCompany;
 use App\Models\Concerns\BelongsToCompany;
 use Carbon\CarbonImmutable;
@@ -40,7 +41,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property ?string $company_id
  */
 #[Fillable([
-    'company_id', 'reference', 'status', 'subtype', 'contact_id',
+    'company_id', 'reference', 'status', 'subtype', 'contact_id', 'quotation_id',
     'issue_date', 'due_date', 'supply_date',
     'description', 'terms_and_conditions', 'notes',
     'subtotal_net', 'discount_total', 'tax_total', 'total',
@@ -63,6 +64,30 @@ class SalesInvoice extends Model implements AuditableContract
         'tax_total' => 0,
         'total' => 0,
     ];
+
+    /**
+     * Deleting a still-draft converted invoice releases its quotation.
+     *
+     * Conversion flips the quotation to Invoiced in the same transaction that
+     * creates this draft. If the draft is then discarded, the quotation must
+     * not stay stuck pointing at a row that no longer exists — it reverts to
+     * Approved, and the unique index on quotation_id then permits an honest
+     * re-conversion. Only drafts are deletable, so this can never fire for an
+     * invoice that reached the ledger.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(static function (self $invoice): void {
+            if ($invoice->quotation_id === null) {
+                return;
+            }
+
+            SalesQuotation::query()
+                ->whereKey($invoice->quotation_id)
+                ->where('status', QuotationStatus::Invoiced)
+                ->update(['status' => QuotationStatus::Approved]);
+        });
+    }
 
     protected function casts(): array
     {
@@ -95,6 +120,20 @@ class SalesInvoice extends Model implements AuditableContract
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * The quotation this invoice was converted from, if any.
+     *
+     * Provenance only, the same rule as a line's tax_id: kept for the audit
+     * trail, never read to produce a figure or a display name — the invoice
+     * snapshots everything it needs at conversion.
+     *
+     * @return BelongsTo<SalesQuotation, $this>
+     */
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(SalesQuotation::class);
     }
 
     /**
