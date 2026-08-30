@@ -77,6 +77,8 @@ final class PanelSmokeTest extends TestCase
         // and every one has at least one screen behind it.
         $response->assertSee(__('company.dashboard'), escape: false);
         $response->assertSee(__('sales.navigation_group'), escape: false);
+        $response->assertSee(__('purchases.navigation_group'), escape: false);
+        $response->assertSee(__('purchases.suppliers.nav_label'), escape: false);
         $response->assertSee(__('sales.products_group'), escape: false);
         $response->assertSee(__('accounting.navigation_group'), escape: false);
         $response->assertSee(__('accounting.reports_group'), escape: false);
@@ -96,6 +98,7 @@ final class PanelSmokeTest extends TestCase
             fn (string $key): int => (int) mb_strpos($content, __($key)),
             [
                 'sales.navigation_group',
+                'purchases.navigation_group',
                 'sales.products_group',
                 'accounting.navigation_group',
                 'accounting.reports_group',

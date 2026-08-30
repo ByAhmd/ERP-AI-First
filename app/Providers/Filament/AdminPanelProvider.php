@@ -73,6 +73,7 @@ class AdminPanelProvider extends PanelProvider
             // resources emit would no longer match their groups.
             ->navigationGroups([
                 NavigationGroup::make()->label(fn (): string => __('sales.navigation_group')),
+                NavigationGroup::make()->label(fn (): string => __('purchases.navigation_group')),
                 NavigationGroup::make()->label(fn (): string => __('sales.products_group')),
                 NavigationGroup::make()->label(fn (): string => __('accounting.navigation_group')),
                 NavigationGroup::make()->label(fn (): string => __('accounting.reports_group')),
