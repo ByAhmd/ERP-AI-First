@@ -331,3 +331,51 @@ shared with invoices), الموقع/inventory_id (needs the inventory slice),
 مرفقات, custom fields, document-level discount (invoice lacks these too),
 إرسال by email, PDF/print designer, Excel export, the list's status chart,
 and تقرير أعمار عروض الأسعار (now computable from the schema).
+
+
+## المشتريات — implemented 2026-08-30
+
+The tenant's purchase screens are plan-gated, so the side was designed from
+Qoyod's knowledge base and its official API docs (Bills, Debit Notes,
+Receipts/Bill Payments, Orders resources — prefix evidence BIL/SBill/DBN/PYT/ORD
+from their own sample data). What shipped, in Qoyod's sidebar order:
+
+- **الموردين** — the same contact record as customers behind its own resource,
+  VEN series, shared form extracted so the two screens cannot drift.
+- **أوامر الشراء** — ORD- series, statuses مسودة/موافق عليه/تمت الفوترة/ملغي,
+  متأخرة derived from تاريخ الانتهاء; never posts; one-shot تحويل لفاتورة with
+  agreed prices carried verbatim and taxes re-resolved at the bill's date.
+- **فواتير المشتريات** — BIL- series; posts DR expense per line account +
+  DR ضريبة القيمة المضافة على المشتريات (1150, an asset) / CR الذمم الدائنة
+  (2110); per-line expense account defaulted from the product (which gained
+  its own حساب المصروف field); رقم فاتورة المورد with a per-supplier unique
+  as the duplicate-bill wall; our issue_date drives the ledger while the
+  supplier's paper date is preserved beside it; no subtype, no supply date.
+- **الإشعارات المدينة** — DBN- series; the exact mirror posting as its own
+  entry; anchored lines inherit the billed rate and the billed expense
+  account; narrations carry the supplier's invoice number; no reason codes
+  or event date (seller-side ZATCA machinery, confirmed absent in Qoyod).
+- **فواتير بسيطة** — SB- series, same table as bills split by kind, account
+  lines (البيان/القيمة), no due date; visible natively to every payable query.
+- **سندات الموردين** — PYT- series; DR payable (allocated) + DR دفعات مقدمة
+  للموردين 1170 (unallocated — an asset, newly keyed supplier_advances with a
+  backfill for older tenants) / CR the payment account (يمكن الدفع والتحصيل
+  gate reused); allocation/unallocation as their own dated entries; payment
+  status on bills derived through the three-term BillOutstanding
+  (total − debit notes − payment allocations).
+
+Deviations from Qoyod, each documented in code: the dedicated supplier
+invoice number column (Qoyod overloads its single reference; duplicates
+would double expense/VAT/AP silently), per-line expense snapshots (Qoyod is
+per-product; our bills allow product-less lines), and PO conversion flipping
+at draft creation with delete-reverts (race-safety, quotation precedent).
+
+Parity gaps tracked, not built: inventory behavior of bills (stocked lines
+debiting المخزون and stock movements — blocked on the inventory slice),
+supplier refunds and voucher kind=received, debit-note multi-bill allocation
+and cash refund, PO partial billing, بانتظار الموافقة approval chains,
+multi-currency settlement, document-level discount, simple-bill embedded
+payment, attachments/custom fields/projects, numbering-settings UI,
+supplier-total override vs BR-CO-17 recompute, self-billed invoices
+(KSA-2 flag 7, schema comment only), and تقرير أعمار ديون الموردين (now
+computable from the schema).
