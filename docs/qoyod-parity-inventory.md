@@ -306,3 +306,28 @@ built.
   revenue and prepaid expense scheduling. Not previously on our list at all.
 - **Report history** (`سجل التقارير`) — queued/generated report runs, implying
   long-running reports execute asynchronously. We have Horizon already.
+
+
+## عروض الأسعار — implemented 2026-08-30
+
+The tenant's quotation screens are plan-gated, so the slice was designed from
+Qoyod's knowledge base and its official API docs (Quotes resource) rather than
+the live tenant. What shipped: عرض سعر with رقم عرض السعر (own QTE- series),
+اسم العميل, تاريخ الإصدار, تاريخ الانتهاء (required), وصف عرض السعر, the
+invoice's items table, statuses مسودة / موافق عليه / تم الفوترة / ملغي, and
+تحويل لفاتورة from Approved only — one-shot, landing on the pre-filled draft
+invoice. No ledger impact at any status (Qoyod verbatim: the quotation report
+is "تجاري وتحليلي، وليس محاسبي").
+
+Deliberate deviations, both documented in code:
+- The quotation flips to تم الفوترة when the draft invoice is *created* (Qoyod
+  flips when the pre-filled form is *saved*); deleting the still-draft invoice
+  reverts it to موافق عليه. Race-safety bought, abandonment path kept.
+- The converted invoice shows a discreet «من عرض سعر» provenance line; Qoyod
+  shows no back-link at all.
+
+Parity gaps tracked, not built: بانتظار الموافقة (needs role-gated approval,
+shared with invoices), الموقع/inventory_id (needs the inventory slice),
+مرفقات, custom fields, document-level discount (invoice lacks these too),
+إرسال by email, PDF/print designer, Excel export, the list's status chart,
+and تقرير أعمار عروض الأسعار (now computable from the schema).
