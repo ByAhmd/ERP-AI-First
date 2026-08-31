@@ -40,6 +40,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  */
 #[Fillable([
     'company_id', 'reference', 'status', 'subtype', 'contact_id', 'parent_id',
+    'branch_id',
     'original_invoice_number', 'original_invoice_date',
     'issue_date', 'due_date', 'event_date',
     'reason_code', 'reason_text',
@@ -123,6 +124,14 @@ class SalesCreditNote extends Model implements AuditableContract
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * @return BelongsTo<Branch, $this>
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     /**

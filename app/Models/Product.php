@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -28,6 +30,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * after someone re-prices the catalogue in April.
  *
  * @property ProductType $type
+ * @property bool $track_inventory
  * @property bool $is_sold
  * @property bool $is_purchased
  * @property bool $is_active
@@ -38,7 +41,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @see ProductObserver
  */
 #[Fillable([
-    'company_id', 'type', 'name', 'name_en', 'sku', 'barcode',
+    'company_id', 'type', 'track_inventory', 'name', 'name_en', 'sku', 'barcode',
     'category_id', 'unit_type_id', 'tax_id', 'expense_account_id', 'description',
     'terms_and_conditions', 'is_sold', 'is_purchased',
     'selling_price', 'buying_price', 'is_active',
@@ -64,6 +67,7 @@ class Product extends Model implements AuditableContract
     {
         return [
             'type' => ProductType::class,
+            'track_inventory' => 'boolean',
             'is_sold' => 'boolean',
             'is_purchased' => 'boolean',
             'is_active' => 'boolean',
@@ -139,9 +143,38 @@ class Product extends Model implements AuditableContract
 
     /**
      * Whether invoicing this should also relieve stock.
+     *
+     * Both halves are required: a stockable type AND the tracking flag. The
+     * flag defaults off, so every product from before the inventory slice
+     * keeps posting exactly as it did — flipping the whole catalogue to
+     * tracked at quantity zero would sell everything at a cost of nothing.
      */
     public function isStocked(): bool
     {
-        return $this->type->isStocked();
+        return $this->track_inventory && $this->type->isStocked();
+    }
+
+    /**
+     * @return HasOne<ProductCost, $this>
+     */
+    public function costRecord(): HasOne
+    {
+        return $this->hasOne(ProductCost::class);
+    }
+
+    /**
+     * @return HasMany<ProductStock, $this>
+     */
+    public function stocks(): HasMany
+    {
+        return $this->hasMany(ProductStock::class);
+    }
+
+    /**
+     * @return HasMany<StockMovement, $this>
+     */
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class)->orderByDesc('id');
     }
 }

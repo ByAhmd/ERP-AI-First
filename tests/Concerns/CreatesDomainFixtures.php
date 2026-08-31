@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\FiscalYear;
 use App\Models\User;
+use App\Services\Accounting\BranchTemplate;
 use App\Services\Accounting\ChartOfAccountsTemplate;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Identity\RoleProvisioner;
@@ -145,6 +146,7 @@ trait CreatesDomainFixtures
     protected function makeChartOfAccounts(Company $company): void
     {
         app(ChartOfAccountsTemplate::class)->applyTo($company);
+        app(BranchTemplate::class)->applyTo($company);
     }
 
     /**

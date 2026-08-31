@@ -26,6 +26,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  *
  * @property DocumentStatus $status
  * @property CarbonImmutable $issue_date
+ * @property bool $returns_goods
  * @property ?CarbonImmutable $original_invoice_date
  * @property string $subtotal_net
  * @property string $discount_total
@@ -35,7 +36,8 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  */
 #[Fillable([
     'company_id', 'reference', 'status', 'contact_id', 'parent_id',
-    'original_invoice_number', 'original_invoice_date',
+    'branch_id',
+    'original_invoice_number', 'original_invoice_date', 'returns_goods',
     'issue_date',
     'description', 'terms_and_conditions', 'notes',
     'subtotal_net', 'discount_total', 'tax_total', 'total',
@@ -86,6 +88,7 @@ class PurchaseDebitNote extends Model implements AuditableContract
     {
         return [
             'status' => DocumentStatus::class,
+            'returns_goods' => 'boolean',
             'issue_date' => 'date',
             'original_invoice_date' => 'date',
             'approved_at' => 'datetime',
@@ -111,6 +114,14 @@ class PurchaseDebitNote extends Model implements AuditableContract
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * @return BelongsTo<Branch, $this>
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     /**

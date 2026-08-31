@@ -19,10 +19,11 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * and inventory balances are attached to in later phases.
  *
  * @property bool $is_active
+ * @property bool $is_default
  * @property ?string $company_id
  */
 #[Fillable([
-    'company_id', 'code', 'name', 'name_en', 'is_active',
+    'company_id', 'code', 'name', 'name_en', 'is_active', 'is_default',
 ])]
 class Branch extends Model implements AuditableContract
 {
@@ -34,11 +35,11 @@ class Branch extends Model implements AuditableContract
     /**
      * @var array<string, mixed>
      */
-    protected $attributes = ['is_active' => true];
+    protected $attributes = ['is_active' => true, 'is_default' => false];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'is_default' => 'boolean'];
     }
 
     public function displayName(): string

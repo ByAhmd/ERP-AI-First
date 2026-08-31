@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property DiscountType $discount_type
  * @property ?TaxCategory $tax_category
  * @property bool $is_inclusive
+ * @property bool $is_stocked
  * @property string $quantity
  * @property string $unit_price
  * @property string $tax_rate
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'company_id', 'purchase_invoice_id', 'line_number',
     'product_id', 'product_name', 'product_description', 'unit_name',
+    'is_stocked',
     'expense_account_id',
     'quantity', 'unit_price', 'is_inclusive',
     'discount_value', 'discount_type', 'discount_amount',
@@ -51,6 +53,7 @@ class PurchaseInvoiceItem extends Model
      */
     protected $attributes = [
         'is_inclusive' => false,
+        'is_stocked' => false,
         'discount_value' => 0,
         'discount_type' => 'percentage',
         'discount_amount' => 0,
@@ -114,6 +117,7 @@ class PurchaseInvoiceItem extends Model
         return [
             'line_number' => 'integer',
             'is_inclusive' => 'boolean',
+            'is_stocked' => 'boolean',
             'discount_type' => DiscountType::class,
             'tax_category' => TaxCategory::class,
             'quantity' => 'decimal:4',

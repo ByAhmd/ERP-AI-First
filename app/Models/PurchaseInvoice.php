@@ -42,6 +42,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  */
 #[Fillable([
     'company_id', 'reference', 'kind', 'status', 'contact_id', 'purchase_order_id',
+    'branch_id',
     'supplier_invoice_number', 'supplier_invoice_date',
     'issue_date', 'due_date',
     'description', 'terms_and_conditions', 'notes',
@@ -121,6 +122,14 @@ class PurchaseInvoice extends Model implements AuditableContract
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    /**
+     * @return BelongsTo<Branch, $this>
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     /**

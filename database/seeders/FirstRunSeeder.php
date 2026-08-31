@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Enums\CompanyMembershipStatus;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\Accounting\BranchTemplate;
 use App\Services\Accounting\ChartOfAccountsTemplate;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Identity\RoleProvisioner;
@@ -103,6 +104,7 @@ class FirstRunSeeder extends Seeder
     private function seedAccounting(Company $company): void
     {
         app(ChartOfAccountsTemplate::class)->applyTo($company);
+        app(BranchTemplate::class)->applyTo($company);
 
         // After the chart, never before: a tax names the account it posts to,
         // and that account has to exist first.
