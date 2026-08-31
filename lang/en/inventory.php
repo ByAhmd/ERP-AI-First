@@ -102,4 +102,57 @@ return [
         'cost_required' => 'The increase for product :product needs a unit cost.',
     ],
 
+    'transfers' => [
+        'label' => 'Inventory Transfer',
+        'plural_label' => 'Inventory Transfers',
+        'nav_label' => 'Inventory Transfers',
+        'columns' => [
+            'reference' => 'Reference',
+            'from_branch' => 'Sending Location',
+            'to_branch' => 'Receiving Location',
+            'date' => 'Date',
+            'status' => 'Status',
+        ],
+        'sections' => [
+            'details' => 'Transfer Details',
+            'items' => 'Items',
+        ],
+        'fields' => [
+            'reference' => 'Reference',
+            'from_branch' => 'Sending Location',
+            'to_branch' => 'Receiving Location',
+            'date' => 'Date',
+            'description' => 'Description',
+        ],
+        'items' => [
+            'product' => 'Product',
+            'quantity' => 'Quantity',
+            'add' => 'Add Item',
+        ],
+        'actions' => [
+            'save_draft' => 'Save as Draft',
+            'approve' => 'Send & Receive',
+            'approve_confirm' => 'Quantities move from the sending location to the receiving one immediately; the transfer cannot be edited afterwards — correct with a reverse transfer.',
+            'approved' => 'Transferred.',
+        ],
+        'errors' => [
+            'no_items' => 'A transfer with no items cannot be approved.',
+            'already_approved' => 'Transfer :reference is already approved.',
+            'not_draft' => 'A transfer cannot be edited after approval.',
+            'same_branch' => 'Both locations are the same — pick a different receiving location.',
+            'zero_line' => 'Line :line has no quantity.',
+        ],
+    ],
+
+    'locations_report' => [
+        'title' => 'Product Locations',
+        'branch' => 'Location',
+        'all_branches' => 'All locations',
+        'product' => 'Product Name',
+        'sku' => 'SKU',
+        'total' => 'Total Quantity',
+        'totals' => 'Total',
+        'empty' => 'No stocked products.',
+    ],
+
 ];

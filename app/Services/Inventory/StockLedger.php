@@ -202,6 +202,90 @@ final class StockLedger
     }
 
     /**
+     * Move stock between branches — no value moves with it.
+     *
+     * With one inventory account, a transfer's ledger effect nets to zero,
+     * so the pair of movements it writes carry zero VALUE while the branch
+     * quantities change hands: the company total and total value stay put,
+     * which is what keeps the value_after audit chain unbroken. The unit
+     * cost on each movement records the average the goods travelled at,
+     * for the reader.
+     *
+     * Refused at the SOURCE branch when quantity is short — stock at the
+     * destination cannot ship from the source.
+     *
+     * @param  list<StockLine>  $lines  value ignored; quantities positive
+     * @return StockResult the outbound movements, keyed by product
+     */
+    public function transfer(
+        Model $source,
+        Branch $from,
+        Branch $to,
+        DateTimeInterface $date,
+        array $lines,
+    ): StockResult {
+        $lines = $this->aggregate($lines);
+        $costs = $this->lockCosts($lines);
+        $movements = [];
+
+        foreach ($lines as $line) {
+            $cost = $costs[$line->productId];
+            $fromStock = $this->branchStock($line->productId, $from);
+
+            if (bccomp($line->quantity, (string) $fromStock->quantity_on_hand, self::SCALE) > 0) {
+                throw StockRuleViolation::insufficientStock(
+                    Product::query()->findOrFail($line->productId),
+                    $from,
+                    (string) $fromStock->quantity_on_hand,
+                    $line->quantity,
+                );
+            }
+
+            $toStock = $this->branchStock($line->productId, $to);
+
+            $fromStock->forceFill([
+                'quantity_on_hand' => bcsub((string) $fromStock->quantity_on_hand, $line->quantity, self::SCALE),
+            ])->save();
+
+            $toStock->forceFill([
+                'quantity_on_hand' => bcadd((string) $toStock->quantity_on_hand, $line->quantity, self::SCALE),
+            ])->save();
+
+            $average = $this->average((string) $cost->total_value, (string) $cost->quantity_on_hand);
+
+            $movements[$line->productId] = StockMovement::create([
+                'product_id' => $line->productId,
+                'branch_id' => $from->getKey(),
+                'movement_date' => $date->format('Y-m-d'),
+                'source_type' => $source->getMorphClass(),
+                'source_id' => $source->getKey(),
+                'quantity' => bcmul($line->quantity, '-1', self::SCALE),
+                'unit_cost' => $average,
+                'value' => '0',
+                'branch_qty_after' => (string) $fromStock->quantity_on_hand,
+                'qty_after' => (string) $cost->quantity_on_hand,
+                'value_after' => (string) $cost->total_value,
+            ]);
+
+            StockMovement::create([
+                'product_id' => $line->productId,
+                'branch_id' => $to->getKey(),
+                'movement_date' => $date->format('Y-m-d'),
+                'source_type' => $source->getMorphClass(),
+                'source_id' => $source->getKey(),
+                'quantity' => $line->quantity,
+                'unit_cost' => $average,
+                'value' => '0',
+                'branch_qty_after' => (string) $toStock->quantity_on_hand,
+                'qty_after' => (string) $cost->quantity_on_hand,
+                'value_after' => (string) $cost->total_value,
+            ]);
+        }
+
+        return new StockResult($movements);
+    }
+
+    /**
      * Receive stock valued at the CURRENT average — goods-return credit
      * notes, where the only defensible cost is the running one: line-level
      * linkage to the original sale does not exist, and Qoyod values returns
