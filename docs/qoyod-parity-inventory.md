@@ -477,3 +477,17 @@ as-of valuation (pure queries on shipped schema), reorder alerts, oversell
 setting, per-product movement screen embedded in product view (data model
 complete; UI listing deferred), serial/batch/expiry (Qoyod has none —
 explicitly not a parity gap).
+
+
+## نقل المخزون وتقرير المواقع — implemented 2026-08-31
+
+- **نقل المخزون** (TRF- series, in المنتجات والتكاليف): Qoyod's one-step
+  إرسال واستقبال — quantities move between branches at the company average
+  inside one transaction, refused at the source when short. No journal
+  entry: with one inventory account the net is zero (Qoyod's own net when
+  locations share the default account). The movement pair records the
+  journey at zero value, keeping the value_after audit chain intact.
+  Deferred with per-location inventory accounts: the إرسال-only in-transit
+  state, حساب النقل المؤقت, per-line المشروع and custom fields.
+- **تقرير مواقع المنتجات** (in التقارير): tracked products × branches
+  crosstab with totals and Qoyod's single-location filter; zero-filled.
