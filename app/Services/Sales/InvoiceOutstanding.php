@@ -105,6 +105,33 @@ final class InvoiceOutstanding
      */
     public function openByContact(DateTimeInterface $asOf): array
     {
+        $result = [];
+
+        foreach ($this->openInvoices($asOf) as $invoice) {
+            $row = $result[$invoice['contact_id']] ?? ['amount' => '0.0000', 'count' => 0];
+            $row['amount'] = bcadd($row['amount'], $invoice['remainder'], self::SCALE);
+            $row['count']++;
+
+            $result[$invoice['contact_id']] = $row;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Every open invoice at a date, one row per document.
+     *
+     * The per-document face of the same set-based computation: one grouped
+     * query per term, merged per invoice with bcmath, keeping only invoices
+     * whose remainder is not zero. The contact fold above and the day-bucket
+     * report both consume this, so there is exactly one place the remainder
+     * is derived.
+     *
+     * @return list<array{id: string, contact_id: string, reference: string,
+     *     issue_date: string, due_date: ?string, remainder: string}>
+     */
+    public function openInvoices(DateTimeInterface $asOf): array
+    {
         $company = $this->context->idOrFail();
         $date = $asOf->format('Y-m-d');
 
@@ -112,7 +139,7 @@ final class InvoiceOutstanding
             ->where('company_id', $company)
             ->where('status', DocumentStatus::Approved->value)
             ->where('issue_date', '<=', $date)
-            ->get(['id', 'contact_id', 'total']);
+            ->get(['id', 'contact_id', 'reference', 'issue_date', 'due_date', 'total']);
 
         $credited = DB::table('sales_credit_notes')
             ->where('company_id', $company)
@@ -146,11 +173,14 @@ final class InvoiceOutstanding
                 continue;
             }
 
-            $row = $result[$invoice->contact_id] ?? ['amount' => '0.0000', 'count' => 0];
-            $row['amount'] = bcadd($row['amount'], $remainder, self::SCALE);
-            $row['count']++;
-
-            $result[$invoice->contact_id] = $row;
+            $result[] = [
+                'id' => (string) $invoice->id,
+                'contact_id' => (string) $invoice->contact_id,
+                'reference' => (string) $invoice->reference,
+                'issue_date' => (string) $invoice->issue_date,
+                'due_date' => $invoice->due_date === null ? null : (string) $invoice->due_date,
+                'remainder' => $remainder,
+            ];
         }
 
         return $result;
@@ -200,6 +230,70 @@ final class InvoiceOutstanding
             ->sum('a.amount');
 
         return bcsub($this->scale((string) $received), $this->scale((string) $allocated), self::SCALE);
+    }
+
+    /**
+     * Standalone approved credit notes per contact, as of a date.
+     *
+     * @return array<string, string>
+     */
+    public function unappliedNotesByContact(DateTimeInterface $asOf): array
+    {
+        return DB::table('sales_credit_notes')
+            ->where('company_id', $this->context->idOrFail())
+            ->where('status', DocumentStatus::Approved->value)
+            ->whereNull('parent_id')
+            ->where('issue_date', '<=', $asOf->format('Y-m-d'))
+            ->groupBy('contact_id')
+            ->selectRaw('contact_id, COALESCE(SUM(total), 0) as sum_total')
+            ->pluck('sum_total', 'contact_id')
+            ->map(fn ($sum): string => $this->scale((string) $sum))
+            ->all();
+    }
+
+    /**
+     * Each customer's unallocated advance, as of a date.
+     *
+     * Receipts by their own date, less allocations by their effective date,
+     * grouped by the receipt's contact — the per-contact face of the total
+     * above, derived the same way so the two cannot disagree.
+     *
+     * @return array<string, string>
+     */
+    public function advancesByContact(DateTimeInterface $asOf): array
+    {
+        $company = $this->context->idOrFail();
+        $date = $asOf->format('Y-m-d');
+
+        $received = DB::table('customer_receipts')
+            ->where('company_id', $company)
+            ->where('status', DocumentStatus::Approved->value)
+            ->where('receipt_date', '<=', $date)
+            ->groupBy('contact_id')
+            ->selectRaw('contact_id, COALESCE(SUM(amount), 0) as sum_amount')
+            ->pluck('sum_amount', 'contact_id');
+
+        $allocated = $this->allocationQuery($asOf)
+            ->where('a.company_id', $company)
+            ->groupBy('r.contact_id')
+            ->selectRaw('r.contact_id, COALESCE(SUM(a.amount), 0) as sum_amount')
+            ->pluck('sum_amount', 'r.contact_id');
+
+        $result = [];
+
+        foreach ($received as $contactId => $sum) {
+            $advance = bcsub(
+                $this->scale((string) $sum),
+                $this->scale((string) ($allocated[$contactId] ?? '0')),
+                self::SCALE,
+            );
+
+            if (bccomp($advance, '0', self::SCALE) !== 0) {
+                $result[$contactId] = $advance;
+            }
+        }
+
+        return $result;
     }
 
     /**

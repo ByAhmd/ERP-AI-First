@@ -518,4 +518,17 @@ return [
         'foreign_warning' => ':count documents in a foreign currency are included at face value without conversion.',
     ],
 
+    'customer_balances' => [
+        'title' => 'Customer Balances Summary',
+        'as_of' => 'Report Date',
+        'contact' => 'Customer Name',
+        'code' => 'Contact Reference',
+        'open_invoices' => 'Amounts due on invoices',
+        'unapplied_notes' => 'Unused credit notes',
+        'unused_vouchers' => 'Unused receipt amounts',
+        'net' => 'Net Amount Due',
+        'totals' => 'Total',
+        'empty' => 'No data at the selected date.',
+    ],
+
 ];

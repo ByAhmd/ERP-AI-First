@@ -88,6 +88,33 @@ final class BillOutstanding
      */
     public function openByContact(DateTimeInterface $asOf): array
     {
+        $result = [];
+
+        foreach ($this->openInvoices($asOf) as $invoice) {
+            $row = $result[$invoice['contact_id']] ?? ['amount' => '0.0000', 'count' => 0];
+            $row['amount'] = bcadd($row['amount'], $invoice['remainder'], self::SCALE);
+            $row['count']++;
+
+            $result[$invoice['contact_id']] = $row;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Every open bill at a date, one row per document — both kinds.
+     *
+     * The per-document face of the same computation; the contact fold above
+     * and the day-bucket report both consume it, so the remainder is derived
+     * in exactly one place. Simple bills carry no due date — the day-bucket
+     * report falls back to the issue date, and the null travels through here
+     * untouched so that rule lives with the report that owns it.
+     *
+     * @return list<array{id: string, contact_id: string, reference: string,
+     *     issue_date: string, due_date: ?string, remainder: string}>
+     */
+    public function openInvoices(DateTimeInterface $asOf): array
+    {
         $company = $this->context->idOrFail();
         $date = $asOf->format('Y-m-d');
 
@@ -95,7 +122,7 @@ final class BillOutstanding
             ->where('company_id', $company)
             ->where('status', DocumentStatus::Approved->value)
             ->where('issue_date', '<=', $date)
-            ->get(['id', 'contact_id', 'total']);
+            ->get(['id', 'contact_id', 'reference', 'issue_date', 'due_date', 'total']);
 
         $debited = DB::table('purchase_debit_notes')
             ->where('company_id', $company)
@@ -129,11 +156,14 @@ final class BillOutstanding
                 continue;
             }
 
-            $row = $result[$invoice->contact_id] ?? ['amount' => '0.0000', 'count' => 0];
-            $row['amount'] = bcadd($row['amount'], $remainder, self::SCALE);
-            $row['count']++;
-
-            $result[$invoice->contact_id] = $row;
+            $result[] = [
+                'id' => (string) $invoice->id,
+                'contact_id' => (string) $invoice->contact_id,
+                'reference' => (string) $invoice->reference,
+                'issue_date' => (string) $invoice->issue_date,
+                'due_date' => $invoice->due_date === null ? null : (string) $invoice->due_date,
+                'remainder' => $remainder,
+            ];
         }
 
         return $result;
@@ -177,6 +207,66 @@ final class BillOutstanding
             ->sum('a.amount');
 
         return bcsub($this->scale((string) $paid), $this->scale((string) $allocated), self::SCALE);
+    }
+
+    /**
+     * Standalone approved debit notes per contact, as of a date.
+     *
+     * @return array<string, string>
+     */
+    public function unappliedNotesByContact(DateTimeInterface $asOf): array
+    {
+        return DB::table('purchase_debit_notes')
+            ->where('company_id', $this->context->idOrFail())
+            ->where('status', DocumentStatus::Approved->value)
+            ->whereNull('parent_id')
+            ->where('issue_date', '<=', $asOf->format('Y-m-d'))
+            ->groupBy('contact_id')
+            ->selectRaw('contact_id, COALESCE(SUM(total), 0) as sum_total')
+            ->pluck('sum_total', 'contact_id')
+            ->map(fn ($sum): string => $this->scale((string) $sum))
+            ->all();
+    }
+
+    /**
+     * Each supplier's unallocated advance, as of a date — the asset side.
+     *
+     * @return array<string, string>
+     */
+    public function advancesByContact(DateTimeInterface $asOf): array
+    {
+        $company = $this->context->idOrFail();
+        $date = $asOf->format('Y-m-d');
+
+        $paid = DB::table('supplier_payments')
+            ->where('company_id', $company)
+            ->where('status', DocumentStatus::Approved->value)
+            ->where('payment_date', '<=', $date)
+            ->groupBy('contact_id')
+            ->selectRaw('contact_id, COALESCE(SUM(amount), 0) as sum_amount')
+            ->pluck('sum_amount', 'contact_id');
+
+        $allocated = $this->allocationQuery($asOf)
+            ->where('a.company_id', $company)
+            ->groupBy('p.contact_id')
+            ->selectRaw('p.contact_id, COALESCE(SUM(a.amount), 0) as sum_amount')
+            ->pluck('sum_amount', 'p.contact_id');
+
+        $result = [];
+
+        foreach ($paid as $contactId => $sum) {
+            $advance = bcsub(
+                $this->scale((string) $sum),
+                $this->scale((string) ($allocated[$contactId] ?? '0')),
+                self::SCALE,
+            );
+
+            if (bccomp($advance, '0', self::SCALE) !== 0) {
+                $result[$contactId] = $advance;
+            }
+        }
+
+        return $result;
     }
 
     /**

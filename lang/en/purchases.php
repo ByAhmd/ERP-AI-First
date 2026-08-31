@@ -329,4 +329,17 @@ return [
         'foreign_warning' => ':count documents in a foreign currency are included at face value without conversion.',
     ],
 
+    'supplier_balances' => [
+        'title' => 'Supplier Balances Summary',
+        'as_of' => 'Report Date',
+        'contact' => 'Supplier Name',
+        'code' => 'Supplier Reference',
+        'open_invoices' => 'Amounts due on invoices',
+        'unapplied_notes' => 'Unused debit notes',
+        'unused_vouchers' => 'Unused payment amounts',
+        'net' => 'Net Amount Due',
+        'totals' => 'Total',
+        'empty' => 'No data at the selected date.',
+    ],
+
 ];

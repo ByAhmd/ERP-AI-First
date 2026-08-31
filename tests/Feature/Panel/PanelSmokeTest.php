@@ -95,6 +95,9 @@ final class PanelSmokeTest extends TestCase
         $response->assertSee(__('accounting.nav_overrides.branches'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.general_ledger'), escape: false);
         $response->assertSee(__('sales.customer_aging.title'), escape: false);
+        $response->assertSee(__('accounting.debt_aging.title'), escape: false);
+        $response->assertSee(__('sales.customer_balances.title'), escape: false);
+        $response->assertSee(__('purchases.supplier_balances.title'), escape: false);
         $response->assertSee(__('purchases.supplier_aging.title'), escape: false);
         $response->assertSee(__('sales.quotation_aging.title'), escape: false);
         $response->assertSee(__('purchases.order_aging.title'), escape: false);

@@ -387,4 +387,45 @@ return [
         'parent_has_history' => ':account already carries ledger entries, so it cannot become a group account. Move those entries first.',
     ],
 
+    'debt_aging' => [
+        'title' => 'Debt Aging',
+        'as_of' => 'Report Date',
+        'contact_type' => 'Contact Type',
+        'all_types' => 'All',
+        'contact' => 'Contact',
+        'all_contacts' => 'All contacts',
+        'view_mode' => 'View',
+        'view_summary' => 'Summary',
+        'view_details' => 'Details',
+        'min_amount' => 'Minimum Amount',
+        'totals' => 'Total',
+        'empty' => 'No open debts at the selected date.',
+        'buckets' => [
+            'current' => 'Current',
+            'b1_30' => '1–30 days',
+            'b31_60' => '31–60 days',
+            'b61_90' => '61–90 days',
+            'over_90' => 'Over 90 days',
+        ],
+        'columns' => [
+            'contact' => 'Contact Name',
+            'contact_type' => 'Contact Type',
+            'total' => 'Total Amount Due',
+            'reference' => 'Transaction No.',
+            'document_type' => 'Document Type',
+            'issue_date' => 'Issue Date',
+            'due_date' => 'Due Date',
+            'remainder' => 'Amount Due',
+            'delay' => 'Delay Days',
+        ],
+        'contact_types' => [
+            'customer' => 'Customer',
+            'vendor' => 'Vendor',
+        ],
+        'document_types' => [
+            'invoice' => 'Sales Invoice',
+            'bill' => 'Purchase Invoice',
+        ],
+    ],
+
 ];
