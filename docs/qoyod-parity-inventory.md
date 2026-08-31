@@ -568,3 +568,70 @@ archive (posting contract pre-ruled: the bill's entry is the ONLY entry),
 ZATCA sales invoice on disposal + إشعار دائن cancellation, scheduled runs,
 barcode/image/custodian fields, cost-center dimensions per asset. Qoyod
 API: no fixed-asset endpoints exist (confirmed) — UI parity only.
+
+
+## الرواتب — first slice implemented 2026-09-02
+
+Qoyod's payroll is a separately-activated add-on the reference tenant never
+enabled, so this module is built from the KB (~40 articles) with judgment
+calls flagged in the design record. Their module map — الخصومات · المكافآت
+· السلف · إيصالات الرواتب · جداول العمل · سندات الموظفين · الموظفين · مسير
+الرواتب — lands as our sidebar group الرواتب between الأصول الثابتة and
+المحاسبة, with مطابقة الرواتب added to التقارير. جداول العمل is deferred
+with the whole hours engine.
+
+- **Chart**: 2140/2150/5200 gain system keys; new leaves 1180 سلف
+  الموظفين (asset), 4320 خصومات الموظفين (income — Qoyod's own verbatim
+  mapping for deductions), 5250 رواتب التكلفة المباشرة, 5260 مصروف
+  التأمينات, 5270 مكافآت الموظفين; backfill migration for old tenants.
+- **الموظفون**: identity + employment (تكلفة مباشرة/غير مباشرة، الفرع) +
+  the salary window (تاريخ أول/آخر راتب — the KB's eligibility rule) +
+  GOSI enrollment with an optional contracted-wage override; salary
+  components assigned per employee. WPS columns (هوية، آيبان) ship now,
+  the export later.
+- **مكونات الرواتب**: allowance/deduction types, fixed or percent-of-base,
+  each on its own account; the housing flag feeds the GOSI wage.
+- **مسير الرواتب**: keyed to an accounting period, never a free date — the
+  accrual posts on the period's last day (Qoyod's آخر يوم الشهر rule).
+  Day-prorated over each employee's eligible window (flagged stand-in for
+  their hours-based proration until the schedules slice). GOSI computed on
+  the UNPRORATED contracted wage, capped at 45,000, at stored per-company
+  rates (9.75/11.75/2 seeded): both shares to 2150, employer's share alone
+  to expense. One aggregate entry per run, grouped by (account, branch);
+  payslips are the stored subledger, unique per (employee, period of
+  record) — Qoyod's own supplementary-run rule, and the race anchor.
+  Overflowing deductions reject loudly naming the employee; only advance
+  recovery clamps. Reversal replaces their delete-cascade: counter-entry +
+  payslip removal + deduction release together, refused while payment
+  vouchers stand.
+- **المكافآت**: own document, own accrual (DR 5270 / CR 2140) — and
+  therefore display-only on the slip, or 2140 would carry the money twice.
+- **الخصومات**: no entry of their own; consumed by reference (payslip_id)
+  when a run takes them, freed by that run's reversal, rolled forward
+  while unconsumed.
+- **السلف**: issuance DR 1180 / CR payment account; cash settlement
+  guarded to the remaining balance under lock; automatic run recovery
+  clamped to net and remaining, attributed oldest-first per advance; no
+  stored balance anywhere — derived always. Reverse refused once any
+  money came back (their partly-repaid rule).
+- **سندات الموظفين**: DR 2140 / CR payment account, FULLY allocated
+  against named payslips/bonuses or refused — no unallocated residue path
+  (advances are the prepayment vehicle), which is what keeps 2140
+  reconcilable. Voucher reversal restores outstanding whole.
+- **إيصالات الرواتب**: the payslip grid on the run's view page with the
+  labelled line detail stored per slip. PDF/delivery deferred.
+- **مطابقة الرواتب** (in التقارير): 2140 vs nets+bonuses−payments, 1180 vs
+  issued−settled−recovered, 2150 informational (GOSI settlement is a
+  manual entry this slice).
+
+The closing invariant, held by test: through components, two branches, an
+advance, a bonus, a deduction, the run, partial and full vouchers, voucher
+reversals, run reversal and the re-run — both control accounts tie to
+their subledgers at scale 4 at every step.
+
+Tracked gaps: جداول العمل + hourly pay + overtime/absence (the hours
+engine, with Qoyod's proration method); WPS/Excel export; مكافأة نهاية
+الخدمة accrual + termination math; payslip PDF + email; Excel employee
+import; GOSI settlement action; installment advance schedules; per-project
+salary split (Qoyod can't either); إعدادات الرواتب edit UI for the GOSI
+rates; دورات دفع beyond monthly; per-feature permission granularity.

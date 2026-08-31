@@ -359,6 +359,14 @@ return [
         'depreciation_expense' => 'Depreciation Expense',
         'gain_on_asset_disposal' => 'Gain on Disposal of Fixed Assets',
         'loss_on_asset_disposal' => 'Loss on Disposal of Fixed Assets',
+        'salaries_expense' => 'Salaries and Wages',
+        'direct_salaries_expense' => 'Direct Labor Salaries',
+        'gosi_expense' => 'GOSI Expense',
+        'bonuses_expense' => 'Employee Bonuses',
+        'salaries_payable' => 'Salaries Payable',
+        'gosi_payable' => 'GOSI Payable',
+        'employee_advances' => 'Employee Advances',
+        'employee_deductions_income' => 'Employee Deductions Income',
     ],
 
     'errors' => [

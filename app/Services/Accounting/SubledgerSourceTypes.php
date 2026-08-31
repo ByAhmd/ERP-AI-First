@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Accounting;
 
 use App\Models\DepreciationRun;
+use App\Models\EmployeeAdvance;
+use App\Models\EmployeeAdvanceSettlement;
+use App\Models\EmployeeBonus;
+use App\Models\EmployeePaymentVoucher;
 use App\Models\FixedAsset;
 use App\Models\FixedAssetDisposal;
+use App\Models\PayrollRun;
 use App\Services\Inventory\StockLedger;
 use Illuminate\Database\Eloquent\Model;
 
@@ -35,6 +40,11 @@ final class SubledgerSourceTypes
             DepreciationRun::class,
             FixedAssetDisposal::class,
             FixedAsset::class,
+            PayrollRun::class,
+            EmployeeBonus::class,
+            EmployeeAdvance::class,
+            EmployeeAdvanceSettlement::class,
+            EmployeePaymentVoucher::class,
         ];
     }
 

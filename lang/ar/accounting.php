@@ -359,6 +359,14 @@ return [
         'depreciation_expense' => 'مصروف الإهلاك',
         'gain_on_asset_disposal' => 'أرباح بيع أصول ثابتة',
         'loss_on_asset_disposal' => 'خسائر بيع أصول ثابتة',
+        'salaries_expense' => 'الرواتب والأجور',
+        'direct_salaries_expense' => 'رواتب التكلفة المباشرة',
+        'gosi_expense' => 'مصروف التأمينات الاجتماعية',
+        'bonuses_expense' => 'مكافآت الموظفين',
+        'salaries_payable' => 'رواتب مستحقة',
+        'gosi_payable' => 'التأمينات الاجتماعية المستحقة',
+        'employee_advances' => 'سلف الموظفين',
+        'employee_deductions_income' => 'خصومات الموظفين',
     ],
 
     'errors' => [

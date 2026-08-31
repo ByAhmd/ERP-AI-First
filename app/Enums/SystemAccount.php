@@ -82,6 +82,26 @@ enum SystemAccount: string
     case GainOnAssetDisposal = 'gain_on_asset_disposal';
     case LossOnAssetDisposal = 'loss_on_asset_disposal';
 
+    // Payroll. The salary expense splits by the employee's cost type —
+    // direct labor apart from administrative salaries — and the GOSI
+    // liability carries both shares while only the employer's share is
+    // expensed. Net pay accrues on the payable until a voucher settles it.
+    case SalariesExpense = 'salaries_expense';
+    case DirectSalariesExpense = 'direct_salaries_expense';
+    case GosiExpense = 'gosi_expense';
+    case BonusesExpense = 'bonuses_expense';
+    case SalariesPayable = 'salaries_payable';
+    case GosiPayable = 'gosi_payable';
+
+    // Money advanced to employees and not yet recovered — an asset, the
+    // staff mirror of SupplierAdvances: debited at issuance, credited as
+    // payroll runs recover it or cash settles it.
+    case EmployeeAdvances = 'employee_advances';
+
+    // Fines and damages recovered from staff through payroll deductions.
+    // Qoyod's own mapping — an income account, not a negative expense.
+    case EmployeeDeductionsIncome = 'employee_deductions_income';
+
     // Foreign exchange differences arising on settlement and revaluation.
     case ExchangeGain = 'exchange_gain';
     case ExchangeLoss = 'exchange_loss';

@@ -108,6 +108,7 @@ final class ChartOfAccountsTemplate
                     $this->node('1150', 'ضريبة القيمة المضافة على المشتريات', 'VAT Input (Recoverable)', $asset, SystemAccount::VatInputRecoverable),
                     $this->node('1160', 'مصروفات مدفوعة مقدماً', 'Prepaid Expenses', $asset),
                     $this->node('1170', 'دفعات مقدمة للموردين', 'Advances to Suppliers', $asset, SystemAccount::SupplierAdvances),
+                    $this->node('1180', 'سلف الموظفين', 'Employee Advances', $asset, SystemAccount::EmployeeAdvances),
                 ]),
                 $this->node('1200', 'الأصول غير المتداولة', 'Non-Current Assets', $asset, children: [
                     $this->node('1210', 'الممتلكات والآلات والمعدات', 'Property, Plant and Equipment', $asset, SystemAccount::FixedAssets),
@@ -127,8 +128,8 @@ final class ChartOfAccountsTemplate
                     // with the tax-inclusive amount instead.
                     $this->node('2120', 'ضريبة القيمة المضافة على المبيعات', 'VAT Output (Payable)', $liability, SystemAccount::VatOutputPayable),
                     $this->node('2130', 'مصروفات مستحقة', 'Accrued Expenses', $liability),
-                    $this->node('2140', 'رواتب مستحقة', 'Salaries Payable', $liability),
-                    $this->node('2150', 'التأمينات الاجتماعية المستحقة', 'GOSI Payable', $liability),
+                    $this->node('2140', 'رواتب مستحقة', 'Salaries Payable', $liability, SystemAccount::SalariesPayable),
+                    $this->node('2150', 'التأمينات الاجتماعية المستحقة', 'GOSI Payable', $liability, SystemAccount::GosiPayable),
                     $this->node('2160', 'ضريبة الاستقطاع المستحقة', 'Withholding Tax Payable', $liability, SystemAccount::WithholdingTaxPayable),
                     $this->node('2170', 'الزكاة المستحقة', 'Zakat Payable', $liability, SystemAccount::ZakatPayable),
                     $this->node('2180', 'دفعات مقدمة من العملاء', 'Customer Advances', $liability, SystemAccount::CustomerAdvances),
@@ -155,6 +156,7 @@ final class ChartOfAccountsTemplate
                 // child: giving a postable leaf its first child would flip it
                 // non-postable and break anything already posted against it.
                 $this->node('4310', 'أرباح بيع أصول ثابتة', 'Gain on Disposal of Fixed Assets', $revenue, SystemAccount::GainOnAssetDisposal),
+                $this->node('4320', 'خصومات الموظفين', 'Employee Deductions Income', $revenue, SystemAccount::EmployeeDeductionsIncome),
                 $this->node('4400', 'مردودات وخصومات المبيعات', 'Sales Returns and Discounts', $revenue),
                 $this->node('4500', 'أرباح فروق العملة', 'Exchange Gain', $revenue, SystemAccount::ExchangeGain),
             ]),
@@ -162,7 +164,10 @@ final class ChartOfAccountsTemplate
             $this->node('5000', 'المصروفات', 'Expenses', $expense, children: [
                 $this->node('5100', 'تكلفة البضاعة المباعة', 'Cost of Goods Sold', $expense, SystemAccount::CostOfGoodsSold),
                 $this->node('5150', 'تسويات المخزون', 'Inventory Adjustments', $expense, SystemAccount::InventoryAdjustment),
-                $this->node('5200', 'الرواتب والأجور', 'Salaries and Wages', $expense),
+                $this->node('5200', 'الرواتب والأجور', 'Salaries and Wages', $expense, SystemAccount::SalariesExpense),
+                $this->node('5250', 'رواتب التكلفة المباشرة', 'Direct Labor Salaries', $expense, SystemAccount::DirectSalariesExpense),
+                $this->node('5260', 'مصروف التأمينات الاجتماعية', 'GOSI Expense', $expense, SystemAccount::GosiExpense),
+                $this->node('5270', 'مكافآت الموظفين', 'Employee Bonuses', $expense, SystemAccount::BonusesExpense),
                 $this->node('5300', 'الإيجارات', 'Rent', $expense),
                 $this->node('5400', 'المرافق', 'Utilities', $expense),
                 $this->node('5500', 'مصروف الإهلاك', 'Depreciation Expense', $expense, SystemAccount::DepreciationExpense),
