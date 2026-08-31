@@ -419,3 +419,61 @@ Tracked gaps: the unified day-bucket تقرير أعمار الديون (summary
 views, min-amount filter), ملخص مستحقات العملاء/الموردين, Excel/PDF export,
 يشمل ضمان حسن التنفيذ retention toggle (no schema concept), per-report
 permissions, contact drill-down, fiscal-aligned year columns.
+
+
+## أعمار الديون والملخصات — implemented 2026-08-31
+
+- **تقرير أعمار الديون** (the unified day-bucket report): customers and
+  suppliers together, buckets حالية / 1–30 / 31–60 / 61–90 / أكثر من 90,
+  summary view per contact and details view per document with Qoyod's signed
+  أيام التأخير; filters نوع الجهة، الجهة، طريقة العرض، الحد الأدنى للمبلغ.
+  Bucket basis = due date with issue-date fallback (simple bills carry no due
+  date); day 30 in the first bucket, day 31 in the second — stated in one
+  place. Consumes the outstanding services' per-document path, so it shares
+  the one definition of the remainder.
+- **ملخص مستحقات العملاء / الموردين**: open invoices, unapplied standalone
+  notes, unused voucher amounts (مبالغ سندات قبض/صرف لم تستخدم), and the net
+  per contact — tied in tests to control-minus-advances. Qoyod's صافي حركات
+  القيود اليدوية column cannot exist here (journal lines carry no contact) —
+  documented gap.
+
+## المخزون — first slice implemented 2026-08-31
+
+Designed from Qoyod's KB + API (tenant plan-gated). What shipped:
+
+- **تتبع الكمية**: per-product «يُخزن» flag, default OFF for all existing
+  products (never retro-inventoried), frozen after the first movement.
+  Bundles excluded (no BOM exists). Locations ARE branches; every company
+  has a default branch (المركز الرئيسي seeded).
+- **Costing**: moving weighted average, company-wide per product;
+  quantity per branch. Value authoritative, average derived, never computed
+  at zero. Running-forward on backdated documents (Qoyod's behavior);
+  movements store both document date and application order. Terminal relief
+  hands the last unit the exact remaining value — no orphan halalas.
+- **Posting**: stocked bill lines → DR المخزون 1140 (the snapshot IS the
+  redirect — written at recalculation, account select shows it); invoices
+  append DR تكلفة البضاعة المباعة / CR المخزون to their own entry, cost
+  resolved AT APPROVAL under the lock; credit notes restock only for سبب
+  الإرجاع at current average; debit notes relieve only with إرجاع بضاعة set,
+  net-vs-relief difference on تسويات المخزون 5150. Negative stock refused at
+  the shipping branch («الكمية غير متوفرة»). Ledger-screen reversal blocked
+  for stock-bearing entries.
+- **تسويات المخزون document** (ADJ- series): opening balances (DR 1140 /
+  CR حساب الرصيد الافتتاحي — Qoyod's أرصدة افتتاحية للمخزون flow) and count
+  variances. Deviation: one offset account defaulting to 5150 both ways,
+  instead of Qoyod's revenue-for-surplus + expense-for-shortage pair —
+  a counting artifact is not income; the account stays selectable.
+- **Surfaces**: product list columns الكمية/متوسط التكلفة/القيمة الإجمالية/
+  مخزون؟; الموقع on the five document forms; الجرد accounting via the
+  adjustment document.
+
+The closing invariant, held by test: after opening + bills + invoices +
+both notes + a count, GL 1140 equals Σ product stock values exactly.
+
+Tracked gaps: نقل المخزون (transfers) + per-branch inventory accounts,
+full الجرد UX (Excel/barcode/actual-quantity sheets), أوامر التصنيع and
+BOM/bundles, تحويل الوحدات (unit conversions), تقرير مواقع المنتجات and
+as-of valuation (pure queries on shipped schema), reorder alerts, oversell
+setting, per-product movement screen embedded in product view (data model
+complete; UI listing deferred), serial/batch/expiry (Qoyod has none —
+explicitly not a parity gap).
