@@ -64,6 +64,29 @@ final readonly class JournalLineData
     }
 
     /**
+     * The same movement, stamped with the branch it belongs to.
+     *
+     * Documents carry their branch on the header; every line of the entry
+     * they post — revenue and receivable included, not just the stock pair —
+     * takes it, so a branch income statement shows cost and revenue together.
+     */
+    public function withBranch(?string $branchId): self
+    {
+        return new self(
+            accountId: $this->accountId,
+            debit: $this->debit,
+            credit: $this->credit,
+            description: $this->description,
+            currencyId: $this->currencyId,
+            foreignDebit: $this->foreignDebit,
+            foreignCredit: $this->foreignCredit,
+            exchangeRate: $this->exchangeRate,
+            branchId: $branchId,
+            dimensions: $this->dimensions,
+        );
+    }
+
+    /**
      * The same movement with its sides exchanged, for reversal.
      */
     public function inverted(): self

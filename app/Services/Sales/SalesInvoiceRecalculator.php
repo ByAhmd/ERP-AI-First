@@ -7,6 +7,7 @@ namespace App\Services\Sales;
 use App\Models\SalesInvoice;
 use App\Models\SalesInvoiceItem;
 use App\Models\Tax;
+use App\Services\Inventory\StockedLineDefaults;
 use App\Services\Sales\Data\LineAmounts;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,7 @@ final class SalesInvoiceRecalculator
 {
     public function __construct(
         private readonly InvoiceCalculator $calculator,
+        private readonly StockedLineDefaults $stockedLines,
     ) {}
 
     public function recalculate(SalesInvoice $invoice): SalesInvoice
@@ -42,6 +44,7 @@ final class SalesInvoiceRecalculator
         return DB::transaction(function () use ($invoice): SalesInvoice {
             $items = $invoice->items()->get();
             $taxes = $this->taxesFor($items);
+            $stocked = $this->stockedLines->stockedMap($items->pluck('product_id')->all());
 
             /** @var list<LineAmounts> $resolved */
             $resolved = [];
@@ -62,6 +65,9 @@ final class SalesInvoiceRecalculator
                 $item->forceFill([
                     // Contiguous from one, whatever order the form supplied.
                     'line_number' => $index + 1,
+                    // The stock snapshot: what this line will do at approval
+                    // is decided here, not by the product's state then.
+                    'is_stocked' => $stocked[$item->product_id] ?? false,
                     'tax_rate' => $amounts->taxRate,
                     'tax_category' => $amounts->taxCategory,
                     'discount_amount' => $amounts->discountAmount,

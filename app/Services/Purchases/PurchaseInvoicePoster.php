@@ -15,6 +15,10 @@ use App\Services\Accounting\AccountRegistry;
 use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\DocumentNumberAllocator;
 use App\Services\Accounting\JournalPoster;
+use App\Services\Inventory\Data\StockLine;
+use App\Services\Inventory\Data\StockResult;
+use App\Services\Inventory\Exceptions\StockRuleViolation;
+use App\Services\Inventory\StockLedger;
 use App\Services\Purchases\Exceptions\PurchaseInvoiceRuleViolation;
 use Brick\Math\BigRational;
 use Brick\Math\RoundingMode;
@@ -49,6 +53,7 @@ final class PurchaseInvoicePoster
         private readonly JournalPoster $poster,
         private readonly AccountRegistry $registry,
         private readonly DocumentNumberAllocator $numbers,
+        private readonly StockLedger $stock,
     ) {}
 
     /**
@@ -87,14 +92,29 @@ final class PurchaseInvoicePoster
         $this->guard($invoice);
 
         return DB::transaction(function () use ($invoice, $userId): PurchaseInvoice {
+            // Stock first, under its own locks, inside this transaction: the
+            // received values are the same currency-scale figures the 1140
+            // group below is debited with, so entry and subledger move by
+            // the same number by construction.
+            $stockResult = $this->receiveStock($invoice);
+
+            $lines = array_map(
+                fn (JournalLineData $line): JournalLineData => $line->withBranch($invoice->branch_id),
+                $this->ledgerLines($invoice),
+            );
+
             $entry = $this->poster->post(
                 date: $invoice->issue_date,
-                lines: $this->ledgerLines($invoice),
+                lines: $lines,
                 description: $this->narration($invoice),
                 reference: $invoice->reference,
                 source: $invoice,
                 userId: $userId,
             );
+
+            if ($stockResult !== null) {
+                $this->stock->stampEntry($stockResult->movementIds(), $entry->getKey());
+            }
 
             $invoice->forceFill([
                 'status' => DocumentStatus::Approved,
@@ -229,6 +249,44 @@ final class PurchaseInvoicePoster
         if (! $invoice->totalsReconcile()) {
             throw PurchaseInvoiceRuleViolation::totalsDoNotReconcile($invoice);
         }
+    }
+
+    /**
+     * Receive the bill's stocked lines into the stock ledger.
+     *
+     * Each line's value is its net projected to the currency's minor unit —
+     * the identical projection netByExpenseAccount posts to المخزون.
+     */
+    private function receiveStock(PurchaseInvoice $invoice): ?StockResult
+    {
+        $stockedItems = $invoice->items()->get()->filter(
+            fn ($item): bool => $item->is_stocked,
+        );
+
+        if ($stockedItems->isEmpty()) {
+            return null;
+        }
+
+        $branch = $invoice->branch;
+
+        if ($branch === null) {
+            throw StockRuleViolation::branchRequired();
+        }
+
+        $scale = $this->currencyScale($invoice);
+
+        $lines = [];
+
+        foreach ($stockedItems as $item) {
+            $lines[] = new StockLine(
+                productId: (string) $item->product_id,
+                quantity: (string) $item->quantity,
+                value: (string) BigRational::of((string) $item->net_amount)
+                    ->toScale($scale, RoundingMode::HalfUp),
+            );
+        }
+
+        return $this->stock->receive($invoice, $branch, $invoice->issue_date, $lines);
     }
 
     /**

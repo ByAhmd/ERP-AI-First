@@ -202,6 +202,46 @@ final class StockLedger
     }
 
     /**
+     * Receive stock valued at the CURRENT average — goods-return credit
+     * notes, where the only defensible cost is the running one: line-level
+     * linkage to the original sale does not exist, and Qoyod values returns
+     * the same way. The round-trip margin misstatement after an intervening
+     * price move is the documented cost of that rule, not a bug.
+     *
+     * @param  list<StockLine>  $lines  value ignored; quantities positive
+     * @return StockResult values = qty × average at currency scale
+     */
+    public function restock(
+        Model $source,
+        Branch $branch,
+        DateTimeInterface $date,
+        array $lines,
+        int $currencyScale = 2,
+    ): StockResult {
+        $lines = $this->aggregate($lines);
+        $costs = $this->lockCosts($lines);
+
+        $valued = [];
+
+        foreach ($lines as $line) {
+            $cost = $costs[$line->productId];
+
+            $average = $this->average((string) $cost->total_value, (string) $cost->quantity_on_hand);
+
+            $valued[] = new StockLine(
+                productId: $line->productId,
+                quantity: $line->quantity,
+                value: $this->roundToScale(
+                    BigRational::of($average)->multipliedBy(BigRational::of($line->quantity)),
+                    $currencyScale,
+                ),
+            );
+        }
+
+        return $this->receive($source, $branch, $date, $valued);
+    }
+
+    /**
      * The company's current average for a product — display and advisory
      * use only. No posting path may call this: posted figures come from
      * receive()/issue() under the lock.

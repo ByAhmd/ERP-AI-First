@@ -13,6 +13,10 @@ use App\Services\Accounting\AccountRegistry;
 use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\DocumentNumberAllocator;
 use App\Services\Accounting\JournalPoster;
+use App\Services\Inventory\Data\StockLine;
+use App\Services\Inventory\Data\StockResult;
+use App\Services\Inventory\Exceptions\StockRuleViolation;
+use App\Services\Inventory\StockLedger;
 use App\Services\Purchases\Exceptions\DebitNoteRejected;
 use Brick\Math\BigRational;
 use Brick\Math\RoundingMode;
@@ -45,6 +49,7 @@ final class DebitNotePoster
         private readonly AccountRegistry $registry,
         private readonly DocumentNumberAllocator $numbers,
         private readonly BillOutstanding $outstanding,
+        private readonly StockLedger $stock,
     ) {}
 
     /**
@@ -69,14 +74,29 @@ final class DebitNotePoster
             // outside a lock would both pass and both post.
             $this->guard($note);
 
+            // Goods going back leave at the running average, not at the
+            // note's net — the subledger and 1140 must move by the same
+            // number, and the net-vs-relief difference lands on تسويات
+            // المخزون. A rate-correction note moves nothing.
+            $stockResult = $this->issueStock($note);
+
+            $lines = array_map(
+                fn (JournalLineData $line): JournalLineData => $line->withBranch($note->branch_id),
+                $this->ledgerLines($note, $stockResult),
+            );
+
             $entry = $this->poster->post(
                 date: $note->issue_date,
-                lines: $this->ledgerLines($note),
+                lines: $lines,
                 description: $this->narration($note),
                 reference: $note->reference,
                 source: $note,
                 userId: $userId,
             );
+
+            if ($stockResult !== null) {
+                $this->stock->stampEntry($stockResult->movementIds(), $entry->getKey());
+            }
 
             $note->forceFill([
                 'status' => DocumentStatus::Approved,
@@ -100,7 +120,7 @@ final class DebitNotePoster
     /**
      * @return list<JournalLineData>
      */
-    private function ledgerLines(PurchaseDebitNote $note): array
+    private function ledgerLines(PurchaseDebitNote $note, ?StockResult $stockResult): array
     {
         $tax = $this->scale((string) $note->tax_total);
         $total = $this->scale((string) $note->total);
@@ -112,7 +132,40 @@ final class DebitNotePoster
             ),
         ];
 
-        foreach ($this->netByExpenseAccount($note) as $accountId => $net) {
+        $groups = $this->netByExpenseAccount($note);
+
+        if ($stockResult !== null) {
+            // The stocked lines snapshotted المخزون as their account, so
+            // their group is the 1140 net. Replace it with the RELIEF the
+            // subledger actually moved; the difference goes to تسويات
+            // المخزون, keeping the entry balanced and 1140 identical to the
+            // stock stream.
+            $inventoryId = $this->registry->get(SystemAccount::Inventory)->getKey();
+            $stockedNet = $groups[$inventoryId] ?? '0.0000';
+            unset($groups[$inventoryId]);
+
+            $relief = $stockResult->totalValue();
+
+            if (bccomp($relief, '0', self::SCALE) !== 0) {
+                $lines[] = JournalLineData::credit($inventoryId, $relief);
+            }
+
+            $difference = bcsub($stockedNet, $relief, self::SCALE);
+
+            if (bccomp($difference, '0', self::SCALE) > 0) {
+                $lines[] = JournalLineData::credit(
+                    $this->registry->get(SystemAccount::InventoryAdjustment)->getKey(),
+                    $difference,
+                );
+            } elseif (bccomp($difference, '0', self::SCALE) < 0) {
+                $lines[] = JournalLineData::debit(
+                    $this->registry->get(SystemAccount::InventoryAdjustment)->getKey(),
+                    bcmul($difference, '-1', self::SCALE),
+                );
+            }
+        }
+
+        foreach ($groups as $accountId => $net) {
             $lines[] = JournalLineData::credit($accountId, $net);
         }
 
@@ -124,6 +177,44 @@ final class DebitNotePoster
         }
 
         return $lines;
+    }
+
+    /**
+     * Relieve the note's stocked lines — goods physically returned only.
+     */
+    private function issueStock(PurchaseDebitNote $note): ?StockResult
+    {
+        if (! $note->returns_goods) {
+            return null;
+        }
+
+        $stockedItems = $note->items()->get()->filter(
+            fn ($item): bool => $item->is_stocked,
+        );
+
+        if ($stockedItems->isEmpty()) {
+            return null;
+        }
+
+        $branch = $note->branch;
+
+        if ($branch === null) {
+            throw StockRuleViolation::branchRequired();
+        }
+
+        $lines = [];
+
+        foreach ($stockedItems as $item) {
+            $lines[] = new StockLine(
+                productId: (string) $item->product_id,
+                quantity: (string) $item->quantity,
+            );
+        }
+
+        return $this->stock->issue(
+            $note, $branch, $note->issue_date, $lines,
+            $this->currencyScale($note),
+        );
     }
 
     /**

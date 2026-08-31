@@ -7,6 +7,7 @@ namespace App\Services\Purchases;
 use App\Models\PurchaseInvoice;
 use App\Models\PurchaseInvoiceItem;
 use App\Models\Tax;
+use App\Services\Inventory\StockedLineDefaults;
 use App\Services\Sales\Data\LineAmounts;
 use App\Services\Sales\InvoiceCalculator;
 use Illuminate\Support\Collection;
@@ -27,6 +28,7 @@ final class PurchaseInvoiceRecalculator
 {
     public function __construct(
         private readonly InvoiceCalculator $calculator,
+        private readonly StockedLineDefaults $stockedLines,
     ) {}
 
     public function recalculate(PurchaseInvoice $invoice): PurchaseInvoice
@@ -38,6 +40,10 @@ final class PurchaseInvoiceRecalculator
         return DB::transaction(function () use ($invoice): PurchaseInvoice {
             $items = $invoice->items()->get();
             $taxes = $this->taxesFor($items);
+            $stocked = $this->stockedLines->stockedMap($items->pluck('product_id')->all());
+            $inventoryAccount = in_array(true, $stocked, true)
+                ? $this->stockedLines->inventoryAccountId()
+                : null;
 
             /** @var list<LineAmounts> $resolved */
             $resolved = [];
@@ -55,8 +61,15 @@ final class PurchaseInvoiceRecalculator
                     taxCategory: $tax?->category,
                 );
 
+                $isStocked = $stocked[$item->product_id] ?? false;
+
                 $item->forceFill([
                     'line_number' => $index + 1,
+                    // The snapshot IS the redirect: a stocked line's account
+                    // is written as المخزون here, so the document says what
+                    // the ledger will do and the poster stays agnostic.
+                    'is_stocked' => $isStocked,
+                    'expense_account_id' => $isStocked ? $inventoryAccount : $item->expense_account_id,
                     'tax_rate' => $amounts->taxRate,
                     'tax_category' => $amounts->taxCategory,
                     'discount_amount' => $amounts->discountAmount,

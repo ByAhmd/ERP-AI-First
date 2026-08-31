@@ -6,6 +6,7 @@ namespace App\Services\Sales;
 
 use App\Models\SalesCreditNote;
 use App\Models\Tax;
+use App\Services\Inventory\StockedLineDefaults;
 use App\Services\Sales\Data\LineAmounts;
 use Illuminate\Support\Facades\DB;
 
@@ -27,6 +28,7 @@ final class CreditNoteRecalculator
 {
     public function __construct(
         private readonly InvoiceCalculator $calculator,
+        private readonly StockedLineDefaults $stockedLines,
     ) {}
 
     public function recalculate(SalesCreditNote $note): SalesCreditNote
@@ -37,6 +39,7 @@ final class CreditNoteRecalculator
 
         return DB::transaction(function () use ($note): SalesCreditNote {
             $items = $note->items()->get();
+            $stocked = $this->stockedLines->stockedMap($items->pluck('product_id')->all());
 
             /** @var list<LineAmounts> $resolved */
             $resolved = [];
@@ -70,6 +73,7 @@ final class CreditNoteRecalculator
 
                 $item->forceFill([
                     'line_number' => $index + 1,
+                    'is_stocked' => $stocked[$item->product_id] ?? false,
                     'tax_rate' => $amounts->taxRate,
                     'tax_category' => $amounts->taxCategory,
                     'discount_amount' => $amounts->discountAmount,

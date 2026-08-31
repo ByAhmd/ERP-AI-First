@@ -13,6 +13,10 @@ use App\Services\Accounting\AccountRegistry;
 use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\DocumentNumberAllocator;
 use App\Services\Accounting\JournalPoster;
+use App\Services\Inventory\Data\StockLine;
+use App\Services\Inventory\Data\StockResult;
+use App\Services\Inventory\Exceptions\StockRuleViolation;
+use App\Services\Inventory\StockLedger;
 use App\Services\Sales\Exceptions\InvoiceRuleViolation;
 use Illuminate\Support\Facades\DB;
 
@@ -49,6 +53,7 @@ final class SalesInvoicePoster
         private readonly JournalPoster $poster,
         private readonly AccountRegistry $registry,
         private readonly DocumentNumberAllocator $numbers,
+        private readonly StockLedger $stock,
     ) {}
 
     /**
@@ -74,9 +79,39 @@ final class SalesInvoicePoster
         $this->guard($invoice);
 
         return DB::transaction(function () use ($invoice, $userId): SalesInvoice {
+            // Cost is the one figure resolved HERE, at approval, under the
+            // stock lock — the opposite of every price snapshot. A draft
+            // approved a week after it was written relieves at the average
+            // of this moment, and the relief below IS the COGS figure.
+            $stockResult = $this->issueStock($invoice);
+
+            $lines = $this->ledgerLines($invoice);
+
+            if ($stockResult !== null) {
+                $relief = $stockResult->totalValue();
+
+                // Zero-cost movements still moved quantity; the ledger only
+                // hears about value — the zero-tax skip's pattern.
+                if (bccomp($relief, '0', self::SCALE) !== 0) {
+                    $lines[] = JournalLineData::debit(
+                        $this->registry->get(SystemAccount::CostOfGoodsSold)->getKey(),
+                        $relief,
+                    );
+                    $lines[] = JournalLineData::credit(
+                        $this->registry->get(SystemAccount::Inventory)->getKey(),
+                        $relief,
+                    );
+                }
+            }
+
+            $lines = array_map(
+                fn (JournalLineData $line): JournalLineData => $line->withBranch($invoice->branch_id),
+                $lines,
+            );
+
             $entry = $this->poster->post(
                 date: $invoice->issue_date,
-                lines: $this->ledgerLines($invoice),
+                lines: $lines,
                 description: $this->narration($invoice),
                 reference: $invoice->reference,
                 // The invoice is the source document, so the entry points back
@@ -84,6 +119,10 @@ final class SalesInvoicePoster
                 source: $invoice,
                 userId: $userId,
             );
+
+            if ($stockResult !== null) {
+                $this->stock->stampEntry($stockResult->movementIds(), $entry->getKey());
+            }
 
             $invoice->forceFill([
                 'status' => DocumentStatus::Approved,
@@ -130,6 +169,53 @@ final class SalesInvoicePoster
         }
 
         return $lines;
+    }
+
+    /**
+     * Relieve the invoice's stocked lines from the stock ledger.
+     *
+     * Refuses at the branch that physically ships when quantity is short —
+     * Qoyod's «الكمية غير متوفرة» — leaving the invoice a draft.
+     */
+    private function issueStock(SalesInvoice $invoice): ?StockResult
+    {
+        $stockedItems = $invoice->items()->get()->filter(
+            fn ($item): bool => $item->is_stocked,
+        );
+
+        if ($stockedItems->isEmpty()) {
+            return null;
+        }
+
+        $branch = $invoice->branch;
+
+        if ($branch === null) {
+            throw StockRuleViolation::branchRequired();
+        }
+
+        $lines = [];
+
+        foreach ($stockedItems as $item) {
+            $lines[] = new StockLine(
+                productId: (string) $item->product_id,
+                quantity: (string) $item->quantity,
+            );
+        }
+
+        return $this->stock->issue(
+            $invoice, $branch, $invoice->issue_date, $lines,
+            $this->currencyScale($invoice),
+        );
+    }
+
+    /**
+     * The currency's minor unit — two for a riyal.
+     */
+    private function currencyScale(SalesInvoice $invoice): int
+    {
+        $currency = $invoice->currency;
+
+        return $currency === null ? 2 : $currency->decimal_places;
     }
 
     private function guard(SalesInvoice $invoice): void

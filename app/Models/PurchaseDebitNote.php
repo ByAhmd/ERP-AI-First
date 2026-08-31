@@ -32,6 +32,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property string $discount_total
  * @property string $tax_total
  * @property string $total
+ * @property ?string $branch_id
  * @property ?string $company_id
  */
 #[Fillable([

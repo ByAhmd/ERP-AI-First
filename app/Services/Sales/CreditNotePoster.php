@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Sales;
 
 use App\Enums\ContactStatus;
+use App\Enums\CreditNoteReason;
 use App\Enums\DocumentStatus;
 use App\Enums\InvoiceSubtype;
 use App\Enums\SystemAccount;
@@ -14,6 +15,10 @@ use App\Services\Accounting\AccountRegistry;
 use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\DocumentNumberAllocator;
 use App\Services\Accounting\JournalPoster;
+use App\Services\Inventory\Data\StockLine;
+use App\Services\Inventory\Data\StockResult;
+use App\Services\Inventory\Exceptions\StockRuleViolation;
+use App\Services\Inventory\StockLedger;
 use App\Services\Sales\Exceptions\CreditNoteRejected;
 use Illuminate\Support\Facades\DB;
 
@@ -52,6 +57,7 @@ final class CreditNotePoster
         private readonly AccountRegistry $registry,
         private readonly DocumentNumberAllocator $numbers,
         private readonly InvoiceOutstanding $outstanding,
+        private readonly StockLedger $stock,
     ) {}
 
     /**
@@ -78,14 +84,46 @@ final class CreditNotePoster
             // outside a lock would both pass and both post.
             $this->guard($note);
 
+            // Goods coming back re-enter at the CURRENT average — line-level
+            // linkage to the original sale does not exist, and Qoyod values
+            // returns the same way. Any other reason moves nothing: the
+            // quantity on a price-adjustment line is descriptive.
+            $stockResult = $this->restock($note);
+
+            $lines = $this->ledgerLines($note);
+
+            if ($stockResult !== null) {
+                $restocked = $stockResult->totalValue();
+
+                if (bccomp($restocked, '0', self::SCALE) !== 0) {
+                    $lines[] = JournalLineData::debit(
+                        $this->registry->get(SystemAccount::Inventory)->getKey(),
+                        $restocked,
+                    );
+                    $lines[] = JournalLineData::credit(
+                        $this->registry->get(SystemAccount::CostOfGoodsSold)->getKey(),
+                        $restocked,
+                    );
+                }
+            }
+
+            $lines = array_map(
+                fn (JournalLineData $line): JournalLineData => $line->withBranch($note->branch_id),
+                $lines,
+            );
+
             $entry = $this->poster->post(
                 date: $note->issue_date,
-                lines: $this->ledgerLines($note),
+                lines: $lines,
                 description: $this->narration($note),
                 reference: $note->reference,
                 source: $note,
                 userId: $userId,
             );
+
+            if ($stockResult !== null) {
+                $this->stock->stampEntry($stockResult->movementIds(), $entry->getKey());
+            }
 
             $note->forceFill([
                 'status' => DocumentStatus::Approved,
@@ -144,6 +182,41 @@ final class CreditNotePoster
         );
 
         return $lines;
+    }
+
+    /**
+     * Return the note's stocked lines to the shelf — goods returns only.
+     */
+    private function restock(SalesCreditNote $note): ?StockResult
+    {
+        if ($note->reason_code !== CreditNoteReason::GoodsReturn) {
+            return null;
+        }
+
+        $stockedItems = $note->items()->get()->filter(
+            fn ($item): bool => $item->is_stocked,
+        );
+
+        if ($stockedItems->isEmpty()) {
+            return null;
+        }
+
+        $branch = $note->branch;
+
+        if ($branch === null) {
+            throw StockRuleViolation::branchRequired();
+        }
+
+        $lines = [];
+
+        foreach ($stockedItems as $item) {
+            $lines[] = new StockLine(
+                productId: (string) $item->product_id,
+                quantity: (string) $item->quantity,
+            );
+        }
+
+        return $this->stock->restock($note, $branch, $note->issue_date, $lines);
     }
 
     private function guard(SalesCreditNote $note): void

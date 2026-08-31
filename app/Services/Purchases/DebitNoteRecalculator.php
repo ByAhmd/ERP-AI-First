@@ -6,6 +6,7 @@ namespace App\Services\Purchases;
 
 use App\Models\PurchaseDebitNote;
 use App\Models\Tax;
+use App\Services\Inventory\StockedLineDefaults;
 use App\Services\Sales\Data\LineAmounts;
 use App\Services\Sales\InvoiceCalculator;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ final class DebitNoteRecalculator
 {
     public function __construct(
         private readonly InvoiceCalculator $calculator,
+        private readonly StockedLineDefaults $stockedLines,
     ) {}
 
     public function recalculate(PurchaseDebitNote $note): PurchaseDebitNote
@@ -34,6 +36,10 @@ final class DebitNoteRecalculator
 
         return DB::transaction(function () use ($note): PurchaseDebitNote {
             $items = $note->items()->get();
+            $stocked = $this->stockedLines->stockedMap($items->pluck('product_id')->all());
+            $inventoryAccount = in_array(true, $stocked, true)
+                ? $this->stockedLines->inventoryAccountId()
+                : null;
 
             /** @var list<LineAmounts> $resolved */
             $resolved = [];
@@ -61,8 +67,12 @@ final class DebitNoteRecalculator
                     taxCategory: $category,
                 );
 
+                $isStocked = $stocked[$item->product_id] ?? false;
+
                 $item->forceFill([
                     'line_number' => $index + 1,
+                    'is_stocked' => $isStocked,
+                    'expense_account_id' => $isStocked ? $inventoryAccount : $item->expense_account_id,
                     'tax_rate' => $amounts->taxRate,
                     'tax_category' => $amounts->taxCategory,
                     'discount_amount' => $amounts->discountAmount,
