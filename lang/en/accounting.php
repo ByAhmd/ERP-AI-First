@@ -354,6 +354,11 @@ return [
         'exchange_gain' => 'Exchange Gain',
         'exchange_loss' => 'Exchange Loss',
         'rounding_difference' => 'Rounding Differences',
+        'fixed_assets' => 'Property, Plant and Equipment',
+        'accumulated_depreciation' => 'Accumulated Depreciation',
+        'depreciation_expense' => 'Depreciation Expense',
+        'gain_on_asset_disposal' => 'Gain on Disposal of Fixed Assets',
+        'loss_on_asset_disposal' => 'Loss on Disposal of Fixed Assets',
     ],
 
     'errors' => [

@@ -8,7 +8,7 @@ use App\Enums\JournalEntryStatus;
 use App\Models\JournalEntry;
 use App\Services\Accounting\Exceptions\PostingRejected;
 use App\Services\Accounting\JournalPoster;
-use App\Services\Inventory\StockLedger;
+use App\Services\Accounting\SubledgerSourceTypes;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -119,13 +119,14 @@ class JournalEntriesTable
                     ->label(__('accounting.entries.actions.reverse'))
                     ->icon(Heroicon::OutlinedArrowUturnLeft)
                     ->color('warning')
-                    // Never for stock-bearing entries: a ledger-side reversal
-                    // would restore the money and leave the quantity and the
-                    // average untouched. Correction is by note or
-                    // counter-adjustment, through the stock ledger.
+                    // Never for entries a subledger owns: a ledger-side
+                    // reversal would restore the money and leave the stock
+                    // quantities or depreciation charges untouched.
+                    // Correction is by note, counter-adjustment or the run's
+                    // own reversal action, through the owning subledger.
                     ->visible(fn (JournalEntry $record): bool => $record->isPosted()
                         && ! $record->reversedBy()->exists()
-                        && ! in_array($record->source_type, StockLedger::STOCK_SOURCE_TYPES, true))
+                        && ! SubledgerSourceTypes::contains($record->source_type))
                     ->schema([
                         DatePicker::make('date')
                             ->label(__('accounting.entries.actions.reversal_date'))

@@ -110,11 +110,11 @@ final class ChartOfAccountsTemplate
                     $this->node('1170', 'دفعات مقدمة للموردين', 'Advances to Suppliers', $asset, SystemAccount::SupplierAdvances),
                 ]),
                 $this->node('1200', 'الأصول غير المتداولة', 'Non-Current Assets', $asset, children: [
-                    $this->node('1210', 'الممتلكات والآلات والمعدات', 'Property, Plant and Equipment', $asset),
+                    $this->node('1210', 'الممتلكات والآلات والمعدات', 'Property, Plant and Equipment', $asset, SystemAccount::FixedAssets),
                     // Contra-asset: credit-normal despite being classified as an
                     // asset, which is why it is presented beneath the asset it
                     // offsets rather than among the liabilities.
-                    $this->node('1220', 'مجمع الإهلاك', 'Accumulated Depreciation', $asset),
+                    $this->node('1220', 'مجمع الإهلاك', 'Accumulated Depreciation', $asset, SystemAccount::AccumulatedDepreciation),
                     $this->node('1230', 'الأصول غير الملموسة', 'Intangible Assets', $asset),
                 ]),
             ]),
@@ -151,6 +151,10 @@ final class ChartOfAccountsTemplate
                 $this->node('4100', 'إيرادات المبيعات', 'Sales Revenue', $revenue, SystemAccount::SalesRevenue),
                 $this->node('4200', 'إيرادات الخدمات', 'Service Revenue', $revenue),
                 $this->node('4300', 'إيرادات أخرى', 'Other Income', $revenue),
+                // A sibling of the generic other-income account, never its
+                // child: giving a postable leaf its first child would flip it
+                // non-postable and break anything already posted against it.
+                $this->node('4310', 'أرباح بيع أصول ثابتة', 'Gain on Disposal of Fixed Assets', $revenue, SystemAccount::GainOnAssetDisposal),
                 $this->node('4400', 'مردودات وخصومات المبيعات', 'Sales Returns and Discounts', $revenue),
                 $this->node('4500', 'أرباح فروق العملة', 'Exchange Gain', $revenue, SystemAccount::ExchangeGain),
             ]),
@@ -161,13 +165,16 @@ final class ChartOfAccountsTemplate
                 $this->node('5200', 'الرواتب والأجور', 'Salaries and Wages', $expense),
                 $this->node('5300', 'الإيجارات', 'Rent', $expense),
                 $this->node('5400', 'المرافق', 'Utilities', $expense),
-                $this->node('5500', 'مصروف الإهلاك', 'Depreciation Expense', $expense),
+                $this->node('5500', 'مصروف الإهلاك', 'Depreciation Expense', $expense, SystemAccount::DepreciationExpense),
                 $this->node('5600', 'التسويق والدعاية', 'Marketing and Advertising', $expense),
                 $this->node('5700', 'أتعاب مهنية', 'Professional Fees', $expense),
                 $this->node('5800', 'مصاريف بنكية', 'Bank Charges', $expense),
                 $this->node('5850', 'خسائر فروق العملة', 'Exchange Loss', $expense, SystemAccount::ExchangeLoss),
                 $this->node('5900', 'فروقات التقريب', 'Rounding Differences', $expense, SystemAccount::RoundingDifference),
                 $this->node('5950', 'مصروفات أخرى', 'Other Expenses', $expense),
+                // Sibling of the generic other-expenses leaf, for the same
+                // reason 4310 sits beside 4300 rather than beneath it.
+                $this->node('5955', 'خسائر بيع أصول ثابتة', 'Loss on Disposal of Fixed Assets', $expense, SystemAccount::LossOnAssetDisposal),
                 // Reported below the operating result, so the income statement
                 // can state what the company earned before financing and
                 // statutory charges. Grouped rather than scattered among the

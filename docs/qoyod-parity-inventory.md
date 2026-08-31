@@ -474,9 +474,8 @@ Tracked gaps: نقل المخزون (transfers) + per-branch inventory accounts,
 full الجرد UX (Excel/barcode/actual-quantity sheets), أوامر التصنيع and
 BOM/bundles, تحويل الوحدات (unit conversions), تقرير مواقع المنتجات and
 as-of valuation (pure queries on shipped schema), reorder alerts, oversell
-setting, per-product movement screen embedded in product view (data model
-complete; UI listing deferred), serial/batch/expiry (Qoyod has none —
-explicitly not a parity gap).
+setting, serial/batch/expiry (Qoyod has none — explicitly not a parity
+gap). The per-product movement screen shipped 2026-09-01 — see its section.
 
 
 ## نقل المخزون وتقرير المواقع — implemented 2026-08-31
@@ -491,3 +490,81 @@ explicitly not a parity gap).
   state, حساب النقل المؤقت, per-line المشروع and custom fields.
 - **تقرير مواقع المنتجات** (in التقارير): tracked products × branches
   crosstab with totals and Qoyod's single-location filter; zero-filled.
+
+
+## شاشة تحركات المنتج — implemented 2026-09-01
+
+Qoyod's per-product تحركات view, embedded in the product's عرض screen:
+stock summary in the subheading (quantity, average, value), a per-branch
+quantities table (value stated live as qty × company average), and the
+movement stream newest-first in application order — operation badge
+(بيع/شراء/مرتجع بيع/مرتجع شراء/تسوية جرد/نقل), source reference, branch,
+signed quantity, unit cost, value and the running balance each row left.
+Read-only always: the table is the ledger's own proof. Hidden entirely for
+untracked products.
+
+
+## الأصول الثابتة — first slice implemented 2026-09-01
+
+Qoyod's sidebar group (الأصول الثابتة · الإهلاك · الاستبعادات · الإضافات)
+researched via the KB — the live module sits behind the Advanced-plan wall,
+so form-level detail is KB-derived and flagged where unconfirmed. Our group
+lands between المنتجات والتكاليف and المحاسبة, as in their sidebar, with
+تصنيفات الأصول promoted to a sidebar item (they bury it in the assets
+screen) and مطابقة سجل الأصول الثابتة added to التقارير.
+
+- **تصنيفات الأصول**: three explicit accounts per type (asset / accumulated
+  / expense), postable + type-guarded, defaulted from new system keys
+  (1210/1220/5500 keyed; 4310 أرباح and 5955 خسائر بيع أصول created as
+  SIBLINGS of the generic 4300/5950 — nesting would flip a postable leaf
+  non-postable). Backfill migration keys pre-existing tenants and creates
+  the disposal-result accounts through the model so the account tree stays
+  observer-maintained. Accounts + depreciable flag lock once anything posts.
+- **السجل**: one row per registered asset (their catalog/registered split
+  deferred with from-bill capitalization). NO stored accumulated or book
+  value — derived from opening + posted charge rows, always. Acquisition:
+  opening (register-only bridge for balances already in the GL, or posted
+  against 3900) and manual purchase (DR asset + VAT input / CR payment
+  account — deviation, an improvement: their manual path bypasses the
+  register entirely). For openings the acquisition date is the booking
+  date, Qoyod's التاريخ. FA- series; hard delete only while nothing posted.
+- **الإهلاك**: straight line only (their confirmed rule), day-prorated at
+  365/366 with the year's own rate each side of Dec 31 (cross-year split is
+  our judgment — unconfirmable behind the plan wall). Runs post immediately
+  (no draft window on the ledger screen), fan out per (expense, accumulated,
+  branch) with every line carrying the asset's branch. Charge rows are the
+  stored subledger — one per asset per PERIOD OF RECORD, with the posted
+  period beside it (catch-up across a closed period records both; silent
+  redating is structurally impossible). The DB unique (asset, record
+  period) is the idempotency anchor; clamp inside the arithmetic; terminal
+  period takes the exact remainder, so Σ charges ≡ base at 2dp. Reversal
+  replaces their حذف: counter-entry + charge-row delete, fate-shared.
+  إهلاك يدوي and their يومي/أسبوعي/سنوي run grains deferred.
+- **الاستبعادات**: بيع (SE-) and تخريد (SC-) series, draftable like theirs.
+  Approval order enforced: catch-up depreciation to the disposal date FIRST
+  (their الإهلاك غير المسجل, in 5500 — never inside gain/loss), then the
+  disposal entry clears the POSTED cost and accumulated, output VAT on sale
+  proceeds (KSA taxable supply — deviation from their inline sales invoice,
+  tracked), gain/loss to the split 4310/5955 pair (deviation from their
+  single account, mirroring the exchange pair). No un-dispose, no delete of
+  approved disposals (deviation from their delete-the-chain).
+- **Reverse-block**: SubledgerSourceTypes now unions the stock list with
+  runs/disposals/assets — the ledger screen's reverse action consults ONE
+  list.
+- **مطابقة سجل الأصول الثابتة** (in التقارير): per referenced account, GL
+  balance vs register sum, difference red — detection for manual JEs and
+  pre-register balances (the register-only opening is the bridge).
+
+The closing invariant, held by test: through openings both ways, purchase,
+runs, idempotent refusal, closed-period catch-up, reversal + re-run and
+both disposals, every asset and accumulated account ties to the register
+at scale 4, and P&L 5500 equals Σ charge rows exactly.
+
+Tracked gaps: from-bill capitalization + إكمال + debit-note return-and-
+archive (posting contract pre-ruled: the bill's entry is the ONLY entry),
+الإضافات (merge/bill-link/life extension with prospective re-life), نقل
+الأصل (custody/location transfers), مصاريف الأصل links, إهلاك يدوي, تقرير
+سجل الأصول الثابتة (period-movement columns), Excel import/export, inline
+ZATCA sales invoice on disposal + إشعار دائن cancellation, scheduled runs,
+barcode/image/custodian fields, cost-center dimensions per asset. Qoyod
+API: no fixed-asset endpoints exist (confirmed) — UI parity only.

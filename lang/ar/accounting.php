@@ -354,6 +354,11 @@ return [
         'exchange_gain' => 'أرباح فروق العملة',
         'exchange_loss' => 'خسائر فروق العملة',
         'rounding_difference' => 'فروقات التقريب',
+        'fixed_assets' => 'الممتلكات والآلات والمعدات',
+        'accumulated_depreciation' => 'مجمع الإهلاك',
+        'depreciation_expense' => 'مصروف الإهلاك',
+        'gain_on_asset_disposal' => 'أرباح بيع أصول ثابتة',
+        'loss_on_asset_disposal' => 'خسائر بيع أصول ثابتة',
     ],
 
     'errors' => [

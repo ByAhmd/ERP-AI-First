@@ -75,6 +75,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn (): string => __('sales.navigation_group')),
                 NavigationGroup::make()->label(fn (): string => __('purchases.navigation_group')),
                 NavigationGroup::make()->label(fn (): string => __('sales.products_group')),
+                NavigationGroup::make()->label(fn (): string => __('assets.navigation_group')),
                 NavigationGroup::make()->label(fn (): string => __('accounting.navigation_group')),
                 NavigationGroup::make()->label(fn (): string => __('accounting.reports_group')),
                 NavigationGroup::make()->label(fn (): string => __('identity.navigation_group')),

@@ -69,6 +69,19 @@ enum SystemAccount: string
     case CurrentYearResult = 'current_year_result';
     case OpeningBalanceSuspense = 'opening_balance_suspense';
 
+    // Fixed assets. The keyed accounts are the DEFAULTS an asset type offers;
+    // postings resolve through the type's stored accounts, so a company may
+    // split its register across per-class children without touching these.
+    case FixedAssets = 'fixed_assets';
+    case AccumulatedDepreciation = 'accumulated_depreciation';
+    case DepreciationExpense = 'depreciation_expense';
+
+    // Disposal results, split like the exchange pair: a gain credited into
+    // revenue and a loss debited into expenses, never one signed account that
+    // reads as negative income in a losing year.
+    case GainOnAssetDisposal = 'gain_on_asset_disposal';
+    case LossOnAssetDisposal = 'loss_on_asset_disposal';
+
     // Foreign exchange differences arising on settlement and revaluation.
     case ExchangeGain = 'exchange_gain';
     case ExchangeLoss = 'exchange_loss';
