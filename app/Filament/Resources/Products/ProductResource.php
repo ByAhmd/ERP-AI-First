@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductUnitType;
 use App\Models\Tax;
+use App\Services\Inventory\StockLedger;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -85,7 +86,26 @@ class ProductResource extends Resource
                         ->options(ProductType::class)
                         ->default(ProductType::Product)
                         ->selectablePlaceholder(false)
-                        ->required(),
+                        ->required()
+                        ->live(),
+
+                    Toggle::make('track_inventory')
+                        ->label(__('inventory.fields.track_inventory'))
+                        ->helperText(fn (?Product $record): string => $record !== null
+                            && app(StockLedger::class)->hasMovements($record)
+                                ? __('inventory.hints.track_frozen')
+                                : __('inventory.hints.track_inventory'))
+                        // Only stockable types offer it; bundles never do
+                        // this slice — no bill of materials exists to cost
+                        // one.
+                        ->visible(fn (Get $get): bool => in_array(
+                            self::typeOf($get('type')),
+                            [ProductType::Product, ProductType::RawMaterial],
+                            true,
+                        ))
+                        ->disabled(fn (?Product $record): bool => $record !== null
+                            && app(StockLedger::class)->hasMovements($record))
+                        ->dehydrated(),
 
                     TextInput::make('sku')
                         ->label(__('sales.products.fields.sku'))
@@ -198,6 +218,21 @@ class ProductResource extends Resource
         ]);
     }
 
+    /**
+     * Form state hands back an enum once a default is applied and a string
+     * while the select is being changed — the enum-cast trap.
+     */
+    private static function typeOf(mixed $state): ProductType
+    {
+        if ($state instanceof ProductType) {
+            return $state;
+        }
+
+        return is_string($state)
+            ? ProductType::tryFrom($state) ?? ProductType::Product
+            : ProductType::Product;
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -234,6 +269,28 @@ class ProductResource extends Resource
                     ->alignEnd()
                     ->placeholder('—')
                     ->sortable(),
+
+                TextColumn::make('costRecord.quantity_on_hand')
+                    ->label(__('inventory.stock.quantity'))
+                    ->numeric(decimalPlaces: 2)
+                    ->alignEnd()
+                    ->placeholder('—'),
+
+                TextColumn::make('costRecord.average_cost')
+                    ->label(__('inventory.stock.average_cost'))
+                    ->numeric(decimalPlaces: 2)
+                    ->alignEnd()
+                    ->placeholder('—'),
+
+                TextColumn::make('costRecord.total_value')
+                    ->label(__('inventory.stock.total_value'))
+                    ->numeric(decimalPlaces: 2)
+                    ->alignEnd()
+                    ->placeholder('—'),
+
+                IconColumn::make('track_inventory')
+                    ->label(__('inventory.stock.tracked'))
+                    ->boolean(),
 
                 IconColumn::make('is_active')
                     ->label(__('sales.products.columns.active'))

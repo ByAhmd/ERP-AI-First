@@ -8,6 +8,7 @@ use App\Enums\CreditNoteReason;
 use App\Enums\DiscountType;
 use App\Enums\InvoiceSubtype;
 use App\Enums\TaxCategory;
+use App\Models\Branch;
 use App\Models\Contact;
 use App\Models\Product;
 use App\Models\SalesInvoice;
@@ -118,6 +119,20 @@ class SalesCreditNoteForm
                     DatePicker::make('original_invoice_date')
                         ->label(__('sales.credit_notes.fields.original_invoice_date'))
                         ->native(false),
+
+                    Select::make('branch_id')
+                        ->label(__('inventory.fields.branch'))
+                        ->options(fn (): array => Branch::query()
+                            ->where('is_active', true)
+                            ->orderBy('code')
+                            ->get()
+                            ->mapWithKeys(fn (Branch $b): array => [
+                                $b->getKey() => $b->displayName(),
+                            ])
+                            ->all())
+                        ->default(fn (): ?string => Branch::query()
+                            ->where('is_default', true)->value('id'))
+                        ->required(),
 
                     DatePicker::make('issue_date')
                         ->label(__('sales.credit_notes.fields.issue_date'))

@@ -99,6 +99,7 @@ return [
             'parent' => 'Original Purchase Invoice',
             'original_invoice_number' => 'Original Supplier Invoice Ref.',
             'original_invoice_date' => 'Original Invoice Date',
+            'returns_goods' => 'Goods Returned',
             'issue_date' => 'Note Date',
             'description' => 'Description',
             'terms_and_conditions' => 'Terms & Conditions',

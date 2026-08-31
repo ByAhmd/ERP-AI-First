@@ -8,6 +8,7 @@ use App\Enums\JournalEntryStatus;
 use App\Models\JournalEntry;
 use App\Services\Accounting\Exceptions\PostingRejected;
 use App\Services\Accounting\JournalPoster;
+use App\Services\Inventory\StockLedger;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -118,8 +119,13 @@ class JournalEntriesTable
                     ->label(__('accounting.entries.actions.reverse'))
                     ->icon(Heroicon::OutlinedArrowUturnLeft)
                     ->color('warning')
+                    // Never for stock-bearing entries: a ledger-side reversal
+                    // would restore the money and leave the quantity and the
+                    // average untouched. Correction is by note or
+                    // counter-adjustment, through the stock ledger.
                     ->visible(fn (JournalEntry $record): bool => $record->isPosted()
-                        && ! $record->reversedBy()->exists())
+                        && ! $record->reversedBy()->exists()
+                        && ! in_array($record->source_type, StockLedger::STOCK_SOURCE_TYPES, true))
                     ->schema([
                         DatePicker::make('date')
                             ->label(__('accounting.entries.actions.reversal_date'))

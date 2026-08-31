@@ -99,6 +99,7 @@ return [
             'parent' => 'فاتورة المشتريات الأصلية',
             'original_invoice_number' => 'مرجع فاتورة المورد الأصلية',
             'original_invoice_date' => 'تاريخ الفاتورة الأصلية',
+            'returns_goods' => 'إرجاع بضاعة',
             'issue_date' => 'تاريخ الإشعار',
             'description' => 'الوصف',
             'terms_and_conditions' => 'الشروط والأحكام',

@@ -8,6 +8,7 @@ use App\Enums\DiscountType;
 use App\Enums\SystemAccount;
 use App\Enums\TaxCategory;
 use App\Models\Account;
+use App\Models\Branch;
 use App\Models\Contact;
 use App\Models\Product;
 use App\Models\Tax;
@@ -103,6 +104,20 @@ class PurchaseInvoiceForm
                     TextInput::make('description')
                         ->label(__('purchases.invoices.fields.description'))
                         ->maxLength(255),
+
+                    Select::make('branch_id')
+                        ->label(__('inventory.fields.branch'))
+                        ->options(fn (): array => Branch::query()
+                            ->where('is_active', true)
+                            ->orderBy('code')
+                            ->get()
+                            ->mapWithKeys(fn (Branch $b): array => [
+                                $b->getKey() => $b->displayName(),
+                            ])
+                            ->all())
+                        ->default(fn (): ?string => Branch::query()
+                            ->where('is_default', true)->value('id'))
+                        ->required(),
                 ])
                 ->columns(3),
 
