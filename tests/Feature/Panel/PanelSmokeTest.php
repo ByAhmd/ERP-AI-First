@@ -94,6 +94,10 @@ final class PanelSmokeTest extends TestCase
         $response->assertSee(__('accounting.nav_overrides.entries'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.branches'), escape: false);
         $response->assertSee(__('accounting.nav_overrides.general_ledger'), escape: false);
+        $response->assertSee(__('sales.customer_aging.title'), escape: false);
+        $response->assertSee(__('purchases.supplier_aging.title'), escape: false);
+        $response->assertSee(__('sales.quotation_aging.title'), escape: false);
+        $response->assertSee(__('purchases.order_aging.title'), escape: false);
 
         // And the groups render in Qoyod's order, not merely somewhere on the
         // page — the provider's registration is what fixes the sequence, and

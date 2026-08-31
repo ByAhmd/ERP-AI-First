@@ -289,4 +289,44 @@ return [
         'paid' => 'Paid',
     ],
 
+    'supplier_aging' => [
+        'title' => 'Supplier Payables Aging',
+        'as_of' => 'Report Date',
+        'compare_with' => 'Compare With',
+        'no_comparison' => 'No comparison',
+        'periods' => 'Comparison Periods',
+        'units' => [
+            'year' => 'Previous Year',
+            'quarter' => 'Previous Quarter',
+            'month' => 'Previous Month',
+            'week' => 'Previous Week',
+        ],
+        'contact' => 'Supplier Name',
+        'code' => 'Supplier Reference',
+        'totals' => 'Total',
+        'empty' => 'No data for the selected period.',
+        'foreign_warning' => ':count documents in a foreign currency are included at face value without conversion.',
+        'unapplied_notes' => 'Debit notes not applied to invoices',
+        'advances' => 'Unallocated supplier advances',
+    ],
+
+    'order_aging' => [
+        'title' => 'Purchase Order Aging',
+        'as_of' => 'Report Date',
+        'compare_with' => 'Compare With',
+        'no_comparison' => 'No comparison',
+        'periods' => 'Comparison Periods',
+        'units' => [
+            'year' => 'Previous Year',
+            'quarter' => 'Previous Quarter',
+            'month' => 'Previous Month',
+            'week' => 'Previous Week',
+        ],
+        'contact' => 'Supplier Name',
+        'code' => 'Supplier Reference',
+        'totals' => 'Total',
+        'empty' => 'No data for the selected period.',
+        'foreign_warning' => ':count documents in a foreign currency are included at face value without conversion.',
+    ],
+
 ];

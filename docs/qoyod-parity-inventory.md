@@ -379,3 +379,43 @@ payment, attachments/custom fields/projects, numbering-settings UI,
 supplier-total override vs BR-CO-17 recompute, self-billed invoices
 (KSA-2 flag 7, schema comment only), and تقرير أعمار ديون الموردين (now
 computable from the schema).
+
+
+## تقارير الأعمار — implemented 2026-08-31
+
+Research finding that reshaped the build: Qoyod's four contact-aging reports
+(أعمار ديون العملاء، أعمار ديون الموردين، أعمار عروض الأسعار، أعمار أوامر
+الشراء) are NOT day-bucket reports — they are as-of snapshots with optional
+prior-period comparison columns (مقارنة بـ سنة/ربع/شهر/أسبوع × up to 13
+periods, each cell `amount (count)`). The day-bucket layout lives in a
+separate, newer unified تقرير أعمار الديون (deferred; its bucket rule is
+recorded: days = asOf − COALESCE(due_date, issue_date); 1–30/31–60/61–90/90+).
+
+What shipped, all four under التقارير:
+
+- **أعمار ديون العملاء / أعمار ديون الموردين** — one row per contact, cell =
+  Σ date-bounded invoice remainders + count of open invoices, driven by the
+  ISSUE date (supplier-explicit in Qoyod's KB; customer side mirrored —
+  flagged unverified). The as-of bound lives INSIDE InvoiceOutstanding /
+  BillOutstanding (one definition of outstanding, now date-aware), with the
+  allocation's effective date as COALESCE(entry_date, receipt/payment_date) —
+  an advance received in June but applied in July leaves the invoice open at
+  June 30. A reconciliation footer carries what the grid deliberately omits:
+  standalone credit/debit notes and unallocated advances, and the drift-guard
+  test ties grid + footer to the AR/AP and advances control accounts in the
+  trial balance.
+- **أعمار عروض الأسعار / أعمار أوامر الشراء** — approved-only whitelists
+  (converted documents drop out even though approved_at survives — the
+  double-count trap, pinned), full tax-inclusive totals, issue-date driven,
+  expired/overdue-but-approved rows stay in.
+
+Deviations, documented in code: face-value aggregation with a
+foreign-currency warning instead of Qoyod's base-currency conversion (a
+converted figure would no longer tie to the ledger); negative as-of
+remainders shown rather than clamped (same reason); the reconciliation
+footer itself (Qoyod shows these figures in separate ملخص مستحقات reports).
+
+Tracked gaps: the unified day-bucket تقرير أعمار الديون (summary/details
+views, min-amount filter), ملخص مستحقات العملاء/الموردين, Excel/PDF export,
+يشمل ضمان حسن التنفيذ retention toggle (no schema concept), per-report
+permissions, contact drill-down, fiscal-aligned year columns.

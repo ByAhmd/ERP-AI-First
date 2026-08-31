@@ -478,4 +478,44 @@ return [
         ],
     ],
 
+    'customer_aging' => [
+        'title' => 'Customer Receivables Aging',
+        'as_of' => 'Report Date',
+        'compare_with' => 'Compare With',
+        'no_comparison' => 'No comparison',
+        'periods' => 'Comparison Periods',
+        'units' => [
+            'year' => 'Previous Year',
+            'quarter' => 'Previous Quarter',
+            'month' => 'Previous Month',
+            'week' => 'Previous Week',
+        ],
+        'contact' => 'Contact',
+        'code' => 'Contact Reference',
+        'totals' => 'Total',
+        'empty' => 'No data for the selected period.',
+        'foreign_warning' => ':count documents in a foreign currency are included at face value without conversion.',
+        'unapplied_notes' => 'Credit notes not applied to invoices',
+        'advances' => 'Unallocated customer advances',
+    ],
+
+    'quotation_aging' => [
+        'title' => 'Quotation Aging',
+        'as_of' => 'Report Date',
+        'compare_with' => 'Compare With',
+        'no_comparison' => 'No comparison',
+        'periods' => 'Comparison Periods',
+        'units' => [
+            'year' => 'Previous Year',
+            'quarter' => 'Previous Quarter',
+            'month' => 'Previous Month',
+            'week' => 'Previous Week',
+        ],
+        'contact' => 'Contact Name',
+        'code' => 'Contact Reference',
+        'totals' => 'Total',
+        'empty' => 'No data for the selected period.',
+        'foreign_warning' => ':count documents in a foreign currency are included at face value without conversion.',
+    ],
+
 ];
