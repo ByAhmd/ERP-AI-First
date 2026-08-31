@@ -78,6 +78,17 @@ return [
         'movement_value' => 'قيمة الحركة',
         'movement_balance' => 'الكمية المتوفرة',
         'available_hint' => 'المتوفر: :quantity',
+        'operation' => 'نوع العملية',
+        'operations' => [
+            'sale' => 'بيع',
+            'purchase' => 'شراء',
+            'sales_return' => 'مرتجع بيع',
+            'purchase_return' => 'مرتجع شراء',
+            'adjustment' => 'تسوية جرد',
+            'transfer' => 'نقل',
+            'other' => 'أخرى',
+        ],
+        'summary' => 'الكمية :quantity · متوسط التكلفة :average · القيمة الإجمالية :value',
     ],
 
     'fields' => [

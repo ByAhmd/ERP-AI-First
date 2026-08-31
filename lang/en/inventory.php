@@ -78,6 +78,17 @@ return [
         'movement_value' => 'Movement Value',
         'movement_balance' => 'Available Quantity',
         'available_hint' => 'Available: :quantity',
+        'operation' => 'Operation',
+        'operations' => [
+            'sale' => 'Sale',
+            'purchase' => 'Purchase',
+            'sales_return' => 'Sales Return',
+            'purchase_return' => 'Purchase Return',
+            'adjustment' => 'Count Adjustment',
+            'transfer' => 'Transfer',
+            'other' => 'Other',
+        ],
+        'summary' => 'Quantity :quantity · Average Cost :average · Total Value :value',
     ],
 
     'fields' => [

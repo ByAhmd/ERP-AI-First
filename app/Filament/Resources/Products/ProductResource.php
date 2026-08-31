@@ -10,6 +10,9 @@ use App\Enums\SystemAccount;
 use App\Filament\Resources\Products\Pages\CreateProduct;
 use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Filament\Resources\Products\Pages\ListProducts;
+use App\Filament\Resources\Products\Pages\ViewProduct;
+use App\Filament\Resources\Products\RelationManagers\BranchStocksRelationManager;
+use App\Filament\Resources\Products\RelationManagers\StockMovementsRelationManager;
 use App\Models\Account;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -18,6 +21,7 @@ use App\Models\Tax;
 use App\Services\Inventory\StockLedger;
 use BackedEnum;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -303,8 +307,20 @@ class ProductResource extends Resource
                     ->options(ProductType::class),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
             ]);
+    }
+
+    /**
+     * @return array<class-string>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            BranchStocksRelationManager::class,
+            StockMovementsRelationManager::class,
+        ];
     }
 
     /**
@@ -315,6 +331,7 @@ class ProductResource extends Resource
         return [
             'index' => ListProducts::route('/'),
             'create' => CreateProduct::route('/create'),
+            'view' => ViewProduct::route('/{record}'),
             'edit' => EditProduct::route('/{record}/edit'),
         ];
     }
