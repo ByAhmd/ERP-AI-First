@@ -13,6 +13,7 @@ use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\Reports\BalanceSheet;
+use App\Services\Accounting\Reports\CashFlowStatement;
 use App\Services\Accounting\Reports\FinancialStatement;
 use App\Services\Accounting\Reports\IncomeStatement;
 use App\Services\Accounting\Reports\ReportFilters;
@@ -458,6 +459,128 @@ final class FinancialStatementsTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // The cash flow statement
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function the_cash_flow_statement_reconciles_to_the_cash_accounts(): void
+    {
+        $this->postSale('10000', '1500', CarbonImmutable::parse('2026-03-15'));
+        $this->postExpense('5300', '2000', CarbonImmutable::parse('2026-04-01'));
+
+        $statement = $this->cashFlow('2026-01-01', '2026-12-31');
+
+        $this->assertTrue($statement->isBalanced());
+        $this->assertSame('9500.0000', $this->total($statement, 'cash_closing'));
+    }
+
+    #[Test]
+    public function a_credit_sale_reduces_operating_cash_flow_below_profit(): void
+    {
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-03-15'),
+            lines: [
+                JournalLineData::debit($this->code('1130'), '10000'),
+                JournalLineData::credit($this->code('4100'), '10000'),
+            ],
+            description: 'Credit sale',
+        );
+
+        $statement = $this->cashFlow('2026-01-01', '2026-12-31');
+
+        $operating = $this->section($statement, 'operating');
+
+        $this->assertSame('10000.0000', $operating->lines[0]->amounts[0]);
+        $this->assertSame('0.0000', $this->total($statement, 'operating'));
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    #[Test]
+    public function depreciation_is_added_back_in_operating_cash_flow(): void
+    {
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-05-01'),
+            lines: [
+                JournalLineData::debit($this->code('5500'), '2000'),
+                JournalLineData::credit($this->code('1220'), '2000'),
+            ],
+            description: 'Depreciation',
+        );
+
+        $statement = $this->cashFlow('2026-01-01', '2026-12-31');
+
+        $operating = $this->section($statement, 'operating');
+
+        $depreciation = $operating->lines[1];
+
+        $this->assertSame('2000.0000', $depreciation->amounts[0]);
+        $this->assertSame('2000.0000', $this->total($statement, 'operating'));
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    #[Test]
+    public function fixed_asset_purchases_appear_in_investing_cash_flow(): void
+    {
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-06-01'),
+            lines: [
+                JournalLineData::debit($this->code('1210'), '8000'),
+                JournalLineData::credit($this->code('1110'), '8000'),
+            ],
+            description: 'Asset purchase',
+        );
+
+        $statement = $this->cashFlow('2026-01-01', '2026-12-31');
+
+        $this->assertSame('-8000.0000', $this->total($statement, 'investing'));
+        $this->assertSame('-8000.0000', $this->total($statement, 'net_change'));
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    #[Test]
+    public function loan_proceeds_appear_in_financing_cash_flow(): void
+    {
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-07-01'),
+            lines: [
+                JournalLineData::debit($this->code('1120'), '25000'),
+                JournalLineData::credit($this->code('2210'), '25000'),
+            ],
+            description: 'Loan',
+        );
+
+        $statement = $this->cashFlow('2026-01-01', '2026-12-31');
+
+        $this->assertSame('25000.0000', $this->total($statement, 'financing'));
+        $this->assertSame('25000.0000', $this->total($statement, 'cash_closing'));
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    #[Test]
+    public function opening_plus_net_change_equals_closing_cash(): void
+    {
+        $this->postSale('5000', '0', CarbonImmutable::parse('2026-02-01'));
+        $this->postExpense('5300', '1500', CarbonImmutable::parse('2026-03-01'));
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-04-01'),
+            lines: [
+                JournalLineData::debit($this->code('1210'), '3000'),
+                JournalLineData::credit($this->code('1110'), '3000'),
+            ],
+            description: 'Asset',
+        );
+
+        $statement = $this->cashFlow('2026-01-01', '2026-12-31');
+
+        $opening = $this->total($statement, 'cash_opening');
+        $net = $this->total($statement, 'net_change');
+        $closing = $this->total($statement, 'cash_closing');
+
+        $this->assertSame(bcadd($opening, $net, 4), $closing);
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    // -----------------------------------------------------------------------
     // Fixtures
     // -----------------------------------------------------------------------
 
@@ -469,6 +592,14 @@ final class FinancialStatementsTest extends TestCase
     private function incomeStatement(string $from, string $to): FinancialStatement
     {
         return app(IncomeStatement::class)->build(
+            from: CarbonImmutable::parse($from),
+            to: CarbonImmutable::parse($to),
+        );
+    }
+
+    private function cashFlow(string $from, string $to): FinancialStatement
+    {
+        return app(CashFlowStatement::class)->build(
             from: CarbonImmutable::parse($from),
             to: CarbonImmutable::parse($to),
         );

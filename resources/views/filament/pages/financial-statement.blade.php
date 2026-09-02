@@ -28,7 +28,7 @@
         <x-filament::section>
             <div class="erp-report__verdict fi-color-danger">
                 <x-filament::icon icon="heroicon-o-exclamation-triangle" class="erp-report__verdict-icon" />
-                {{ __('accounting.statements.out_of_balance', [
+                {{ __($statement->imbalanceMessage ?? 'accounting.statements.out_of_balance', [
                     'difference' => number_format((float) $statement->largestImbalance(), 2),
                 ]) }}
             </div>

@@ -17,13 +17,15 @@ final readonly class FinancialStatement
     /**
      * @param  list<StatementPeriod>  $periods
      * @param  list<StatementSection>  $sections
-     * @param  ?list<string>  $imbalance  Per column, for statements that must balance.
+     * @param  ?list<string>  $imbalance  Per column, for statements that must reconcile.
+     * @param  ?string  $imbalanceMessage  Translation key when {@see $imbalance} is non-zero.
      */
     public function __construct(
         public array $periods,
         public array $sections,
         public bool $isFiltered = false,
         public ?array $imbalance = null,
+        public ?string $imbalanceMessage = null,
     ) {}
 
     public function columnCount(): int

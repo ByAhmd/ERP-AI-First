@@ -295,8 +295,10 @@ Ordered by how much of the ledger they touch. Struck items have since been
 built.
 
 - ~~Income statement is missing the pre-interest/tax/zakat subtotal.~~ Done.
-- **Cash flow statement** (`قائمة التدفقات النقدية`) — a fourth primary statement
-  we have not scoped at all.
+- ~~**Cash flow statement** (`قائمة التدفقات النقدية`) — a fourth primary statement
+  we have not scoped at all.~~ Done 2026-09-02 — indirect method, three
+  activity sections, reconciliation to cash and bank accounts. Tracked gaps:
+  advanced analysis dimensions, drill-down (فحص), PDF/Excel export.
 - **Statement of changes in equity** (`قائمة التغيرات في حقوق الملكية`).
 - **Budget-vs-actual** (`مقارنة المقدر بالفعلي لقائمة الدخل`) — already on the
   Phase 2 list as part of budgets.

@@ -14,6 +14,7 @@ return [
         'total' => 'Total :section',
         'empty_section' => 'No balances in this section.',
         'out_of_balance' => 'The statement does not balance. Out by :difference — assets do not equal liabilities plus equity.',
+        'cash_flow_out_of_balance' => 'Closing cash does not match the cash and bank accounts by :difference.',
         'filtered_notice' => 'Narrowed to a branch or dimension. An entry spanning more than one is split between them, so a filtered statement need not balance.',
 
         'balance_sheet' => [
@@ -24,6 +25,11 @@ return [
         'income_statement' => [
             'title' => 'Income Statement',
             'subheading' => 'Revenue and expenses across the period, on an accrual basis.',
+        ],
+
+        'cash_flow' => [
+            'title' => 'Cash Flow Statement',
+            'subheading' => 'Cash from operating, investing and financing activities — indirect method.',
         ],
 
         'sections' => [
@@ -38,11 +44,23 @@ return [
             'operating_result' => 'Result before interest, tax and zakat',
             'interest_tax_and_zakat' => 'Interest, tax and zakat',
             'net_profit' => 'Net profit',
+            'operating' => 'Cash flows from operating activities',
+            'investing' => 'Cash flows from investing activities',
+            'financing' => 'Cash flows from financing activities',
+            'net_change' => 'Net change in cash and cash equivalents',
+            'cash_opening' => 'Cash at beginning of period',
+            'cash_closing' => 'Cash at end of period',
         ],
 
         'lines' => [
             'brought_forward' => 'Retained earnings brought forward',
             'current_result' => 'Result for the current year',
+            'operating_result' => 'Result before interest, tax and zakat',
+            'depreciation' => 'Depreciation expense',
+            'loss_on_disposal' => 'Loss on disposal of assets',
+            'gain_on_disposal' => 'Gain on disposal of assets',
+            'interest_tax_zakat_paid' => 'Interest, tax and zakat paid',
+            'fixed_assets' => 'Property, plant and equipment',
         ],
     ],
 
