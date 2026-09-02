@@ -514,7 +514,29 @@ final class FinancialStatementsTest extends TestCase
         $depreciation = $operating->lines[1];
 
         $this->assertSame('2000.0000', $depreciation->amounts[0]);
-        $this->assertSame('2000.0000', $this->total($statement, 'operating'));
+        // Non-cash depreciation hits the P&L and is added back here, so a
+        // depreciation-only period nets to zero operating cash flow.
+        $this->assertSame('0.0000', $this->total($statement, 'operating'));
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    #[Test]
+    public function depreciation_raises_operating_cash_flow_above_the_operating_result(): void
+    {
+        $this->postSale('10000', '0', CarbonImmutable::parse('2026-03-15'));
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-05-01'),
+            lines: [
+                JournalLineData::debit($this->code('5500'), '2000'),
+                JournalLineData::credit($this->code('1220'), '2000'),
+            ],
+            description: 'Depreciation',
+        );
+
+        $statement = $this->cashFlow('2026-01-01', '2026-12-31');
+
+        $this->assertSame('8000.0000', $this->section($statement, 'operating')->lines[0]->amounts[0]);
+        $this->assertSame('10000.0000', $this->total($statement, 'operating'));
         $this->assertTrue($statement->isBalanced());
     }
 
