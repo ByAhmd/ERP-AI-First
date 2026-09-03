@@ -30,6 +30,7 @@ final readonly class StatementLine
         public ?string $code = null,
         public array $children = [],
         public bool $isDerived = false,
+        public ?StatementDrillTarget $drill = null,
     ) {}
 
     /**
@@ -42,14 +43,28 @@ final readonly class StatementLine
      *
      * @param  list<string>  $amounts
      */
-    public static function derived(string $name, array $amounts, int $depth = 0): self
-    {
+    public static function derived(
+        string $name,
+        array $amounts,
+        int $depth = 0,
+        ?StatementDrillTarget $drill = null,
+        ?string $accountId = null,
+        ?string $code = null,
+    ): self {
         return new self(
             name: $name,
             amounts: $amounts,
             depth: $depth,
+            accountId: $accountId,
+            code: $code,
             isDerived: true,
+            drill: $drill,
         );
+    }
+
+    public function isDrillable(): bool
+    {
+        return $this->drill?->isDrillable() ?? false;
     }
 
     /**

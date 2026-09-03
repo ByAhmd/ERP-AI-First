@@ -190,7 +190,13 @@ final class IncomeStatement
         array $readings,
         StatementOptions $options,
     ): StatementSection {
-        $built = $this->tree->build($accounts, $readings, $options->depth, $options->includeEmpty);
+        $built = $this->tree->build(
+            $accounts,
+            $readings,
+            $options->depth,
+            $options->includeEmpty,
+            DrillKind::PeriodMovements,
+        );
 
         return new StatementSection(
             key: $key,

@@ -167,7 +167,13 @@ final class StatementOfChangesInEquity
                 continue;
             }
 
-            $lines[] = StatementLine::derived($this->accountName($account), $amounts);
+            $lines[] = StatementLine::derived(
+                name: $this->accountName($account),
+                amounts: $amounts,
+                drill: StatementDrillTarget::account(DrillKind::BalanceChange, $account->getKey()),
+                accountId: $account->getKey(),
+                code: $account->code,
+            );
         }
 
         return $lines;

@@ -18,17 +18,36 @@
         {{ $line->name }}
     </th>
 
-    @foreach ($line->amounts as $amount)
-        <td @class(['erp-report__num', 'erp-statement__amount--negative' => $isNegative($amount)])>
+    @foreach ($line->amounts as $columnIndex => $amount)
+        @php
+            $canDrill = ($drillDown ?? false)
+                && $line->isDrillable()
+                && bccomp($amount, '0', 4) !== 0;
+        @endphp
+        <td
+            @class([
+                'erp-report__num',
+                'erp-statement__amount--negative' => $isNegative($amount),
+                'erp-statement__amount--drillable' => $canDrill,
+            ])
+            @if ($canDrill)
+                wire:click="openDrill({{ $sectionIndex }}, '{{ $linePath }}', {{ $columnIndex }})"
+                role="button"
+                tabindex="0"
+            @endif
+        >
             {{ $money($amount) }}
         </td>
     @endforeach
 </tr>
 
-@foreach ($line->children as $child)
+@foreach ($line->children as $childIndex => $child)
     @include('filament.pages.partials.statement-line', [
         'line' => $child,
         'money' => $money,
         'isNegative' => $isNegative,
+        'sectionIndex' => $sectionIndex,
+        'linePath' => $linePath.'.'.$childIndex,
+        'drillDown' => $drillDown ?? false,
     ])
 @endforeach

@@ -419,6 +419,20 @@
     background-color: #f7faf8;
 }
 
+.erp-statement__amount--drillable {
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2em;
+}
+
+.erp-statement__amount--drillable:hover {
+    color: var(--primary-600, #2563eb);
+}
+
+.dark .erp-statement__amount--drillable:hover {
+    color: var(--primary-400, #60a5fa);
+}
+
 /* Section headings — الأصول, الإيرادات — carry no figures of their own. */
 .erp-statement__heading > .erp-statement__label {
     padding-block: 0.75rem;

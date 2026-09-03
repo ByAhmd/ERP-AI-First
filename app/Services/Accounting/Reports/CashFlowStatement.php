@@ -67,23 +67,29 @@ final class CashFlowStatement
                 __('accounting.statements.lines.operating_result'),
                 $operatingResult,
             ),
-            StatementLine::derived(
-                __('accounting.statements.lines.depreciation'),
+            $this->derivedFromRole(
+                SystemAccount::DepreciationExpense,
                 $depreciation,
+                DrillKind::PeriodMovements,
+                __('accounting.statements.lines.depreciation'),
             ),
         ];
 
         if ($this->hasNonZero($lossOnDisposal)) {
-            $operatingLines[] = StatementLine::derived(
-                __('accounting.statements.lines.loss_on_disposal'),
+            $operatingLines[] = $this->derivedFromRole(
+                SystemAccount::LossOnAssetDisposal,
                 $lossOnDisposal,
+                DrillKind::PeriodMovements,
+                __('accounting.statements.lines.loss_on_disposal'),
             );
         }
 
         if ($this->hasNonZero($gainOnDisposal)) {
-            $operatingLines[] = StatementLine::derived(
-                __('accounting.statements.lines.gain_on_disposal'),
+            $operatingLines[] = $this->derivedFromRole(
+                SystemAccount::GainOnAssetDisposal,
                 $this->negate($gainOnDisposal),
+                DrillKind::PeriodMovements,
+                __('accounting.statements.lines.gain_on_disposal'),
             );
         }
 
@@ -167,7 +173,11 @@ final class CashFlowStatement
                 continue;
             }
 
-            $lines[] = StatementLine::derived($this->accountName($account), $amounts);
+            $lines[] = $this->derivedFromAccount(
+                $account,
+                $amounts,
+                DrillKind::BalanceChange,
+            );
         }
 
         return $lines;
@@ -189,6 +199,7 @@ final class CashFlowStatement
                 $lines[] = StatementLine::derived(
                     __('accounting.statements.lines.fixed_assets'),
                     $amounts,
+                    drill: StatementDrillTarget::subtree(DrillKind::BalanceChange, $fixedAssets->getKey()),
                 );
             }
         }
@@ -199,7 +210,11 @@ final class CashFlowStatement
             $amounts = $this->negate($this->balanceChanges($intangible, $periods, $options->filters));
 
             if ($options->includeEmpty || $this->hasNonZero($amounts)) {
-                $lines[] = StatementLine::derived($this->accountName($intangible), $amounts);
+                $lines[] = $this->derivedFromAccount(
+                    $intangible,
+                    $amounts,
+                    DrillKind::BalanceChange,
+                );
             }
         }
 
@@ -224,7 +239,11 @@ final class CashFlowStatement
                 continue;
             }
 
-            $lines[] = StatementLine::derived($this->accountName($account), $amounts);
+            $lines[] = $this->derivedFromAccount(
+                $account,
+                $amounts,
+                DrillKind::BalanceChange,
+            );
         }
 
         return $lines;
@@ -678,5 +697,43 @@ final class CashFlowStatement
         return app()->getLocale() === 'en' && filled($account->name_en)
             ? $account->name_en
             : $account->name;
+    }
+
+    /**
+     * @param  list<string>  $amounts
+     */
+    private function derivedFromAccount(Account $account, array $amounts, DrillKind $kind): StatementLine
+    {
+        return StatementLine::derived(
+            name: $this->accountName($account),
+            amounts: $amounts,
+            drill: StatementDrillTarget::account($kind, $account->getKey()),
+            accountId: $account->getKey(),
+            code: $account->code,
+        );
+    }
+
+    /**
+     * @param  list<string>  $amounts
+     */
+    private function derivedFromRole(
+        SystemAccount $role,
+        array $amounts,
+        DrillKind $kind,
+        string $name,
+    ): StatementLine {
+        $account = $this->registry->find($role);
+
+        if ($account === null) {
+            return StatementLine::derived($name, $amounts);
+        }
+
+        return StatementLine::derived(
+            name: $name,
+            amounts: $amounts,
+            drill: StatementDrillTarget::account($kind, $account->getKey()),
+            accountId: $account->getKey(),
+            code: $account->code,
+        );
     }
 }

@@ -298,12 +298,15 @@ built.
 - ~~**Cash flow statement** (`قائمة التدفقات النقدية`) — a fourth primary statement
   we have not scoped at all.~~ Done 2026-09-02 — indirect method, three
   activity sections, reconciliation to cash and bank accounts. Tracked gaps:
-  advanced analysis dimensions, drill-down (فحص), PDF/Excel export.
+  advanced analysis dimensions, ~~drill-down (فحص)~~, PDF/Excel export.
+  Drill-down done 2026-09-03 — toggle on all four statements; account rows,
+  CFS/SOCE balance-change lines, links to journal entries. Composite lines
+  (profit subtotals, interest paid) deferred.
 - ~~**Statement of changes in equity** (`قائمة التغيرات في حقوق الملكية`).~~
   Done 2026-09-03 — opening equity, net profit, per-account ledger movements,
   closing equity tied to the balance sheet. Tracked gaps: matrix layout by
   component column (Qoyod shows capital / retained / reserves side by side),
-  advanced analysis, drill-down, PDF/Excel export.
+  advanced analysis, ~~drill-down~~, PDF/Excel export.
 - **Budget-vs-actual** (`مقارنة المقدر بالفعلي لقائمة الدخل`) — already on the
   Phase 2 list as part of budgets.
 - **Aging reports**, receivable/payable summaries, and the sales/product margin

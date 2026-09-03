@@ -93,6 +93,7 @@ final class BalanceSheet
             $readings,
             $options->depth,
             $options->includeEmpty,
+            DrillKind::CumulativeBalance,
         );
 
         $brought = [];
@@ -179,6 +180,7 @@ final class BalanceSheet
             $readings,
             $options->depth,
             $options->includeEmpty,
+            DrillKind::CumulativeBalance,
         );
 
         return new StatementSection(

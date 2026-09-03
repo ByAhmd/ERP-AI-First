@@ -41,6 +41,7 @@ final class StatementTree
         array $balances,
         int $depth,
         bool $includeEmpty = false,
+        DrillKind $drillKind = DrillKind::PeriodMovements,
     ): array {
         $columns = count($balances);
 
@@ -90,7 +91,7 @@ final class StatementTree
         }
 
         foreach ($topLevel as $account) {
-            $line = $this->line($account, $childrenOf, $balances, $depth, 0, $includeEmpty);
+            $line = $this->line($account, $childrenOf, $balances, $depth, 0, $includeEmpty, $drillKind);
 
             if ($line !== null) {
                 $lines[] = $line;
@@ -113,6 +114,7 @@ final class StatementTree
         int $maxDepth,
         int $level,
         bool $includeEmpty,
+        DrillKind $drillKind,
     ): ?StatementLine {
         $amounts = $this->subtotal($account, $childrenOf, $balances);
 
@@ -122,7 +124,7 @@ final class StatementTree
         // figures still count, they simply stop being itemised.
         if ($level + 1 < $maxDepth) {
             foreach ($childrenOf[$account->getKey()] ?? [] as $child) {
-                $line = $this->line($child, $childrenOf, $balances, $maxDepth, $level + 1, $includeEmpty);
+                $line = $this->line($child, $childrenOf, $balances, $maxDepth, $level + 1, $includeEmpty, $drillKind);
 
                 if ($line !== null) {
                     $children[] = $line;
@@ -137,6 +139,7 @@ final class StatementTree
             accountId: $account->getKey(),
             code: $account->code,
             children: $children,
+            drill: $this->drillFor($account, $children, $drillKind),
         );
 
         // A chart of accounts is provisioned complete and a new company uses a
@@ -217,5 +220,17 @@ final class StatementTree
         return app()->getLocale() === 'en' && filled($account->name_en)
             ? $account->name_en
             : $account->name;
+    }
+
+    /**
+     * @param  list<StatementLine>  $children
+     */
+    private function drillFor(Account $account, array $children, DrillKind $kind): StatementDrillTarget
+    {
+        if ($children !== []) {
+            return StatementDrillTarget::subtree($kind, $account->getKey());
+        }
+
+        return StatementDrillTarget::account($kind, $account->getKey());
     }
 }

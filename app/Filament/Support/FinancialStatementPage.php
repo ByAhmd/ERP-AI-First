@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Support;
 
 use App\Enums\ComparisonInterval;
+use App\Filament\Resources\JournalEntries\JournalEntryResource;
 use App\Models\Branch;
+use App\Services\Accounting\Reports\DrillDownResult;
 use App\Services\Accounting\Reports\FinancialStatement;
+use App\Services\Accounting\Reports\StatementDrillDown;
+use App\Services\Accounting\Reports\StatementLine;
 use App\Services\Accounting\Reports\StatementOptions;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
@@ -43,6 +48,13 @@ abstract class FinancialStatementPage extends Page
      */
     public array $filters = [];
 
+    public bool $showDrillModal = false;
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    public ?array $drillPanel = null;
+
     public static function getNavigationGroup(): ?string
     {
         return __('accounting.reports_group');
@@ -75,6 +87,7 @@ abstract class FinancialStatementPage extends Page
             'comparisons' => 1,
             'depth' => StatementOptions::DEFAULT_DEPTH,
             'include_empty' => false,
+            'drill_down' => false,
         ]);
     }
 
@@ -129,13 +142,138 @@ abstract class FinancialStatementPage extends Page
                             ->label(__('accounting.statements.include_empty'))
                             ->helperText(__('accounting.statements.include_empty_hint'))
                             ->live(),
+
+                        Toggle::make('drill_down')
+                            ->label(__('accounting.statements.drill_down'))
+                            ->helperText(__('accounting.statements.drill_down_hint'))
+                            ->live(),
                     ])
                     ->columns(3),
             ]);
     }
 
+    public function openDrill(int $sectionIndex, string $linePath, int $columnIndex): void
+    {
+        if (! ($this->filters['drill_down'] ?? false)) {
+            return;
+        }
+
+        $statement = $this->getStatement();
+        $line = $this->findLine($statement, $sectionIndex, $linePath);
+
+        if ($line === null || ! $line->isDrillable()) {
+            return;
+        }
+
+        $amount = $line->amounts[$columnIndex] ?? '0';
+
+        if (bccomp($amount, '0', 4) === 0) {
+            return;
+        }
+
+        $period = $statement->periods[$columnIndex] ?? null;
+
+        if ($period === null || $line->drill === null) {
+            return;
+        }
+
+        $this->drillPanel = $this->serializeDrill(
+            app(StatementDrillDown::class)->execute(
+                target: $line->drill,
+                period: $period,
+                filters: $this->options()->filters,
+                lineTitle: $line->name,
+            ),
+        );
+        $this->showDrillModal = true;
+    }
+
+    public function closeDrill(): void
+    {
+        $this->showDrillModal = false;
+        $this->drillPanel = null;
+    }
+
+    public function journalEntryUrl(string $entryId): string
+    {
+        return JournalEntryResource::getUrl('view', [
+            'record' => $entryId,
+            'tenant' => Filament::getTenant(),
+        ]);
+    }
+
     protected function options(): StatementOptions
     {
         return StatementOptions::fromArray($this->filters);
+    }
+
+    private function findLine(FinancialStatement $statement, int $sectionIndex, string $path): ?StatementLine
+    {
+        $section = $statement->sections[$sectionIndex] ?? null;
+
+        if ($section === null) {
+            return null;
+        }
+
+        if ($path === '') {
+            return null;
+        }
+
+        /** @var list<int> $indices */
+        $indices = array_map(intval(...), explode('.', $path));
+        $line = null;
+        $lines = $section->lines;
+
+        foreach ($indices as $index) {
+            $line = $lines[$index] ?? null;
+
+            if ($line === null) {
+                return null;
+            }
+
+            $lines = $line->children;
+        }
+
+        return $line;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeDrill(DrillDownResult $result): array
+    {
+        $rows = $result->rows->map(static fn ($row): array => [
+            'entryId' => $row->entryId,
+            'number' => $row->number,
+            'date' => $row->date->toDateString(),
+            'description' => $row->description,
+            'reference' => $row->reference,
+            'debit' => $row->debit,
+            'credit' => $row->credit,
+            'accountLabel' => $row->accountLabel,
+            'runningBalance' => $row->runningBalance,
+        ])->all();
+
+        $hasAccountColumn = collect($rows)->contains(
+            static fn (array $row): bool => filled($row['accountLabel']),
+        );
+
+        $hasBalanceColumn = collect($rows)->contains(
+            static fn (array $row): bool => filled($row['runningBalance']),
+        );
+
+        return [
+            'title' => $result->title,
+            'periodLabel' => $result->periodLabel,
+            'kind' => $result->kind->value,
+            'isFiltered' => $result->isFiltered,
+            'opening' => $result->opening,
+            'closing' => $result->closing,
+            'periodDebit' => $result->periodDebit,
+            'periodCredit' => $result->periodCredit,
+            'rows' => $rows,
+            'hasAccountColumn' => $hasAccountColumn,
+            'hasBalanceColumn' => $hasBalanceColumn,
+        ];
     }
 }
