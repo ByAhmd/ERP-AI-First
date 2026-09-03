@@ -15,6 +15,7 @@ return [
         'empty_section' => 'No balances in this section.',
         'out_of_balance' => 'The statement does not balance. Out by :difference — assets do not equal liabilities plus equity.',
         'cash_flow_out_of_balance' => 'Closing cash does not match the cash and bank accounts by :difference.',
+        'equity_out_of_balance' => 'Computed equity does not match the balance sheet by :difference.',
         'filtered_notice' => 'Narrowed to a branch or dimension. An entry spanning more than one is split between them, so a filtered statement need not balance.',
 
         'balance_sheet' => [
@@ -30,6 +31,11 @@ return [
         'cash_flow' => [
             'title' => 'Cash Flow Statement',
             'subheading' => 'Cash from operating, investing and financing activities — indirect method.',
+        ],
+
+        'equity_changes' => [
+            'title' => 'Statement of Changes in Equity',
+            'subheading' => 'How equity moved from the start of the period to the end.',
         ],
 
         'sections' => [
@@ -50,6 +56,9 @@ return [
             'net_change' => 'Net change in cash and cash equivalents',
             'cash_opening' => 'Cash at beginning of period',
             'cash_closing' => 'Cash at end of period',
+            'equity_opening' => 'Equity at beginning of period',
+            'equity_movements' => 'Changes in equity',
+            'equity_closing' => 'Equity at end of period',
         ],
 
         'lines' => [
@@ -61,6 +70,8 @@ return [
             'gain_on_disposal' => 'Gain on disposal of assets',
             'interest_tax_zakat_paid' => 'Interest, tax and zakat paid',
             'fixed_assets' => 'Property, plant and equipment',
+            'equity_opening' => 'Equity at beginning of period',
+            'net_profit' => 'Net profit for the period',
         ],
     ],
 

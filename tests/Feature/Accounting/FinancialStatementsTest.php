@@ -18,6 +18,7 @@ use App\Services\Accounting\Reports\FinancialStatement;
 use App\Services\Accounting\Reports\IncomeStatement;
 use App\Services\Accounting\Reports\ReportFilters;
 use App\Services\Accounting\Reports\StatementLine;
+use App\Services\Accounting\Reports\StatementOfChangesInEquity;
 use App\Services\Accounting\Reports\StatementOptions;
 use App\Services\Accounting\Reports\StatementSection;
 use App\Support\Tenancy\CompanyContext;
@@ -603,6 +604,99 @@ final class FinancialStatementsTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // The statement of changes in equity
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function the_equity_statement_reconciles_opening_profit_and_closing(): void
+    {
+        $this->postSale('10000', '1500', CarbonImmutable::parse('2026-03-15'));
+        $this->postExpense('5300', '2000', CarbonImmutable::parse('2026-04-01'));
+
+        $statement = $this->equityChanges('2026-01-01', '2026-12-31');
+        $balance = $this->balanceSheet('2026-12-31');
+
+        $this->assertTrue($statement->isBalanced());
+        $this->assertSame('0.0000', $this->total($statement, 'equity_opening'));
+        $this->assertSame('8000.0000', $this->total($statement, 'equity_movements'));
+        $this->assertSame('8000.0000', $this->total($statement, 'equity_closing'));
+        $this->assertSame(
+            $this->total($balance, 'equity'),
+            $this->total($statement, 'equity_closing'),
+        );
+    }
+
+    #[Test]
+    public function capital_contributions_appear_on_the_equity_statement(): void
+    {
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-03-01'),
+            lines: [
+                JournalLineData::debit($this->code('1110'), '50000'),
+                JournalLineData::credit($this->code('3100'), '50000'),
+            ],
+            description: 'Capital injection',
+        );
+
+        $statement = $this->equityChanges('2026-01-01', '2026-12-31');
+
+        $this->assertSame('50000.0000', $this->total($statement, 'equity_movements'));
+        $this->assertSame('50000.0000', $this->total($statement, 'equity_closing'));
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    #[Test]
+    public function drawings_reduce_equity_on_the_statement(): void
+    {
+        $this->postSale('20000', '0', CarbonImmutable::parse('2026-03-15'));
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-04-01'),
+            lines: [
+                JournalLineData::debit($this->code('3400'), '3000'),
+                JournalLineData::credit($this->code('1110'), '3000'),
+            ],
+            description: 'Owner drawings',
+        );
+
+        $statement = $this->equityChanges('2026-01-01', '2026-12-31');
+
+        $this->assertSame('17000.0000', $this->total($statement, 'equity_movements'));
+        $this->assertSame('17000.0000', $this->total($statement, 'equity_closing'));
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    #[Test]
+    public function opening_plus_movements_equals_closing_equity(): void
+    {
+        $this->postSale('10000', '0', CarbonImmutable::parse('2026-02-01'));
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-03-01'),
+            lines: [
+                JournalLineData::debit($this->code('1110'), '25000'),
+                JournalLineData::credit($this->code('3100'), '25000'),
+            ],
+            description: 'Capital',
+        );
+        $this->poster->post(
+            date: CarbonImmutable::parse('2026-04-01'),
+            lines: [
+                JournalLineData::debit($this->code('3400'), '1000'),
+                JournalLineData::credit($this->code('1110'), '1000'),
+            ],
+            description: 'Drawings',
+        );
+
+        $statement = $this->equityChanges('2026-01-01', '2026-12-31');
+
+        $opening = $this->total($statement, 'equity_opening');
+        $movements = $this->total($statement, 'equity_movements');
+        $closing = $this->total($statement, 'equity_closing');
+
+        $this->assertSame(bcadd($opening, $movements, 4), $closing);
+        $this->assertTrue($statement->isBalanced());
+    }
+
+    // -----------------------------------------------------------------------
     // Fixtures
     // -----------------------------------------------------------------------
 
@@ -622,6 +716,14 @@ final class FinancialStatementsTest extends TestCase
     private function cashFlow(string $from, string $to): FinancialStatement
     {
         return app(CashFlowStatement::class)->build(
+            from: CarbonImmutable::parse($from),
+            to: CarbonImmutable::parse($to),
+        );
+    }
+
+    private function equityChanges(string $from, string $to): FinancialStatement
+    {
+        return app(StatementOfChangesInEquity::class)->build(
             from: CarbonImmutable::parse($from),
             to: CarbonImmutable::parse($to),
         );
