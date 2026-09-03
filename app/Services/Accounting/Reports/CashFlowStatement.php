@@ -66,6 +66,7 @@ final class CashFlowStatement
             StatementLine::derived(
                 __('accounting.statements.lines.operating_result'),
                 $operatingResult,
+                drill: StatementDrillTargets::operatingResult(),
             ),
             $this->derivedFromRole(
                 SystemAccount::DepreciationExpense,
@@ -101,6 +102,7 @@ final class CashFlowStatement
             $operatingLines[] = StatementLine::derived(
                 __('accounting.statements.lines.interest_tax_zakat_paid'),
                 $this->negate($interestTaxZakatPaid),
+                drill: StatementDrillTargets::interestTaxZakatPaidOnCashFlow($this->registry),
             );
         }
 
@@ -137,20 +139,23 @@ final class CashFlowStatement
                     key: 'operating',
                     lines: $operatingLines,
                     totals: $operatingTotal,
+                    drill: StatementDrillTarget::sectionBreakdown('operating'),
                 ),
                 new StatementSection(
                     key: 'investing',
                     lines: $investingLines,
                     totals: $investingTotal,
+                    drill: StatementDrillTarget::sectionBreakdown('investing'),
                 ),
                 new StatementSection(
                     key: 'financing',
                     lines: $financingLines,
                     totals: $financingTotal,
+                    drill: StatementDrillTarget::sectionBreakdown('financing'),
                 ),
-                StatementSection::summary('net_change', $netChange),
+                StatementSection::summary('net_change', $netChange, drill: StatementDrillTargets::netCashChange()),
                 StatementSection::summary('cash_opening', $cashOpening),
-                StatementSection::summary('cash_closing', $cashClosing, emphasised: true),
+                StatementSection::summary('cash_closing', $cashClosing, emphasised: true, drill: StatementDrillTargets::cashClosing()),
             ],
             isFiltered: $options->filters->narrowsLines(),
             imbalance: $options->filters->narrowsLines() ? null : $reconciliation,

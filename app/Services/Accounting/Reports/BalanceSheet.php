@@ -73,7 +73,12 @@ final class BalanceSheet
                 $assets,
                 $liabilities,
                 $equity,
-                StatementSection::summary('liabilities_and_equity', $liabilitiesAndEquity, emphasised: true),
+                StatementSection::summary(
+                    'liabilities_and_equity',
+                    $liabilitiesAndEquity,
+                    emphasised: true,
+                    drill: StatementDrillTargets::liabilitiesAndEquity(),
+                ),
             ],
             isFiltered: $options->filters->narrowsLines(),
             imbalance: $this->subtract($assets->totals, $liabilitiesAndEquity),
@@ -111,6 +116,7 @@ final class BalanceSheet
             key: 'equity',
             lines: $lines,
             totals: $this->add($built['totals'], $this->add($brought, $current)),
+            drill: StatementDrillTarget::sectionBreakdown('equity'),
         );
     }
 
@@ -187,6 +193,7 @@ final class BalanceSheet
             key: $key,
             lines: $built['lines'],
             totals: $built['totals'],
+            drill: StatementDrillTarget::sectionBreakdown($key),
         );
     }
 

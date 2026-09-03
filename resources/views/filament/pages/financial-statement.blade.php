@@ -77,8 +77,24 @@
                                 'erp-statement__summary--emphasised' => $section->isEmphasised,
                             ])>
                                 <th scope="row" class="erp-statement__label">{{ $section->title() }}</th>
-                                @foreach ($section->totals as $amount)
-                                    <td @class(['erp-report__num', 'erp-statement__amount--negative' => $isNegative($amount)])>
+                                @foreach ($section->totals as $columnIndex => $amount)
+                                    @php
+                                        $canDrill = $drillDown
+                                            && $section->isDrillable()
+                                            && bccomp($amount, '0', 4) !== 0;
+                                    @endphp
+                                    <td
+                                        @class([
+                                            'erp-report__num',
+                                            'erp-statement__amount--negative' => $isNegative($amount),
+                                            'erp-statement__amount--drillable' => $canDrill,
+                                        ])
+                                        @if ($canDrill)
+                                            wire:click="openDrillSection({{ $sectionIndex }}, {{ $columnIndex }}, 'summary')"
+                                            role="button"
+                                            tabindex="0"
+                                        @endif
+                                    >
                                         {{ $money($amount) }}
                                     </td>
                                 @endforeach
@@ -109,8 +125,24 @@
 
                             <tr class="erp-statement__total">
                                 <th scope="row" class="erp-statement__label">{{ $section->totalLabel() }}</th>
-                                @foreach ($section->totals as $amount)
-                                    <td @class(['erp-report__num', 'erp-statement__amount--negative' => $isNegative($amount)])>
+                                @foreach ($section->totals as $columnIndex => $amount)
+                                    @php
+                                        $canDrill = $drillDown
+                                            && $section->isDrillable()
+                                            && bccomp($amount, '0', 4) !== 0;
+                                    @endphp
+                                    <td
+                                        @class([
+                                            'erp-report__num',
+                                            'erp-statement__amount--negative' => $isNegative($amount),
+                                            'erp-statement__amount--drillable' => $canDrill,
+                                        ])
+                                        @if ($canDrill)
+                                            wire:click="openDrillSection({{ $sectionIndex }}, {{ $columnIndex }}, 'total')"
+                                            role="button"
+                                            tabindex="0"
+                                        @endif
+                                    >
                                         {{ $money($amount) }}
                                     </td>
                                 @endforeach
@@ -159,6 +191,42 @@
                 </div>
             @endif
 
+            @if ($drillPanel['isBreakdown'] ?? false)
+                <div class="erp-report__scroll">
+                    <table class="erp-report__table">
+                        <thead>
+                            <tr>
+                                <th>{{ __('accounting.statements.drill_component') }}</th>
+                                <th class="erp-report__num">{{ __('accounting.statements.drill_effect') }}</th>
+                                <th class="erp-report__num">{{ __('accounting.statements.drill_amount') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($drillPanel['breakdownRows'] as $row)
+                                <tr class="erp-report__row">
+                                    <td>{{ $row['label'] }}</td>
+                                    <td class="erp-report__num">
+                                        {{ $row['sign'] >= 0 ? __('accounting.statements.drill_sign_add') : __('accounting.statements.drill_sign_subtract') }}
+                                    </td>
+                                    <td @class(['erp-report__num', 'erp-statement__amount--negative' => bccomp($row['signedAmount'], '0', 4) < 0])>
+                                        {{ $money($row['signedAmount']) }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        @if (filled($drillPanel['total']))
+                            <tfoot>
+                                <tr class="erp-report__row--total">
+                                    <td colspan="2">{{ __('accounting.statements.drill_breakdown_total') }}</td>
+                                    <td @class(['erp-report__num', 'erp-statement__amount--negative' => bccomp($drillPanel['total'], '0', 4) < 0])>
+                                        {{ $money($drillPanel['total']) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        @endif
+                    </table>
+                </div>
+            @else
             <div class="erp-report__scroll">
                 <table class="erp-report__table">
                     <thead>
@@ -224,6 +292,7 @@
                     @endif
                 </table>
             </div>
+            @endif
         @endif
     </x-filament::modal>
 </x-filament-panels::page>

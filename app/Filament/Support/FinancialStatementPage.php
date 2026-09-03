@@ -8,10 +8,14 @@ use App\Enums\ComparisonInterval;
 use App\Filament\Resources\JournalEntries\JournalEntryResource;
 use App\Models\Branch;
 use App\Services\Accounting\Reports\DrillDownResult;
+use App\Services\Accounting\Reports\DrillKind;
 use App\Services\Accounting\Reports\FinancialStatement;
+use App\Services\Accounting\Reports\FinancialStatementDrillContext;
 use App\Services\Accounting\Reports\StatementDrillDown;
+use App\Services\Accounting\Reports\StatementDrillTarget;
 use App\Services\Accounting\Reports\StatementLine;
 use App\Services\Accounting\Reports\StatementOptions;
+use Carbon\CarbonImmutable;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -114,9 +118,6 @@ abstract class FinancialStatementPage extends Page
                                 range(1, ComparisonInterval::Month->maximumComparisons()),
                             ))
                             ->selectablePlaceholder(false)
-                            // Meaningless without something to compare against,
-                            // and a count that does nothing invites the reader
-                            // to conclude the report is broken.
                             ->visible(fn (): bool => ($this->filters['interval'] ?? null) !== null
                                 && $this->filters['interval'] !== ComparisonInterval::None->value)
                             ->live(),
@@ -165,27 +166,39 @@ abstract class FinancialStatementPage extends Page
             return;
         }
 
-        $amount = $line->amounts[$columnIndex] ?? '0';
-
-        if (bccomp($amount, '0', 4) === 0) {
+        if (! $this->amountIsDrillable($line->amounts[$columnIndex] ?? '0')) {
             return;
         }
 
-        $period = $statement->periods[$columnIndex] ?? null;
+        $this->runDrill($line->drill, $columnIndex, $line->name);
+    }
 
-        if ($period === null || $line->drill === null) {
+    public function openDrillSection(int $sectionIndex, int $columnIndex, string $target = 'total'): void
+    {
+        if (! ($this->filters['drill_down'] ?? false)) {
             return;
         }
 
-        $this->drillPanel = $this->serializeDrill(
-            app(StatementDrillDown::class)->execute(
-                target: $line->drill,
-                period: $period,
-                filters: $this->options()->filters,
-                lineTitle: $line->name,
-            ),
-        );
-        $this->showDrillModal = true;
+        $statement = $this->getStatement();
+        $section = $statement->sections[$sectionIndex] ?? null;
+
+        if ($section === null || ! $section->isDrillable()) {
+            return;
+        }
+
+        $amount = $target === 'summary'
+            ? ($section->totals[$columnIndex] ?? '0')
+            : ($section->totals[$columnIndex] ?? '0');
+
+        if (! $this->amountIsDrillable($amount)) {
+            return;
+        }
+
+        $title = $target === 'summary'
+            ? $section->title()
+            : $section->totalLabel();
+
+        $this->runDrill($section->drill, $columnIndex, $title);
     }
 
     public function closeDrill(): void
@@ -207,15 +220,67 @@ abstract class FinancialStatementPage extends Page
         return StatementOptions::fromArray($this->filters);
     }
 
+    protected function drillFrom(): ?CarbonImmutable
+    {
+        $from = $this->filters['from'] ?? null;
+
+        return blank($from) ? null : CarbonImmutable::parse($from);
+    }
+
+    protected function drillTo(): ?CarbonImmutable
+    {
+        $to = $this->filters['to'] ?? null;
+
+        return blank($to) ? null : CarbonImmutable::parse($to);
+    }
+
+    protected function drillAsOf(): ?CarbonImmutable
+    {
+        $asOf = $this->filters['as_of'] ?? null;
+
+        return blank($asOf) ? null : CarbonImmutable::parse($asOf);
+    }
+
+    private function runDrill(?StatementDrillTarget $target, int $columnIndex, string $title): void
+    {
+        $statement = $this->getStatement();
+        $period = $statement->periods[$columnIndex] ?? null;
+
+        if ($period === null || $target === null) {
+            return;
+        }
+
+        $context = new FinancialStatementDrillContext(
+            statement: $statement,
+            columnIndex: $columnIndex,
+            period: $period,
+            filters: $this->options()->filters,
+            options: $this->options(),
+            from: $this->drillFrom(),
+            to: $this->drillTo(),
+            asOf: $this->drillAsOf(),
+        );
+
+        $this->drillPanel = $this->serializeDrill(
+            app(StatementDrillDown::class)->execute(
+                target: $target,
+                context: $context,
+                lineTitle: $title,
+            ),
+        );
+        $this->showDrillModal = true;
+    }
+
+    private function amountIsDrillable(string $amount): bool
+    {
+        return bccomp($amount, '0', 4) !== 0;
+    }
+
     private function findLine(FinancialStatement $statement, int $sectionIndex, string $path): ?StatementLine
     {
         $section = $statement->sections[$sectionIndex] ?? null;
 
-        if ($section === null) {
-            return null;
-        }
-
-        if ($path === '') {
+        if ($section === null || $path === '') {
             return null;
         }
 
@@ -254,6 +319,12 @@ abstract class FinancialStatementPage extends Page
             'runningBalance' => $row->runningBalance,
         ])->all();
 
+        $breakdownRows = $result->breakdownRows->map(static fn ($row): array => [
+            'label' => $row->label,
+            'signedAmount' => $row->signedAmount,
+            'sign' => $row->sign,
+        ])->all();
+
         $hasAccountColumn = collect($rows)->contains(
             static fn (array $row): bool => filled($row['accountLabel']),
         );
@@ -262,16 +333,21 @@ abstract class FinancialStatementPage extends Page
             static fn (array $row): bool => filled($row['runningBalance']),
         );
 
+        $isBreakdown = in_array($result->kind, [DrillKind::Composite, DrillKind::SectionBreakdown], true);
+
         return [
             'title' => $result->title,
             'periodLabel' => $result->periodLabel,
             'kind' => $result->kind->value,
             'isFiltered' => $result->isFiltered,
+            'isBreakdown' => $isBreakdown,
             'opening' => $result->opening,
             'closing' => $result->closing,
             'periodDebit' => $result->periodDebit,
             'periodCredit' => $result->periodCredit,
+            'total' => $result->total,
             'rows' => $rows,
+            'breakdownRows' => $breakdownRows,
             'hasAccountColumn' => $hasAccountColumn,
             'hasBalanceColumn' => $hasBalanceColumn,
         ];

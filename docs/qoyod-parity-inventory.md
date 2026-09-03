@@ -300,8 +300,10 @@ built.
   activity sections, reconciliation to cash and bank accounts. Tracked gaps:
   advanced analysis dimensions, ~~drill-down (فحص)~~, PDF/Excel export.
   Drill-down done 2026-09-03 — toggle on all four statements; account rows,
-  CFS/SOCE balance-change lines, links to journal entries. Composite lines
-  (profit subtotals, interest paid) deferred.
+  CFS/SOCE balance-change lines, links to journal entries. Composite breakdown
+  done 2026-09-03 — gross/operating/net profit, interest paid, section totals.
+  Deferred: nested click-through from breakdown rows, BS derived equity lines,
+  PDF/Excel export.
 - ~~**Statement of changes in equity** (`قائمة التغيرات في حقوق الملكية`).~~
   Done 2026-09-03 — opening equity, net profit, per-account ledger movements,
   closing equity tied to the balance sheet. Tracked gaps: matrix layout by

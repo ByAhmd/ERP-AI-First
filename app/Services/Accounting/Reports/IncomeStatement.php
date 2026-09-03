@@ -113,11 +113,11 @@ final class IncomeStatement
             sections: [
                 $revenueSection,
                 $costOfSalesSection,
-                StatementSection::summary('gross_profit', $grossProfit),
+                StatementSection::summary('gross_profit', $grossProfit, drill: StatementDrillTargets::grossProfit()),
                 $operatingSection,
-                StatementSection::summary('operating_result', $operatingResult),
+                StatementSection::summary('operating_result', $operatingResult, drill: StatementDrillTargets::operatingResult()),
                 $belowTheLineSection,
-                StatementSection::summary('net_profit', $netProfit, emphasised: true),
+                StatementSection::summary('net_profit', $netProfit, emphasised: true, drill: StatementDrillTargets::netProfit()),
             ],
             isFiltered: $options->filters->narrowsLines(),
         );
@@ -202,6 +202,7 @@ final class IncomeStatement
             key: $key,
             lines: $built['lines'],
             totals: $built['totals'],
+            drill: StatementDrillTarget::sectionBreakdown($key),
         );
     }
 

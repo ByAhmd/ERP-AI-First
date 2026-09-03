@@ -14,12 +14,15 @@ namespace App\Services\Accounting\Reports;
 final readonly class StatementDrillTarget
 {
     /**
-     * @param  list<string>  $accountIds  Empty means non-drillable at execution time.
+     * @param  list<string>  $accountIds
+     * @param  list<StatementDrillPart>  $parts
      */
     public function __construct(
         public DrillKind $kind,
         public array $accountIds = [],
         public bool $subtree = false,
+        public array $parts = [],
+        public ?string $sectionKey = null,
     ) {}
 
     public static function account(DrillKind $kind, string $accountId): self
@@ -32,8 +35,25 @@ final readonly class StatementDrillTarget
         return new self(kind: $kind, accountIds: [$rootAccountId], subtree: true);
     }
 
+    /**
+     * @param  list<StatementDrillPart>  $parts
+     */
+    public static function composite(array $parts): self
+    {
+        return new self(kind: DrillKind::Composite, parts: $parts);
+    }
+
+    public static function sectionBreakdown(string $sectionKey): self
+    {
+        return new self(kind: DrillKind::SectionBreakdown, sectionKey: $sectionKey);
+    }
+
     public function isDrillable(): bool
     {
-        return $this->accountIds !== [];
+        return match ($this->kind) {
+            DrillKind::Composite => $this->parts !== [],
+            DrillKind::SectionBreakdown => $this->sectionKey !== null,
+            default => $this->accountIds !== [],
+        };
     }
 }

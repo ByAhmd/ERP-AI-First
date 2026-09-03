@@ -26,6 +26,7 @@ final readonly class StatementSection
         public array $totals,
         public bool $isSummary = false,
         public bool $isEmphasised = false,
+        public ?StatementDrillTarget $drill = null,
     ) {}
 
     /**
@@ -33,14 +34,19 @@ final readonly class StatementSection
      *
      * @param  list<string>  $totals
      */
-    public static function summary(string $key, array $totals, bool $emphasised = false): self
-    {
+    public static function summary(
+        string $key,
+        array $totals,
+        bool $emphasised = false,
+        ?StatementDrillTarget $drill = null,
+    ): self {
         return new self(
             key: $key,
             lines: [],
             totals: $totals,
             isSummary: true,
             isEmphasised: $emphasised,
+            drill: $drill,
         );
     }
 
@@ -52,5 +58,10 @@ final readonly class StatementSection
     public function totalLabel(): string
     {
         return __('accounting.statements.total', ['section' => $this->title()]);
+    }
+
+    public function isDrillable(): bool
+    {
+        return $this->drill?->isDrillable() ?? false;
     }
 }

@@ -57,7 +57,11 @@ final class StatementOfChangesInEquity
             : $this->lineAmounts($accountLines);
 
         $lines = [
-            StatementLine::derived(__('accounting.statements.lines.net_profit'), $netProfit),
+            StatementLine::derived(
+                __('accounting.statements.lines.net_profit'),
+                $netProfit,
+                drill: StatementDrillTargets::netProfit(),
+            ),
             ...$accountLines,
         ];
 
@@ -73,8 +77,9 @@ final class StatementOfChangesInEquity
                     key: 'equity_movements',
                     lines: $lines,
                     totals: $movements,
+                    drill: StatementDrillTargets::equityMovements(),
                 ),
-                StatementSection::summary('equity_closing', $closing, emphasised: true),
+                StatementSection::summary('equity_closing', $closing, emphasised: true, drill: StatementDrillTargets::equityClosing()),
             ],
             isFiltered: $options->filters->narrowsLines(),
             imbalance: $options->filters->narrowsLines() ? null : $reconciliation,

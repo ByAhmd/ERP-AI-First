@@ -10,11 +10,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Resolves a statement row's drill target into ledger movements.
+ * Resolves a statement row's drill target into ledger movements or a breakdown.
  *
- * Every path reuses the same filters and date window the report column used, so
- * the detail a reader sees explains the figure they clicked rather than a
- * neighbouring period or an unfiltered total.
+ * Composite paths read figures from the statement that was already built for the
+ * same filters and column, so the panel explains a number rather than reaching
+ * for a second calculation path.
  */
 final class StatementDrillDown
 {
@@ -25,39 +25,297 @@ final class StatementDrillDown
     public function __construct(
         private readonly GeneralLedger $ledger,
         private readonly LedgerBalances $balances,
+        private readonly IncomeStatement $incomeStatement,
     ) {}
 
     public function execute(
         StatementDrillTarget $target,
-        StatementPeriod $period,
-        ReportFilters $filters,
+        FinancialStatementDrillContext $context,
         string $lineTitle,
     ): DrillDownResult {
-        $accounts = $this->resolveAccounts($target);
-
         return match ($target->kind) {
             DrillKind::PeriodMovements => $this->periodMovements(
-                accounts: $accounts,
-                range: $period->range,
-                filters: $filters,
+                accounts: $this->resolveAccounts($target),
+                range: $context->period->range,
+                filters: $context->filters,
                 title: $lineTitle,
-                periodLabel: $period->label,
+                periodLabel: $context->period->label,
             ),
             DrillKind::CumulativeBalance => $this->cumulativeBalance(
-                accounts: $accounts,
-                range: $period->range,
-                filters: $filters,
+                accounts: $this->resolveAccounts($target),
+                range: $context->period->range,
+                filters: $context->filters,
                 title: $lineTitle,
-                periodLabel: $period->label,
+                periodLabel: $context->period->label,
             ),
             DrillKind::BalanceChange => $this->balanceChange(
-                accounts: $accounts,
-                range: $period->range,
-                filters: $filters,
+                accounts: $this->resolveAccounts($target),
+                range: $context->period->range,
+                filters: $context->filters,
                 title: $lineTitle,
-                periodLabel: $period->label,
+                periodLabel: $context->period->label,
+            ),
+            DrillKind::Composite => $this->composite(
+                target: $target,
+                context: $context,
+                title: $lineTitle,
+            ),
+            DrillKind::SectionBreakdown => $this->sectionBreakdown(
+                context: $context,
+                title: $lineTitle,
+                sectionKey: $target->sectionKey ?? '',
             ),
         };
+    }
+
+    private function composite(
+        StatementDrillTarget $target,
+        FinancialStatementDrillContext $context,
+        string $title,
+    ): DrillDownResult {
+        $rows = collect();
+        $total = $this->zero();
+
+        foreach ($target->parts as $part) {
+            $raw = $this->resolveReferenceAmount($part->reference, $context);
+            $signed = $this->applySign($raw, $part->sign);
+
+            $rows->push(new DrillBreakdownRow(
+                label: $part->label,
+                signedAmount: $signed,
+                sign: $part->sign,
+                nestedTarget: $this->nestedTargetFor($part->reference),
+            ));
+
+            $total = bcadd($total, $signed, self::SCALE);
+        }
+
+        return new DrillDownResult(
+            title: $title,
+            periodLabel: $context->period->label,
+            kind: DrillKind::Composite,
+            rows: collect(),
+            filters: $context->filters,
+            isFiltered: $context->filters->narrowsLines(),
+            breakdownRows: $rows,
+            total: $total,
+        );
+    }
+
+    private function sectionBreakdown(
+        FinancialStatementDrillContext $context,
+        string $title,
+        string $sectionKey,
+    ): DrillDownResult {
+        $section = $this->findSection($context->statement, $sectionKey)
+            ?? $this->findSection($this->incomeStatementFor($context), $sectionKey);
+        $rows = collect();
+        $total = $this->zero();
+
+        if ($section !== null) {
+            foreach ($section->lines as $line) {
+                $amount = $line->amounts[$context->columnIndex] ?? $this->zero();
+
+                if (bccomp($amount, '0', self::SCALE) === 0) {
+                    continue;
+                }
+
+                $rows->push(new DrillBreakdownRow(
+                    label: $line->name,
+                    signedAmount: $amount,
+                    sign: 1,
+                    nestedTarget: $line->drill,
+                ));
+
+                $total = bcadd($total, $amount, self::SCALE);
+            }
+        }
+
+        return new DrillDownResult(
+            title: $title,
+            periodLabel: $context->period->label,
+            kind: DrillKind::SectionBreakdown,
+            rows: collect(),
+            filters: $context->filters,
+            isFiltered: $context->filters->narrowsLines(),
+            breakdownRows: $rows,
+            total: $total,
+        );
+    }
+
+    private function resolveReferenceAmount(
+        StatementDrillReference $reference,
+        FinancialStatementDrillContext $context,
+    ): string {
+        if ($reference->sectionKey !== null) {
+            return $this->sectionTotal($context->statement, $reference->sectionKey, $context->columnIndex);
+        }
+
+        if ($reference->summaryKey !== null) {
+            return $this->summaryTotal($context->statement, $reference->summaryKey, $context->columnIndex);
+        }
+
+        if ($reference->incomeSectionKey !== null) {
+            return $this->sectionTotal(
+                $this->incomeStatementFor($context),
+                $reference->incomeSectionKey,
+                $context->columnIndex,
+            );
+        }
+
+        if ($reference->incomeSummaryKey !== null) {
+            return $this->summaryTotal(
+                $this->incomeStatementFor($context),
+                $reference->incomeSummaryKey,
+                $context->columnIndex,
+            );
+        }
+
+        if ($reference->ledger !== null) {
+            return $this->ledgerAmount($reference->ledger, $context);
+        }
+
+        return $this->zero();
+    }
+
+    private function nestedTargetFor(StatementDrillReference $reference): ?StatementDrillTarget
+    {
+        if ($reference->ledger !== null) {
+            return $reference->ledger;
+        }
+
+        if ($reference->incomeSummaryKey !== null) {
+            return match ($reference->incomeSummaryKey) {
+                'gross_profit' => StatementDrillTargets::grossProfit(),
+                'operating_result' => StatementDrillTargets::operatingResult(),
+                'net_profit' => StatementDrillTargets::netProfit(),
+                default => null,
+            };
+        }
+
+        if ($reference->incomeSectionKey !== null) {
+            return StatementDrillTarget::sectionBreakdown($reference->incomeSectionKey);
+        }
+
+        if ($reference->sectionKey !== null) {
+            return StatementDrillTarget::sectionBreakdown($reference->sectionKey);
+        }
+
+        if ($reference->summaryKey !== null) {
+            return match ($reference->summaryKey) {
+                'gross_profit' => StatementDrillTargets::grossProfit(),
+                'operating_result' => StatementDrillTargets::operatingResult(),
+                'net_profit' => StatementDrillTargets::netProfit(),
+                'net_change' => StatementDrillTargets::netCashChange(),
+                'cash_closing' => StatementDrillTargets::cashClosing(),
+                'liabilities_and_equity' => StatementDrillTargets::liabilitiesAndEquity(),
+                'equity_closing' => StatementDrillTargets::equityClosing(),
+                default => null,
+            };
+        }
+
+        return null;
+    }
+
+    private function incomeStatementFor(FinancialStatementDrillContext $context): FinancialStatement
+    {
+        if ($context->from === null || $context->to === null) {
+            return $context->statement;
+        }
+
+        return $this->incomeStatement->build(
+            from: $context->from,
+            to: $context->to,
+            options: $context->options,
+        );
+    }
+
+    private function ledgerAmount(
+        StatementDrillTarget $target,
+        FinancialStatementDrillContext $context,
+    ): string {
+        $accounts = $this->resolveAccounts($target);
+        $range = $context->period->range;
+
+        return match ($target->kind) {
+            DrillKind::PeriodMovements => $this->periodMovementTotal($accounts, $range, $context->filters),
+            DrillKind::BalanceChange => $this->balanceChangeTotal($accounts, $range, $context->filters),
+            DrillKind::CumulativeBalance => $this->signedTotal($accounts, DateRange::upTo($range->end), $context->filters),
+            default => $this->zero(),
+        };
+    }
+
+    /**
+     * @param  Collection<int, Account>  $accounts
+     */
+    private function periodMovementTotal(Collection $accounts, DateRange $range, ReportFilters $filters): string
+    {
+        if ($accounts->isEmpty() || $range->isEmpty()) {
+            return $this->zero();
+        }
+
+        $totals = $this->balances->perAccount($range, $filters);
+        $sum = $this->zero();
+
+        foreach ($accounts as $account) {
+            $id = $account->getKey();
+            $debit = $totals[$id]['debit'] ?? '0';
+            $credit = $totals[$id]['credit'] ?? '0';
+
+            $movement = $account->normalBalance() === NormalBalance::Debit
+                ? bcsub($debit, $credit, self::SCALE)
+                : bcsub($credit, $debit, self::SCALE);
+
+            $sum = bcadd($sum, $movement, self::SCALE);
+        }
+
+        return $sum;
+    }
+
+    /**
+     * @param  Collection<int, Account>  $accounts
+     */
+    private function balanceChangeTotal(Collection $accounts, DateRange $range, ReportFilters $filters): string
+    {
+        $start = $range->start;
+
+        if ($start === null || $accounts->isEmpty()) {
+            return $this->zero();
+        }
+
+        $opening = $this->signedTotal($accounts, DateRange::endingBefore($start), $filters);
+        $closing = $this->signedTotal($accounts, DateRange::upTo($range->end), $filters);
+
+        return bcsub($closing, $opening, self::SCALE);
+    }
+
+    private function sectionTotal(FinancialStatement $statement, string $key, int $columnIndex): string
+    {
+        $section = $this->findSection($statement, $key);
+
+        return $section?->totals[$columnIndex] ?? $this->zero();
+    }
+
+    private function summaryTotal(FinancialStatement $statement, string $key, int $columnIndex): string
+    {
+        foreach ($statement->sections as $section) {
+            if ($section->isSummary && $section->key === $key) {
+                return $section->totals[$columnIndex] ?? $this->zero();
+            }
+        }
+
+        return $this->zero();
+    }
+
+    private function findSection(FinancialStatement $statement, string $key): ?StatementSection
+    {
+        foreach ($statement->sections as $section) {
+            if ($section->key === $key && ! $section->isSummary) {
+                return $section;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -114,6 +372,7 @@ final class StatementDrillDown
             rows: $rows,
             filters: $filters,
             isFiltered: $filters->narrowsLines(),
+            breakdownRows: collect(),
             periodDebit: $debit,
             periodCredit: $credit,
         );
@@ -139,6 +398,7 @@ final class StatementDrillDown
             rows: $rows,
             filters: $filters,
             isFiltered: $filters->narrowsLines(),
+            breakdownRows: collect(),
             closing: $this->signedTotal($accounts, DateRange::upTo($to), $filters),
         );
     }
@@ -170,6 +430,7 @@ final class StatementDrillDown
             rows: $rows,
             filters: $filters,
             isFiltered: $filters->narrowsLines(),
+            breakdownRows: collect(),
             opening: $this->signedTotal($accounts, DateRange::endingBefore($start), $filters),
             closing: $this->signedTotal($accounts, DateRange::upTo($range->end), $filters),
             periodDebit: $debit,
@@ -254,6 +515,17 @@ final class StatementDrillDown
         }
 
         return [$debit, $credit];
+    }
+
+    private function applySign(string $amount, int $sign): string
+    {
+        if ($sign >= 0) {
+            return $amount;
+        }
+
+        return bccomp($amount, '0', self::SCALE) === 0
+            ? $amount
+            : bcsub('0', $amount, self::SCALE);
     }
 
     private function zero(): string
