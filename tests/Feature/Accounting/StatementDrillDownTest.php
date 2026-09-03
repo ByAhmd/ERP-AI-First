@@ -12,6 +12,7 @@ use App\Services\Accounting\AccountRegistry;
 use App\Services\Accounting\Data\JournalLineData;
 use App\Services\Accounting\FiscalCalendar;
 use App\Services\Accounting\JournalPoster;
+use App\Services\Accounting\Reports\BalanceSheet;
 use App\Services\Accounting\Reports\CashFlowStatement;
 use App\Services\Accounting\Reports\DrillDownResult;
 use App\Services\Accounting\Reports\DrillKind;
@@ -23,8 +24,10 @@ use App\Services\Accounting\Reports\StatementDrillDown;
 use App\Services\Accounting\Reports\StatementDrillTarget;
 use App\Services\Accounting\Reports\StatementDrillTargets;
 use App\Services\Accounting\Reports\StatementLine;
+use App\Services\Accounting\Reports\StatementOfChangesInEquity;
 use App\Services\Accounting\Reports\StatementOptions;
 use App\Services\Accounting\Reports\StatementPeriod;
+use App\Services\Accounting\Reports\StatementSection;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -186,6 +189,129 @@ final class StatementDrillDownTest extends TestCase
         );
 
         $this->assertGreaterThanOrEqual(1, $result->rows->count());
+    }
+
+    #[Test]
+    public function folded_parent_account_drill_matches_the_displayed_subtotal(): void
+    {
+        $this->postSale('10000', '1500', CarbonImmutable::parse('2026-03-15'));
+
+        $statement = app(BalanceSheet::class)->build(
+            asOf: CarbonImmutable::parse('2026-06-30'),
+            options: new StatementOptions(depth: 1),
+        );
+
+        $currentAssets = Account::query()->where('code', '1100')->firstOrFail();
+        $line = $this->findLineByAccountId($this->section($statement, 'assets')->lines, $currentAssets->getKey());
+
+        $this->assertNotNull($line);
+        $this->assertSame([], $line->children);
+
+        $result = $this->drill($line->drill, $statement, 0, $line->name, asOf: '2026-06-30');
+
+        $this->assertSame(DrillKind::CumulativeBalance, $result->kind);
+        $this->assertSame($line->amounts[0], $result->closing);
+    }
+
+    #[Test]
+    public function cash_opening_breakdown_matches_the_summary_line(): void
+    {
+        $this->postSale('8000', '1200', CarbonImmutable::parse('2026-01-15'));
+
+        $statement = app(CashFlowStatement::class)->build(
+            from: CarbonImmutable::parse('2026-02-01'),
+            to: CarbonImmutable::parse('2026-06-30'),
+        );
+
+        $summary = collect($statement->sections)->first(fn ($s) => $s->key === 'cash_opening');
+        $this->assertNotNull($summary);
+
+        $result = $this->drill(
+            StatementDrillTargets::cashOpening(),
+            $statement,
+            0,
+            $summary->title(),
+            from: '2026-02-01',
+            to: '2026-06-30',
+        );
+
+        $this->assertSame(DrillKind::Composite, $result->kind);
+        $this->assertSame($summary->totals[0], $result->total);
+        $this->assertGreaterThanOrEqual(1, $result->breakdownRows->count());
+    }
+
+    #[Test]
+    public function equity_opening_breakdown_matches_the_summary_line(): void
+    {
+        $this->postSale('10000', '1500', CarbonImmutable::parse('2026-01-20'));
+
+        $statement = app(StatementOfChangesInEquity::class)->build(
+            from: CarbonImmutable::parse('2026-02-01'),
+            to: CarbonImmutable::parse('2026-06-30'),
+        );
+
+        $summary = collect($statement->sections)->first(fn ($s) => $s->key === 'equity_opening');
+        $this->assertNotNull($summary);
+
+        $result = $this->drill(
+            StatementDrillTargets::equityOpening(),
+            $statement,
+            0,
+            $summary->title(),
+            from: '2026-02-01',
+            to: '2026-06-30',
+        );
+
+        $this->assertSame(DrillKind::SectionBreakdown, $result->kind);
+        $this->assertSame($summary->totals[0], $result->total);
+    }
+
+    #[Test]
+    public function balance_sheet_derived_result_drills_match_the_equity_lines(): void
+    {
+        $this->postSale('5000', '750', CarbonImmutable::parse('2025-06-15'));
+        $this->postSale('10000', '1500', CarbonImmutable::parse('2026-03-15'));
+        $this->postExpense('5300', '4000', CarbonImmutable::parse('2026-04-01'));
+
+        $statement = app(BalanceSheet::class)->build(
+            asOf: CarbonImmutable::parse('2026-06-30'),
+        );
+
+        $equity = $this->section($statement, 'equity');
+        $broughtLine = $equity->lines[count($equity->lines) - 2];
+        $currentLine = $equity->lines[count($equity->lines) - 1];
+
+        $broughtResult = $this->drill(
+            StatementDrillTargets::broughtForward(),
+            $statement,
+            0,
+            $broughtLine->name,
+            asOf: '2026-06-30',
+        );
+
+        $currentResult = $this->drill(
+            StatementDrillTargets::currentResult(),
+            $statement,
+            0,
+            $currentLine->name,
+            asOf: '2026-06-30',
+        );
+
+        $this->assertSame($broughtLine->amounts[0], $broughtResult->total);
+        $this->assertSame($currentLine->amounts[0], $currentResult->total);
+        $this->assertCount(2, $broughtResult->breakdownRows);
+        $this->assertCount(2, $currentResult->breakdownRows);
+    }
+
+    private function section(FinancialStatement $statement, string $key): StatementSection
+    {
+        foreach ($statement->sections as $section) {
+            if ($section->key === $key) {
+                return $section;
+            }
+        }
+
+        $this->fail("Section {$key} not found.");
     }
 
     /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Accounting\Reports;
 
+use App\Enums\AccountType;
+
 /**
  * Points at one figure the statement already computed.
  *
@@ -19,6 +21,8 @@ final readonly class StatementDrillReference
         public ?string $incomeSummaryKey = null,
         public ?string $incomeSectionKey = null,
         public ?StatementDrillTarget $ledger = null,
+        public ?DrillDateWindow $dateWindow = null,
+        public ?AccountType $accountType = null,
     ) {}
 
     public static function section(string $key): self
@@ -41,8 +45,15 @@ final readonly class StatementDrillReference
         return new self(incomeSectionKey: $key);
     }
 
-    public static function ledger(StatementDrillTarget $target): self
+    public static function ledger(
+        StatementDrillTarget $target,
+        ?DrillDateWindow $dateWindow = null,
+    ): self {
+        return new self(ledger: $target, dateWindow: $dateWindow);
+    }
+
+    public static function accountTypeTotal(AccountType $type, DrillDateWindow $dateWindow): self
     {
-        return new self(ledger: $target);
+        return new self(accountType: $type, dateWindow: $dateWindow);
     }
 }

@@ -24,6 +24,7 @@ return [
         'drill' => [
             'interest_tax_zakat_expense' => 'مصروف الفوائد والضريبة والزكاة',
             'zakat_payable_change' => 'تغير الزكاة المستحقة',
+            'expenses' => 'المصروفات',
         ],
         'total' => 'إجمالي :section',
         'empty_section' => 'لا توجد أرصدة في هذا القسم.',

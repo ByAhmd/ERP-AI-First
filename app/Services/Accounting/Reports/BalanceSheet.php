@@ -109,8 +109,16 @@ final class BalanceSheet
         }
 
         $lines = $built['lines'];
-        $lines[] = StatementLine::derived(__('accounting.statements.lines.brought_forward'), $brought);
-        $lines[] = StatementLine::derived(__('accounting.statements.lines.current_result'), $current);
+        $lines[] = StatementLine::derived(
+            __('accounting.statements.lines.brought_forward'),
+            $brought,
+            drill: StatementDrillTargets::broughtForward(),
+        );
+        $lines[] = StatementLine::derived(
+            __('accounting.statements.lines.current_result'),
+            $current,
+            drill: StatementDrillTargets::currentResult(),
+        );
 
         return new StatementSection(
             key: 'equity',
@@ -118,6 +126,49 @@ final class BalanceSheet
             totals: $this->add($built['totals'], $this->add($brought, $current)),
             drill: StatementDrillTarget::sectionBreakdown('equity'),
         );
+    }
+
+    /**
+     * Revenue less expenses over a window — the figure folded into equity.
+     */
+    public function accumulatedResult(DateRange $range, ReportFilters $filters): string
+    {
+        return $this->result($range, new StatementOptions(filters: $filters));
+    }
+
+    /**
+     * One classification's contribution to accumulated result, in natural direction.
+     */
+    public function typedTotal(AccountType $type, DateRange $range, ReportFilters $filters): string
+    {
+        $totals = $this->balances->forTypes([$type], $range, $filters);
+
+        return match ($type) {
+            AccountType::Expense => bcsub($totals['debit'], $totals['credit'], self::SCALE),
+            default => bcsub($totals['credit'], $totals['debit'], self::SCALE),
+        };
+    }
+
+    public function broughtForwardRange(CarbonImmutable $asOf): DateRange
+    {
+        $year = $this->fiscalYearContaining($asOf);
+
+        if ($year === null) {
+            return DateRange::upTo($asOf);
+        }
+
+        return DateRange::endingBefore($year->start_date);
+    }
+
+    public function currentResultRange(CarbonImmutable $asOf): DateRange
+    {
+        $year = $this->fiscalYearContaining($asOf);
+
+        if ($year === null) {
+            return DateRange::upTo($asOf);
+        }
+
+        return DateRange::between($year->start_date, $asOf);
     }
 
     /**

@@ -72,7 +72,7 @@ final class StatementOfChangesInEquity
         return new FinancialStatement(
             periods: $periods,
             sections: [
-                StatementSection::summary('equity_opening', $opening),
+                StatementSection::summary('equity_opening', $opening, drill: StatementDrillTargets::equityOpening()),
                 new StatementSection(
                     key: 'equity_movements',
                     lines: $lines,

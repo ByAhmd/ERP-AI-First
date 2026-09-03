@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Accounting\Reports;
 
+use App\Enums\AccountType;
 use App\Enums\NormalBalance;
 use App\Models\Account;
 use Carbon\CarbonImmutable;
@@ -26,6 +27,7 @@ final class StatementDrillDown
         private readonly GeneralLedger $ledger,
         private readonly LedgerBalances $balances,
         private readonly IncomeStatement $incomeStatement,
+        private readonly BalanceSheet $balanceSheet,
     ) {}
 
     public function execute(
@@ -36,21 +38,21 @@ final class StatementDrillDown
         return match ($target->kind) {
             DrillKind::PeriodMovements => $this->periodMovements(
                 accounts: $this->resolveAccounts($target),
-                range: $context->period->range,
+                range: $this->resolveDateRange(DrillDateWindow::Period, $context),
                 filters: $context->filters,
                 title: $lineTitle,
                 periodLabel: $context->period->label,
             ),
             DrillKind::CumulativeBalance => $this->cumulativeBalance(
                 accounts: $this->resolveAccounts($target),
-                range: $context->period->range,
+                range: $this->resolveDateRange(DrillDateWindow::Period, $context),
                 filters: $context->filters,
                 title: $lineTitle,
                 periodLabel: $context->period->label,
             ),
             DrillKind::BalanceChange => $this->balanceChange(
                 accounts: $this->resolveAccounts($target),
-                range: $context->period->range,
+                range: $this->resolveDateRange(DrillDateWindow::Period, $context),
                 filters: $context->filters,
                 title: $lineTitle,
                 periodLabel: $context->period->label,
@@ -64,6 +66,7 @@ final class StatementDrillDown
                 context: $context,
                 title: $lineTitle,
                 sectionKey: $target->sectionKey ?? '',
+                atPeriodOpening: $target->atPeriodOpening,
             ),
         };
     }
@@ -106,8 +109,13 @@ final class StatementDrillDown
         FinancialStatementDrillContext $context,
         string $title,
         string $sectionKey,
+        bool $atPeriodOpening = false,
     ): DrillDownResult {
-        $section = $this->findSection($context->statement, $sectionKey)
+        $statement = $atPeriodOpening
+            ? $this->balanceSheetAtPeriodOpening($context)
+            : $context->statement;
+
+        $section = $this->findSection($statement, $sectionKey)
             ?? $this->findSection($this->incomeStatementFor($context), $sectionKey);
         $rows = collect();
         $total = $this->zero();
@@ -172,7 +180,11 @@ final class StatementDrillDown
         }
 
         if ($reference->ledger !== null) {
-            return $this->ledgerAmount($reference->ledger, $context);
+            return $this->ledgerAmount($reference->ledger, $context, $reference->dateWindow);
+        }
+
+        if ($reference->accountType !== null && $reference->dateWindow !== null) {
+            return $this->accountTypeAmount($reference->accountType, $reference->dateWindow, $context);
         }
 
         return $this->zero();
@@ -208,6 +220,8 @@ final class StatementDrillDown
                 'net_profit' => StatementDrillTargets::netProfit(),
                 'net_change' => StatementDrillTargets::netCashChange(),
                 'cash_closing' => StatementDrillTargets::cashClosing(),
+                'cash_opening' => StatementDrillTargets::cashOpening(),
+                'equity_opening' => StatementDrillTargets::equityOpening(),
                 'liabilities_and_equity' => StatementDrillTargets::liabilitiesAndEquity(),
                 'equity_closing' => StatementDrillTargets::equityClosing(),
                 default => null,
@@ -233,9 +247,10 @@ final class StatementDrillDown
     private function ledgerAmount(
         StatementDrillTarget $target,
         FinancialStatementDrillContext $context,
+        ?DrillDateWindow $dateWindow = null,
     ): string {
         $accounts = $this->resolveAccounts($target);
-        $range = $context->period->range;
+        $range = $this->resolveDateRange($dateWindow ?? DrillDateWindow::Period, $context);
 
         return match ($target->kind) {
             DrillKind::PeriodMovements => $this->periodMovementTotal($accounts, $range, $context->filters),
@@ -243,6 +258,57 @@ final class StatementDrillDown
             DrillKind::CumulativeBalance => $this->signedTotal($accounts, DateRange::upTo($range->end), $context->filters),
             default => $this->zero(),
         };
+    }
+
+    private function accountTypeAmount(
+        AccountType $type,
+        DrillDateWindow $dateWindow,
+        FinancialStatementDrillContext $context,
+    ): string {
+        $range = $this->resolveDateRange($dateWindow, $context);
+
+        return $this->balanceSheet->typedTotal($type, $range, $context->filters);
+    }
+
+    private function resolveDateRange(
+        DrillDateWindow $window,
+        FinancialStatementDrillContext $context,
+    ): DateRange {
+        $asOf = $context->period->range->end;
+
+        return match ($window) {
+            DrillDateWindow::Period => $context->period->range,
+            DrillDateWindow::BeforePeriodStart => $this->openingRange($context),
+            DrillDateWindow::BeforeFiscalYearStart => $this->balanceSheet->broughtForwardRange($asOf),
+            DrillDateWindow::FiscalYearToPeriodEnd => $this->balanceSheet->currentResultRange($asOf),
+        };
+    }
+
+    private function openingRange(FinancialStatementDrillContext $context): DateRange
+    {
+        $start = $context->period->range->start;
+
+        if ($start === null) {
+            return DateRange::upTo($context->period->range->end);
+        }
+
+        return DateRange::endingBefore($start);
+    }
+
+    private function balanceSheetAtPeriodOpening(FinancialStatementDrillContext $context): FinancialStatement
+    {
+        $opening = $this->openingRange($context);
+
+        return $this->balanceSheet->build(
+            asOf: $opening->end,
+            options: new StatementOptions(
+                filters: $context->filters,
+                interval: $context->options->interval,
+                comparisons: 0,
+                depth: $context->options->depth,
+                includeEmpty: $context->options->includeEmpty,
+            ),
+        );
     }
 
     /**

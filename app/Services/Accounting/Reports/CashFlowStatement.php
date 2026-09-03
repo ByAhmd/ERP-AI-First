@@ -154,7 +154,7 @@ final class CashFlowStatement
                     drill: StatementDrillTarget::sectionBreakdown('financing'),
                 ),
                 StatementSection::summary('net_change', $netChange, drill: StatementDrillTargets::netCashChange()),
-                StatementSection::summary('cash_opening', $cashOpening),
+                StatementSection::summary('cash_opening', $cashOpening, drill: StatementDrillTargets::cashOpening()),
                 StatementSection::summary('cash_closing', $cashClosing, emphasised: true, drill: StatementDrillTargets::cashClosing()),
             ],
             isFiltered: $options->filters->narrowsLines(),

@@ -139,7 +139,7 @@ final class StatementTree
             accountId: $account->getKey(),
             code: $account->code,
             children: $children,
-            drill: $this->drillFor($account, $children, $drillKind),
+            drill: $this->drillFor($account, $childrenOf, $drillKind),
         );
 
         // A chart of accounts is provisioned complete and a new company uses a
@@ -223,11 +223,11 @@ final class StatementTree
     }
 
     /**
-     * @param  list<StatementLine>  $children
+     * @param  array<string, list<Account>>  $childrenOf
      */
-    private function drillFor(Account $account, array $children, DrillKind $kind): StatementDrillTarget
+    private function drillFor(Account $account, array $childrenOf, DrillKind $kind): StatementDrillTarget
     {
-        if ($children !== []) {
+        if (($childrenOf[$account->getKey()] ?? []) !== []) {
             return StatementDrillTarget::subtree($kind, $account->getKey());
         }
 

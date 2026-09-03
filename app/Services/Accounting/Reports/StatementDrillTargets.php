@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Accounting\Reports;
 
+use App\Enums\AccountType;
 use App\Enums\SystemAccount;
+use App\Models\Account;
 use App\Services\Accounting\AccountRegistry;
 
 /**
@@ -156,6 +158,84 @@ final class StatementDrillTargets
                 label: __('accounting.statements.sections.net_change'),
                 sign: 1,
                 reference: StatementDrillReference::summary('net_change'),
+            ),
+        ]);
+    }
+
+    /** @var list<string> */
+    private const CASH_CODES = ['1110', '1120'];
+
+    public static function cashOpening(): StatementDrillTarget
+    {
+        $parts = [];
+
+        foreach (self::CASH_CODES as $code) {
+            $account = Account::query()->where('code', $code)->first();
+
+            if ($account === null) {
+                continue;
+            }
+
+            $parts[] = new StatementDrillPart(
+                label: app()->getLocale() === 'en' && filled($account->name_en)
+                    ? $account->name_en
+                    : $account->name,
+                sign: 1,
+                reference: StatementDrillReference::ledger(
+                    StatementDrillTarget::account(DrillKind::CumulativeBalance, $account->getKey()),
+                    DrillDateWindow::BeforePeriodStart,
+                ),
+            );
+        }
+
+        return StatementDrillTarget::composite($parts);
+    }
+
+    public static function equityOpening(): StatementDrillTarget
+    {
+        return StatementDrillTarget::sectionBreakdownAtOpening('equity');
+    }
+
+    public static function broughtForward(): StatementDrillTarget
+    {
+        return StatementDrillTarget::composite([
+            new StatementDrillPart(
+                label: __('accounting.statements.sections.revenue'),
+                sign: 1,
+                reference: StatementDrillReference::accountTypeTotal(
+                    AccountType::Revenue,
+                    DrillDateWindow::BeforeFiscalYearStart,
+                ),
+            ),
+            new StatementDrillPart(
+                label: __('accounting.statements.drill.expenses'),
+                sign: -1,
+                reference: StatementDrillReference::accountTypeTotal(
+                    AccountType::Expense,
+                    DrillDateWindow::BeforeFiscalYearStart,
+                ),
+            ),
+        ]);
+    }
+
+    public static function currentResult(): StatementDrillTarget
+    {
+        return StatementDrillTarget::composite([
+            new StatementDrillPart(
+                label: __('accounting.statements.sections.revenue'),
+                sign: 1,
+                reference: StatementDrillReference::accountTypeTotal(
+                    AccountType::Revenue,
+                    DrillDateWindow::FiscalYearToPeriodEnd,
+                ),
+            ),
+            new StatementDrillPart(
+                label: __('accounting.statements.drill.expenses'),
+                sign: -1,
+                reference: StatementDrillReference::accountTypeTotal(
+                    AccountType::Expense,
+                    DrillDateWindow::FiscalYearToPeriodEnd,
+                ),
             ),
         ]);
     }

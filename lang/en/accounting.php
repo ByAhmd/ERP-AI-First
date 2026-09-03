@@ -24,6 +24,7 @@ return [
         'drill' => [
             'interest_tax_zakat_expense' => 'Interest, tax and zakat expense',
             'zakat_payable_change' => 'Change in zakat payable',
+            'expenses' => 'Expenses',
         ],
         'total' => 'Total :section',
         'empty_section' => 'No balances in this section.',

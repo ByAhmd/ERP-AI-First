@@ -23,6 +23,7 @@ final readonly class StatementDrillTarget
         public bool $subtree = false,
         public array $parts = [],
         public ?string $sectionKey = null,
+        public bool $atPeriodOpening = false,
     ) {}
 
     public static function account(DrillKind $kind, string $accountId): self
@@ -46,6 +47,15 @@ final readonly class StatementDrillTarget
     public static function sectionBreakdown(string $sectionKey): self
     {
         return new self(kind: DrillKind::SectionBreakdown, sectionKey: $sectionKey);
+    }
+
+    public static function sectionBreakdownAtOpening(string $sectionKey): self
+    {
+        return new self(
+            kind: DrillKind::SectionBreakdown,
+            sectionKey: $sectionKey,
+            atPeriodOpening: true,
+        );
     }
 
     public function isDrillable(): bool
